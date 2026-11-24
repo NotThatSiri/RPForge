@@ -2,40 +2,28 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
-## [0.1.5] - 2026-11-24
+## [0.1.2] - unreleased
 
-### Fixed
-- The cogwheel showed a game icon with a dark square behind it. It is now RP Forge's own cogwheel and
-  takes the theme's colours.
-- The close button is now a matching X icon, muted until you point at it.
-
-## [0.1.4] - 2026-11-24
-
-### Changed
-- Settings moved out of the side menu to a cogwheel next to the close button. Click it to open
-  Settings; click it again to go back to the page you were on. General and Appearance are tabs at the
-  top of Settings.
-- Right-clicking the minimap anvil opens Settings > Appearance.
-
-## [0.1.3] - 2026-11-24
+The RP Forge window, in its own look.
 
 ### Added
-- A **Settings** section in the side menu, with **General** and **Appearance** pages.
-- General: turn player messages and debug messages on or off, and move the window back to the middle.
-- Themes: **Parchment** (warm paper and dark ink, the new default), **Forge** (charcoal with an ember
-  glow) and **Arcane** (slate blue with a teal light). Pick one under Settings > Appearance or with
-  `/rpf theme parchment`, `forge` or `arcane`. The window changes straight away.
-- Minimap button with an anvil. Left-click opens or closes RP Forge, right-click opens Appearance; drag
-  it to move it around the minimap. Hide or show it under Settings > Appearance or with `/rpf minimap`.
-
-## [0.1.2] - 2026-11-24
-
-### Added
-- The RP Forge window. `/rpf` opens it (`/rpf open` too). Drag the title bar to move it; it remembers
-  where you left it. Escape or the x closes it. `/rpf reset` moves it back to the middle of the screen.
-- Home page: your version (and whether a newer one is out), how many RP Forge players were heard, and a
-  "Who's around?" button.
-- About page: credits, licence and a link to the GitHub page to copy.
+- The RP Forge window. `/rpf` opens it (`/rpf open` too).
+  - Drag the title bar to move it; it remembers where you left it.
+  - Escape or the X closes it. `/rpf reset` moves it back to the middle of the screen.
+- A side menu with the main pages:
+  - **Home:** your version (and whether a newer one is out), how many RP Forge players were heard, and
+    a "Who's around?" button.
+  - **About:** credits, licence and a link to the GitHub page to copy.
+- **Settings**, opened with the cogwheel next to the X. Click it again to go back to the page you were on.
+  - **General:** player messages and debug messages on or off, and a button to move the window back to
+    the middle.
+  - **Appearance:** themes and the minimap button.
+- Three themes: **Parchment** (warm paper and dark ink, the default), **Forge** (charcoal with an ember
+  glow) and **Arcane** (slate blue with a teal light). They change the window straight away.
+  `/rpf theme parchment`, `forge` or `arcane` works too.
+- A minimap button with an anvil. Left-click opens or closes RP Forge, right-click opens Settings >
+  Appearance; drag it to move it around the minimap. `/rpf minimap` shows or hides it.
+- RP Forge's own cogwheel and X icons, coloured by the theme.
 
 ### Changed
 - `/rpf` on its own now opens the window. `/rpf help` lists the commands.
