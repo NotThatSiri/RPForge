@@ -147,17 +147,6 @@ local function Build()
     scroll:SetScrollChild(text)
     window.text = text
 
-    local linkLabel = UI.Text(window, "BUG REPORT FORM (click, then Ctrl+C to copy)", 10, "muted")
-    linkLabel:SetPoint("BOTTOMLEFT", 20, 62)
-    local link = UI.EditBox(window, 460, 26)
-    link:SetPoint("BOTTOMLEFT", 20, 30)
-    link:SetText(ISSUE_URL)
-    link:SetCursorPosition(0)
-    link:SetScript("OnEditFocusGained", function(self) self:HighlightText() end)
-    link:SetScript("OnTextChanged", function(self, userInput)
-        if userInput then self:SetText(ISSUE_URL); self:HighlightText() end
-    end)
-
     local selectAll = UI.Button(window, "Select all", 110, 26, "primary")
     selectAll:SetPoint("BOTTOMRIGHT", -20, 30)
     selectAll:SetScript("OnClick", function()
@@ -165,9 +154,39 @@ local function Build()
         window.text:HighlightText()
     end)
 
-    local close = UI.Button(window, "Close", 80, 26)
-    close:SetPoint("RIGHT", selectAll, "LEFT", -8, 0)
-    close:SetScript("OnClick", function() window:Hide() end)
+    local closeButton = UI.Button(window, "Close", 80, 26)
+    closeButton:SetPoint("RIGHT", selectAll, "LEFT", -8, 0)
+    closeButton:SetScript("OnClick", function() window:Hide() end)
+
+    -- The same X as the main window, top right.
+    local x = CreateFrame("Button", nil, window)
+    x:SetSize(28, 28)
+    x:SetPoint("TOPRIGHT", -8, -8)
+    x.icon = x:CreateTexture(nil, "ARTWORK")
+    x.icon:SetTexture("Interface\\AddOns\\" .. RPF.ADDON .. "\\Media\\Icons\\Close")
+    x.icon:SetPoint("CENTER")
+    x.icon:SetSize(14, 14)
+    local function TintX(key)
+        local col = UI.Color(key)
+        x.icon:SetVertexColor(col[1], col[2], col[3], 1)
+    end
+    TintX("muted")
+    x:SetScript("OnEnter", function() TintX("bad") end)
+    x:SetScript("OnLeave", function() TintX("muted") end)
+    x:SetScript("OnClick", function() window:Hide() end)
+
+    local linkLabel = UI.Text(window, "BUG REPORT FORM (click, then Ctrl+C to copy)", 10, "muted")
+    linkLabel:SetPoint("BOTTOMLEFT", 20, 62)
+    -- The link box fills the space up to the buttons, so it can never cover them.
+    local link = UI.EditBox(window, 100, 26)
+    link:SetPoint("BOTTOMLEFT", 20, 30)
+    link:SetPoint("RIGHT", closeButton, "LEFT", -12, 0)
+    link:SetText(ISSUE_URL)
+    link:SetCursorPosition(0)
+    link:SetScript("OnEditFocusGained", function(self) self:HighlightText() end)
+    link:SetScript("OnTextChanged", function(self, userInput)
+        if userInput then self:SetText(ISSUE_URL); self:HighlightText() end
+    end)
 end
 
 function RPF.OpenBugReport()
