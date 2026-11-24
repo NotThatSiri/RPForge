@@ -2,6 +2,19 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.13] - 2026-11-24
+
+### Added
+- **Accents.** A new **Voice** tab in the profile editor lets each profile pick an accent and a strength
+  (Light, Medium or Strong):
+  - Alliance: Dwarven, Gnomish, Kaldorei, Draenei, Gilnean.
+  - Horde: Orcish, Trollish, Forsaken, Tauren, Sin'dorei, Goblin.
+- The accent changes what you post from the RP chat window: everything you say or yell, and only the
+  words in "quotes" when you emote. *Actions*, ((OOC)), links and colour codes are left alone. Capitals
+  are kept ("You" becomes "Ye", "YOU" becomes "YE").
+- **Try it** on the Voice tab shows your own text and an emote with the accent applied.
+- The RP chat typing box shows your accent in its corner.
+
 ## [0.3.12] - 2026-11-24
 
 ### Changed

@@ -361,6 +361,7 @@ local function SendFromBox(box)
             break
         end
     end
+    text = RPF.Accents.Apply(text, mode)
     for _, part in ipairs(Chat.SplitPost(text)) do
         SendChatMessage(part, mode)
     end
@@ -597,8 +598,19 @@ local function Build()
         box:SetTextColor(r, g, b, 1)
         placeholder:SetText(MODE_HINTS[mode])
         boxFrame:SetBackdropBorderColor(r, g, b, box:HasFocus() and 1 or 0.45)
+        if window.UpdateCorner then window.UpdateCorner() end
     end
     window.ShowMode = ShowMode
+    -- Bottom-right corner: your accent, and how many posts a long text becomes.
+    function window.UpdateCorner()
+        local text = box:GetText() or ""
+        local count = #Chat.SplitPost(RPF.Accents.Apply(text, RPF.db.settings.chatMode or "SAY"))
+        local accent = RPF.Accents.Describe()
+        local parts = {}
+        if accent then parts[#parts + 1] = accent end
+        if count > 1 then parts[#parts + 1] = count .. " posts" end
+        window.parts:SetText(table.concat(parts, "  -  "))
+    end
     ShowMode()
     box:SetScript("OnEditFocusGained", ShowMode)
     box:SetScript("OnEditFocusLost", ShowMode)
@@ -625,8 +637,7 @@ local function Build()
             end
         end
         placeholder:SetShown(text == "")
-        local count = #Chat.SplitPost(text)
-        window.parts:SetText(count > 1 and (count .. " posts") or "")
+        window.UpdateCorner()
         -- Grow from 2 to 6 lines as you type.
         local lines = math.max(2, math.min(6, math.ceil((self:GetHeight() > 0 and select(2, text:gsub("\n", "")) + 1) or 1)))
         local _, fontHeight = self:GetFont()
@@ -746,7 +757,12 @@ RPF.Listen("PERSON_UPDATED", function()
         Chat.Refresh()
     end)
 end)
-RPF.Listen("PROFILE_CHANGED", function() if window and window:IsShown() then Chat.Refresh() end end)
+RPF.Listen("PROFILE_CHANGED", function()
+    if window and window:IsShown() then
+        Chat.Refresh()
+        if window.UpdateCorner then window.UpdateCorner() end
+    end
+end)
 
 RPF.Listen("DATA_READY", function()
     RPF.char.chatLog = RPF.char.chatLog or {}
