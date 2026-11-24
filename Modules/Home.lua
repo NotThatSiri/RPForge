@@ -42,9 +42,13 @@ end
 local function RefreshHome()
     if not home then return end
     local profile = Profiles.GetActive()
-    local f = profile and profile.fields or {}
+    -- With "Keep Total RP 3" chosen, the banner shows the Total RP 3 profile instead.
+    local usingTRP3 = RPF.TRP3Link and RPF.TRP3Link.UsingTRP3()
+    local f = (usingTRP3 and RPF.TRP3Link.CurrentTRP3Fields()) or (profile and profile.fields) or {}
 
-    home.name:SetText(Profiles.FullName(profile))
+    home.name:SetText(Profiles.FullName({ fields = f }))
+    home.edit.label:SetText(usingTRP3 and "Edit in Total RP 3" or "Edit profile")
+    for _, b in ipairs(home.statusRow.buttons) do b:SetEnabled(not usingTRP3) end
     home.fullTitle:SetText((f.fullTitle and f.fullTitle ~= "") and ("< " .. f.fullTitle .. " >") or "")
     local race = (f.race and f.race ~= "") and f.race or UnitRace("player")
     local class = (f.class and f.class ~= "") and f.class or UnitClass("player")
@@ -134,7 +138,10 @@ UI.RegisterPage({
 
         local edit = UI.Button(overlay, "Edit profile", 140, 26, "primary")
         edit:SetPoint("TOPRIGHT", -14, -14)
-        edit:SetScript("OnClick", function() UI.OpenProfile() end)
+        edit:SetScript("OnClick", function()
+            if RPF.TRP3Link and RPF.TRP3Link.UsingTRP3() then RPF.TRP3Link.OpenTRP3() else UI.OpenProfile() end
+        end)
+        home.edit = edit
         local background = UI.Button(overlay, "Change background", 140, 26)
         background:SetPoint("TOPRIGHT", edit, "BOTTOMRIGHT", 0, -6)
         background:SetScript("OnClick", function() UI.ShowPage("backgrounds") end)
@@ -157,7 +164,9 @@ UI.RegisterPage({
         home.currently = UI.Text(currentlyButton, "", 12, "text")
         home.currently:SetAllPoints()
         home.currently:SetWordWrap(false)
-        currentlyButton:SetScript("OnClick", function() UI.OpenProfile("status") end)
+        currentlyButton:SetScript("OnClick", function()
+            if RPF.TRP3Link and RPF.TRP3Link.UsingTRP3() then RPF.TRP3Link.OpenTRP3() else UI.OpenProfile("status") end
+        end)
         UI.Tooltip(currentlyButton, "Currently", "Click to change it on your profile.")
 
         -- RP Forge card ------------------------------------------------------------------------
