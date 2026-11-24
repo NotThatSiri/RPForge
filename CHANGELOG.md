@@ -2,6 +2,16 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.2.14] - 2026-11-24
+
+### Changed
+- RP Forge no longer uses image files of its own; everything is drawn with simple shapes and text, or
+  uses the game's own art.
+  - The title bar has a **Settings** text button (highlighted while Settings is open) and a text **X**.
+    The bug report window has the same X.
+  - Your portrait on Home sits in a square frame with a thin border in the theme's colour.
+  - Traits show as flat **pips** instead of round dots: faint when empty, full colour when filled.
+
 ## [0.2.13] - 2026-11-24
 
 ### Changed

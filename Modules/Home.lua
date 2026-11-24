@@ -131,17 +131,14 @@ UI.RegisterPage({
         local b = UI.Color("border")
         overlay:SetBackdropBorderColor(b[1], b[2], b[3], 1)
 
-        local portraitFrame = CreateFrame("Frame", nil, overlay)
-        portraitFrame:SetSize(112, 112)
+        -- Portrait in a square frame with a thin border in the theme's accent colour.
+        local portraitFrame = CreateFrame("Frame", nil, overlay, UI.BACKDROP_TEMPLATE)
+        portraitFrame:SetSize(104, 104)
         portraitFrame:SetPoint("LEFT", 26, 0)
+        UI.Backdrop(portraitFrame, "window", "accent")
         home.portrait = portraitFrame:CreateTexture(nil, "ARTWORK")
-        home.portrait:SetSize(96, 96)
-        home.portrait:SetPoint("CENTER")
-        local ring = portraitFrame:CreateTexture(nil, "OVERLAY")
-        ring:SetTexture("Interface\\AddOns\\" .. RPF.ADDON .. "\\Media\\Icons\\Ring")
-        ring:SetAllPoints()
-        local a = UI.Color("accent")
-        ring:SetVertexColor(a[1], a[2], a[3], 1)
+        home.portrait:SetPoint("TOPLEFT", 2, -2)
+        home.portrait:SetPoint("BOTTOMRIGHT", -2, 2)
 
         home.name = BannerText(overlay, 24, BANNER_NAME)
         home.name:SetPoint("TOPLEFT", portraitFrame, "TOPRIGHT", 20, -14)
