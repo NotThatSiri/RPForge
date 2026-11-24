@@ -152,14 +152,14 @@ end
 local function FindUnit(guid)
     if not guid then return nil end
     for _, unit in ipairs({ "player", "target", "mouseover", "focus" }) do
-        if UnitGUID(unit) == guid then return unit end
+        if RPF.UnitGUID(unit) == guid then return unit end
     end
-    for i = 1, 4 do if UnitGUID("party" .. i) == guid then return "party" .. i end end
-    for i = 1, 40 do if UnitGUID("raid" .. i) == guid then return "raid" .. i end end
+    for i = 1, 4 do if RPF.UnitGUID("party" .. i) == guid then return "party" .. i end end
+    for i = 1, 40 do if RPF.UnitGUID("raid" .. i) == guid then return "raid" .. i end end
     if C_NamePlate and C_NamePlate.GetNamePlates then
         for _, plate in ipairs(C_NamePlate.GetNamePlates()) do
             local unit = plate.namePlateUnitToken or (plate.UnitFrame and plate.UnitFrame.unit)
-            if unit and UnitGUID(unit) == guid then return unit end
+            if unit and not RPF.IsSecret(unit) and RPF.UnitGUID(unit) == guid then return unit end
         end
     end
     return nil
@@ -406,7 +406,7 @@ local function NearbyForgeUsers()
         if UsesRPForge(name) then out[#out + 1] = name end
     end
     local function AddUnit(unit)
-        if UnitExists(unit) and UnitIsPlayer(unit) then Add(GetUnitName(unit, true)) end
+        Add(RPF.PlayerName(unit))
     end
     AddUnit("target")
     AddUnit("mouseover")
@@ -741,9 +741,10 @@ local function OnChat(event, text, sender, language, _, _, _, _, _, _, _, _, gui
     -- mouseover, group or nameplates): then their target is "<unit>target".
     local unit = FindUnit(guid)
     local targetUnit = unit and (unit == "player" and "target" or (unit .. "target"))
-    if targetUnit and UnitExists(targetUnit) and UnitGUID(targetUnit) ~= guid then
-        msg.target = Sharing.MergedName(targetUnit) or UnitName(targetUnit)
-        msg.targetGuid = UnitGUID(targetUnit)
+    local targetGuid = targetUnit and RPF.UnitGUID(targetUnit)
+    if targetGuid and targetGuid ~= guid then
+        msg.target = Sharing.MergedName(targetUnit) or RPF.PlayerName(targetUnit)
+        msg.targetGuid = targetGuid
     end
     if typists[ShortName(sender)] then SomeoneTyping(sender, false) end
     local previous = messages[#messages]

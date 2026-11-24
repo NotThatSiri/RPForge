@@ -2,6 +2,13 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.16] - 2026-11-24
+
+### Fixed
+- Opening the RP chat could give "attempt to compare a secret string value" while nameplates were shown.
+  The game hides who some nameplates belong to; RP Forge now skips those instead of failing (for
+  portraits, "Name -> Target" and the typing indicator).
+
 ## [0.3.15] - 2026-11-24
 
 ### Added
