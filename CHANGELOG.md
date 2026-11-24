@@ -2,6 +2,12 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.7] - 2026-11-24
+
+### Changed
+- The **Square** portrait shape no longer shows a moving 3D model. It uses the same still portrait as
+  Circle, cropped to fill the square.
+
 ## [0.3.6] - 2026-11-24
 
 ### Fixed

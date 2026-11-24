@@ -75,17 +75,12 @@ local function RefreshHome()
     local guild = GetGuildInfo("player")
     home.guild:SetText(guild and ("<" .. guild .. ">") or "")
 
-    -- Portrait shape (Settings > Appearance): a round portrait in a theme-coloured ring, or a square
-    -- head-and-shoulders view of your character (the game's 3D model, zoomed on the face).
+    -- Portrait shape (Settings > Appearance): the game's still portrait, round in a gold ring or
+    -- cropped to fill a square.
     local square = RPF.db.settings.portraitShape == "square"
     home.circle:SetShown(not square)
     home.square:SetShown(square)
-    if square then
-        home.model:SetUnit("player")
-        if home.model.SetPortraitZoom then home.model:SetPortraitZoom(1) end
-    else
-        SetPortraitTexture(home.portrait, "player")
-    end
+    SetPortraitTexture(square and home.squarePortrait or home.portrait, "player")
     if not Backgrounds.Apply(home.art, ChosenBackground(profile)) then
         Backgrounds.Apply(home.art, Backgrounds.PlayerRace())
     end
@@ -161,13 +156,15 @@ UI.RegisterPage({
         ring:SetSize(size * 2.622, size * 2.622)
         ring:SetPoint("TOPLEFT", home.portrait, "TOPLEFT", -size / 3, size * 0.233)
 
-        -- Square: the character's 3D model zoomed on the face, in a thin accent border.
+        -- Square: the same still portrait, cropped to the square inside its round picture so it
+        -- fills the frame, in a thin accent border.
         home.square = CreateFrame("Frame", nil, portraitFrame, UI.BACKDROP_TEMPLATE)
         home.square:SetAllPoints()
         UI.Backdrop(home.square, "window", "accent")
-        home.model = CreateFrame("PlayerModel", nil, home.square)
-        home.model:SetPoint("TOPLEFT", 2, -2)
-        home.model:SetPoint("BOTTOMRIGHT", -2, 2)
+        home.squarePortrait = home.square:CreateTexture(nil, "ARTWORK")
+        home.squarePortrait:SetPoint("TOPLEFT", 2, -2)
+        home.squarePortrait:SetPoint("BOTTOMRIGHT", -2, 2)
+        home.squarePortrait:SetTexCoord(0.15, 0.85, 0.15, 0.85)
 
         home.name = BannerText(overlay, 24, BANNER_NAME)
         home.name:SetPoint("TOPLEFT", portraitFrame, "TOPRIGHT", 20, -14)

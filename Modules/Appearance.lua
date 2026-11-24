@@ -93,7 +93,7 @@ UI.RegisterSettingsPage({
             RPF.db.settings.portraitShape = value
         end)
         page.portraitShape:SetPoint("TOPLEFT", shapeLabel, "BOTTOMLEFT", 0, -8)
-        local shapeHint = UI.Text(page, "Circle: a round portrait in a ring.   Square: a close-up of your character.", 11, "muted")
+        local shapeHint = UI.Text(page, "Circle: a round portrait in a ring.   Square: a portrait filling a square frame.", 11, "muted")
         shapeHint:SetPoint("LEFT", page.portraitShape, "RIGHT", 14, 0)
 
         local chatLabel = UI.Text(page, "RP CHAT LAYOUT", 10, "muted")
