@@ -2,6 +2,13 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.14] - 2026-11-24
+
+### Fixed
+- An error ("bad argument #1 to 'UnitFullName' ... Secret values are only allowed during untainted
+  execution") could appear when someone's profile arrived while a player tooltip was open. The game now
+  hides which unit a tooltip shows in some cases; RP Forge then uses the player under your mouse.
+
 ## [0.3.13] - 2026-11-24
 
 ### Added

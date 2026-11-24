@@ -43,9 +43,15 @@ Sharing.otherAddon = nil
 
 local IsLoaded = (C_AddOns and C_AddOns.IsAddOnLoaded) or IsAddOnLoaded
 
+-- Values the game marks as secret (some unit tokens in this client) can't be used by addons.
+local function IsSecret(value)
+    return issecretvalue ~= nil and issecretvalue(value) == true
+end
+
 local function MergedName(unit)
-    local name, realm = UnitFullName(unit)
-    if not name then return nil end
+    if IsSecret(unit) or not unit then return nil end
+    local okName, name, realm = pcall(UnitFullName, unit)
+    if not okName or IsSecret(name) or not name then return nil end
     -- On surname clients (WoW Forever) Chomp refuses names that aren't "Given Surname" yet, for example
     -- while the game is still loading someone's name. Fall back to the plain name instead of an error.
     if AddOn_Chomp and AddOn_Chomp.NameMergedRealm then
@@ -211,9 +217,19 @@ local function AddLines(tooltip, unit)
     tooltip:Show()
 end
 
+-- The unit a tooltip shows. The game may hand it over as a secret value; then use the unit under the
+-- mouse, which is what the tooltip shows in that case.
+local function TooltipUnit(tooltip)
+    local _, unit = tooltip:GetUnit()
+    if IsSecret(unit) or unit == nil then
+        unit = UnitExists("mouseover") and "mouseover" or nil
+    end
+    return unit
+end
+
 local function OnTooltipUnit(tooltip)
     if Sharing.mode ~= "own" or tooltip ~= GameTooltip then return end
-    local _, unit = tooltip:GetUnit()
+    local unit = TooltipUnit(tooltip)
     if unit and UnitIsPlayer(unit) then RPF.SafeCall("tooltip", AddLines, tooltip, unit) end
 end
 
@@ -229,7 +245,7 @@ end
 local function OnReceived(name)
     RPF.SafeCall("remember", Remember, name)
     if not GameTooltip:IsShown() then return end
-    local _, unit = GameTooltip:GetUnit()
+    local unit = TooltipUnit(GameTooltip)
     if unit and MergedName(unit) == name then GameTooltip:SetUnit(unit) end
 end
 
