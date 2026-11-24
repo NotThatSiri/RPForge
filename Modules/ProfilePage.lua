@@ -57,7 +57,7 @@ local page -- the built page frame, so PROFILE_CHANGED can update it
 
 local IDENTITY_LEFT = {
     { "firstName", "FIRST NAME  (empty = your character's name)" }, { "lastName", "LAST NAME" },
-    { "title", "TITLE  (before the name, e.g. Lady)" }, { "epithet", "EPITHET  (after the name, e.g. the Wanderer)" },
+    { "title", "TITLE  (before the name, e.g. Lady)" }, { "fullTitle", "FULL TITLE  (under your name, e.g. Captain of the Guard)" },
     { "nickname", "NICKNAME" }, { "pronouns", "PRONOUNS" },
 }
 local IDENTITY_RIGHT = {
@@ -68,8 +68,9 @@ local IDENTITY_RIGHT = {
 local function RefreshHeader()
     local profile = Profiles.GetActive()
     local name = Profiles.FullName(profile)
-    local epithet = Profiles.GetField("epithet", profile)
-    page.fullName:SetText(name .. ((epithet and epithet ~= "") and (", " .. epithet) or ""))
+    page.fullName:SetText(name)
+    local fullTitle = Profiles.GetField("fullTitle", profile)
+    page.fullTitle:SetText((fullTitle and fullTitle ~= "") and ("< " .. fullTitle .. " >") or "")
     page.switcher.label:SetText("Profile: " .. (profile and profile.name or "?"))
 end
 
@@ -201,23 +202,27 @@ UI.RegisterPage({
         page.fullName:SetPoint("TOPLEFT", MARGIN, -24)
         page.fullName:SetPoint("RIGHT", page.switcher, "LEFT", -16, 0)
         page.fullName:SetWordWrap(false)
+        page.fullTitle = UI.Text(frame, "", 12, "muted")
+        page.fullTitle:SetPoint("TOPLEFT", page.fullName, "BOTTOMLEFT", 0, -5)
+        page.fullTitle:SetPoint("RIGHT", page.switcher, "LEFT", -16, 0)
+        page.fullTitle:SetWordWrap(false)
 
         page.tabButtons, page.tabs = {}, {}
         local tabX = MARGIN
         for _, spec in ipairs({ { "identity", "Identity" }, { "status", "Status" }, { "about", "About" } }) do
             local b = UI.Button(frame, spec[2], 120, 26)
             b.tabKey = spec[1]
-            b:SetPoint("TOPLEFT", tabX, -66)
+            b:SetPoint("TOPLEFT", tabX, -80)
             b:SetScript("OnClick", function() ShowTab(spec[1]) end)
             page.tabButtons[#page.tabButtons + 1] = b
             tabX = tabX + 126
 
             local tab = CreateFrame("Frame", nil, frame)
-            tab:SetPoint("TOPLEFT", MARGIN, -112)
+            tab:SetPoint("TOPLEFT", MARGIN, -126)
             tab:SetPoint("BOTTOMRIGHT", -MARGIN, 20)
             page.tabs[spec[1]] = tab
         end
-        UI.Divider(frame, -100, MARGIN)
+        UI.Divider(frame, -114, MARGIN)
         local width = (frame:GetWidth() > 0 and frame:GetWidth() or 788) - MARGIN * 2
         BuildIdentity(page.tabs.identity, width)
         BuildStatus(page.tabs.status)

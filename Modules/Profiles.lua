@@ -11,7 +11,7 @@ RPF.Profiles = Profiles
 -- The fields of a profile, with the most letters each may hold.
 Profiles.FIELDS = {
     -- Identity
-    firstName = 64, lastName = 64, title = 48, epithet = 96, nickname = 64, pronouns = 32,
+    firstName = 64, lastName = 64, title = 48, fullTitle = 128, nickname = 64, pronouns = 32,
     race = 48, class = 48, age = 32, height = 32, eyes = 48, birthplace = 64, home = 64, house = 64,
     -- Status
     status = 8, currently = 256, oocNote = 256, motto = 160,
@@ -155,5 +155,12 @@ RPF.OnEvent("PLAYER_LOGIN", function()
     end
     if not Profiles.GetActive() then
         RPF.char.activeProfile = Profiles.List()[1].id
+    end
+    -- "Epithet" became "Full title" during 0.2.0: move anything typed there.
+    for _, profile in pairs(Store()) do
+        if profile.fields.epithet then
+            profile.fields.fullTitle = profile.fields.fullTitle or profile.fields.epithet
+            profile.fields.epithet = nil
+        end
     end
 end)
