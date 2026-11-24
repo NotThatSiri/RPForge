@@ -2,6 +2,14 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.12] - 2026-11-24
+
+### Changed
+- The RP chat typing box has no Say, Emote and Yell buttons any more. Type **/s**, **/e** (or /me) or
+  **/y** at the start, like in the game's chat, to switch; the command disappears and the box shows
+  "Say:", "Emote:" or "Yell:" with its border and text in that chat colour. It stays in that mode until
+  you switch again.
+
 ## [0.3.11] - 2026-11-24
 
 ### Added
