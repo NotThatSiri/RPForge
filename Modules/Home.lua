@@ -55,7 +55,7 @@ UI.RegisterPage({
             end)
         end)
 
-        local comingNext = UI.Text(page, "Coming next: a bug report button, then your profile and its link with Total RP 3.", 11, "muted")
+        local comingNext = UI.Text(page, "Coming next: your profile, and its link with Total RP 3.", 11, "muted")
         comingNext:SetPoint("TOPLEFT", card, "BOTTOMLEFT", 0, -18)
     end,
     onShow = function(page)
@@ -82,7 +82,7 @@ UI.RegisterPage({
         local lines = {
             "Made by NotThatSiri.",
             "Licensed under the Apache License 2.0. You may use, change and share it; keep the copyright notice and say what you changed.",
-            "Found a bug or have an idea? Use the link below. /rpf errors shows anything that went wrong.",
+            "Found a bug? Click Report a bug: it gathers everything the report needs. Ideas are welcome on GitHub too.",
         }
         local anchor = heading
         for _, line in ipairs(lines) do
@@ -102,5 +102,15 @@ UI.RegisterPage({
         link:SetScript("OnTextChanged", function(self, userInput)
             if userInput then self:SetText(GITHUB_URL); self:HighlightText() end
         end)
+
+        local report = UI.Button(page, "Report a bug", 140, 26, "primary")
+        report:SetPoint("TOPLEFT", link, "BOTTOMLEFT", 0, -22)
+        report:SetScript("OnClick", function() RPF.OpenBugReport() end)
+        page.errorCount = UI.Text(page, "", 11, "muted")
+        page.errorCount:SetPoint("LEFT", report, "RIGHT", 14, 0)
+    end,
+    onShow = function(page)
+        local count = #RPF.GetErrors()
+        page.errorCount:SetText(count == 0 and "No errors logged." or (count .. " error(s) logged; they go into the report."))
     end,
 })
