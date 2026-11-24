@@ -97,6 +97,8 @@ function RPF.BuildBugReport()
     Add("RP Forge " .. RPF.VERSION .. " (data " .. RPF.SCHEMA_VERSION .. ", messages " .. RPF.PROTOCOL_VERSION .. ")")
     Add("Game " .. tostring(gameVersion) .. " (build " .. tostring(build) .. ", " .. tostring(buildDate) .. ", interface " .. tostring(interface) .. "), " .. tostring(GetLocale()))
     Add("Theme " .. tostring(settings.theme) .. ", player messages " .. (settings.network and "on" or "off") .. ", debug " .. (settings.debug and "on" or "off"))
+    if RPF.Sharing then Add("Profile sharing: " .. RPF.Sharing.Describe()) end
+    if RPF.TRP3Link then Add("Total RP 3: " .. RPF.TRP3Link.Describe()) end
     Add("")
 
     local addons = AddonList()

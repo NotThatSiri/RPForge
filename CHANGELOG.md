@@ -2,6 +2,38 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.2.5] - 2026-11-24
+
+Choosing between Total RP 3 and RP Forge.
+
+### Added
+- When Total RP 3 is installed, RP Forge asks once what you'd like to do:
+  - **Keep Total RP 3 for my profile:** Total RP 3 keeps editing and sharing your profile. Home shows your
+    Total RP 3 profile, and **Edit in Total RP 3** opens it.
+  - **Move my profiles to RP Forge:** every Total RP 3 profile is copied into RP Forge (names, titles,
+    identity, status, currently, OOC note, appearance, history), then Total RP 3 and its add-ons are turned
+    off and the game reloads. Total RP 3's saved data is kept.
+  - **Decide later:** asks again at the next login.
+- If you moved to RP Forge and Total RP 3 is turned on again, RP Forge asks again.
+- **Settings > General** shows your choice, with **Choose again**.
+
+## [0.2.4] - 2026-11-24
+
+Sharing your profile with other roleplay addons.
+
+### Added
+- Players using Total RP 3, MyRolePlay or XRP can now see your RP Forge profile: your name, title, full
+  title, status, what you're doing, your appearance, history and the other details.
+- Player tooltips show other players' roleplay name, full title, status (In character, Looking for RP,
+  Out of character) and what they're doing, if they use a roleplay addon.
+- RP Forge remembers the profiles it hears, ready for a People page later.
+- `/rpf sharing` says which addon shares your profile.
+
+### Notes
+- Only one addon can share your profile. If Total RP 3 (or MyRolePlay, XRP or Kinship) is running, it
+  keeps doing so and RP Forge stays quiet; choosing between them comes in a later build.
+- Profiles travel through LibMSP and Chomp, the shared libraries these addons use (see `Libs/README.txt`).
+
 ## [0.2.3] - 2026-11-24
 
 ### Fixed

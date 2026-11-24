@@ -1,0 +1,191 @@
+-- RP Forge: sharing profiles with other roleplay addons (Total RP 3, MyRolePlay, XRP...).
+--
+-- Uses the Mary Sue Protocol through LibMSP (in Libs), the format those addons share.
+-- Only one addon per player may answer MSP requests. At login:
+--   * another roleplay addon is running (e.g. Total RP 3)  -> it sends your profile; RP Forge stays quiet
+--   * none is running                                      -> RP Forge sends your active profile
+-- When RP Forge sends, it also adds roleplay names, titles and status to player tooltips, and remembers
+-- the profiles it hears so they can be shown later.
+local _, RPF = ...
+local UI = RPF.UI
+local Profiles = RPF.Profiles
+
+local Sharing = RPF.NewModule("Sharing")
+RPF.Sharing = Sharing
+
+-- Folder names of roleplay addons that answer MSP themselves.
+local OTHER_ADDONS = {
+    { folder = "totalRP3", name = "Total RP 3" },
+    { folder = "MyRolePlay", name = "MyRolePlay" },
+    { folder = "xrp", name = "XRP" },
+    { folder = "KinshipRP", name = "Kinship" },
+}
+
+-- Our status -> MSP character status (FC): 1 out of character, 2 in character, 3 looking for contact.
+local STATUS_TO_FC = { ooc = "1", ic = "2", lfrp = "3" }
+local FC_TEXT = {
+    ["1"] = { "Out of character", "muted" },
+    ["2"] = { "In character", "good" },
+    ["3"] = { "Looking for RP", "accent" },
+    ["4"] = { "Storyteller", "accent" },
+}
+
+-- Our profile field -> MSP field.
+local FIELD_MAP = {
+    title = "PX", fullTitle = "NT", nickname = "NI", house = "NH", pronouns = "PN",
+    race = "RA", class = "RC", age = "AG", height = "AH", eyes = "AE",
+    birthplace = "HB", home = "HH", motto = "MO", currently = "CU", oocNote = "CO",
+    appearance = "DE", history = "HI",
+}
+
+Sharing.mode = "off" -- "own" (RP Forge sends), "other" (another addon sends) or "off"
+Sharing.otherAddon = nil
+
+local IsLoaded = (C_AddOns and C_AddOns.IsAddOnLoaded) or IsAddOnLoaded
+
+local function MergedName(unit)
+    local name, realm = UnitFullName(unit)
+    if not name then return nil end
+    if AddOn_Chomp and AddOn_Chomp.NameMergedRealm then
+        return AddOn_Chomp.NameMergedRealm(name, realm)
+    end
+    return (realm and realm ~= "") and (name .. "-" .. realm) or name
+end
+
+-- Sending ---------------------------------------------------------------------------------
+
+-- Put the active profile into LibMSP's table and tell it to update.
+local function Publish()
+    if Sharing.mode ~= "own" or not msp then return end
+    local profile = Profiles.GetActive()
+    local f = profile and profile.fields or {}
+    local my = msp.my
+    my.VA = "RPForge/" .. RPF.VERSION
+    local name = strtrim((f.firstName or "") .. " " .. (f.lastName or ""))
+    my.NA = name ~= "" and name or UnitName("player")
+    for ours, theirs in pairs(FIELD_MAP) do
+        local value = f[ours]
+        my[theirs] = (value and value ~= "") and value or nil
+    end
+    my.FC = STATUS_TO_FC[f.status] or "1"
+    RPF.SafeCall("msp update", msp.Update, msp)
+end
+
+-- Several edits in a row (typing) are sent as one update.
+local publishPending = false
+local function PublishSoon()
+    if publishPending then return end
+    publishPending = true
+    C_Timer.After(2, function()
+        publishPending = false
+        Publish()
+    end)
+end
+
+-- Receiving -------------------------------------------------------------------------------
+
+-- Keep a small record of each profile heard, for the People page later.
+local function Remember(name)
+    local char = msp and msp.char[name]
+    local field = char and char.field
+    if not field or not field.NA or field.NA == "" then return end
+    RPF.db.people = RPF.db.people or {}
+    local person = RPF.db.people[name] or {}
+    person.name, person.title = field.NA, field.NT
+    person.status, person.currently = field.FC, field.CU
+    person.race, person.class = field.RA, field.RC
+    person.addon = field.VA
+    person.seen = time()
+    RPF.db.people[name] = person
+end
+
+-- Tooltips ---------------------------------------------------------------------------------
+
+local function Fields(name)
+    if name == MergedName("player") and msp then return msp.my end
+    local char = msp and msp.char[name]
+    return char and char.field or nil
+end
+
+local function AddLines(tooltip, unit)
+    local name = MergedName(unit)
+    if not name then return end
+    if name ~= MergedName("player") then msp:Request(name) end -- asks for the tooltip fields; LibMSP limits how often
+    local field = Fields(name)
+    if not field or not field.NA or field.NA == "" then return end
+
+    local nameLine = (field.PX and field.PX ~= "" and (field.PX .. " ") or "") .. field.NA
+    tooltip:AddLine(nameLine, 1, 0.86, 0.56)
+    if field.NT and field.NT ~= "" then
+        tooltip:AddLine("< " .. field.NT .. " >", 0.8, 0.76, 0.68, true)
+    end
+    local status = FC_TEXT[field.FC or ""]
+    if status then
+        local c = UI.THEMES.forge.colors[status[2]] or UI.THEMES.forge.colors.text
+        tooltip:AddLine(status[1], c[1], c[2], c[3])
+    end
+    if field.CU and field.CU ~= "" then
+        tooltip:AddLine("Currently: " .. field.CU, 0.9, 0.9, 0.9, true)
+    end
+    tooltip:Show()
+end
+
+local function OnTooltipUnit(tooltip)
+    if Sharing.mode ~= "own" or tooltip ~= GameTooltip then return end
+    local _, unit = tooltip:GetUnit()
+    if unit and UnitIsPlayer(unit) then RPF.SafeCall("tooltip", AddLines, tooltip, unit) end
+end
+
+local function HookTooltips()
+    if TooltipDataProcessor and Enum and Enum.TooltipDataType and Enum.TooltipDataType.Unit then
+        TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, OnTooltipUnit)
+    else
+        GameTooltip:HookScript("OnTooltipSetUnit", OnTooltipUnit)
+    end
+end
+
+-- When an answer arrives while that player's tooltip is still open, show it straight away.
+local function OnReceived(name)
+    RPF.SafeCall("remember", Remember, name)
+    if not GameTooltip:IsShown() then return end
+    local _, unit = GameTooltip:GetUnit()
+    if unit and MergedName(unit) == name then GameTooltip:SetUnit(unit) end
+end
+
+-- Start ------------------------------------------------------------------------------------
+
+function Sharing:OnLogin()
+    if not msp then
+        RPF.LogError("sharing", "LibMSP did not load")
+        return
+    end
+    for _, other in ipairs(OTHER_ADDONS) do
+        if IsLoaded(other.folder) then
+            Sharing.mode, Sharing.otherAddon = "other", other.name
+            return
+        end
+    end
+    if msp_RPAddOn and msp_RPAddOn ~= "RP Forge" then
+        Sharing.mode, Sharing.otherAddon = "other", tostring(msp_RPAddOn)
+        return
+    end
+    if not RPF.db.settings.network then return end
+    msp_RPAddOn = "RP Forge"
+    Sharing.mode = "own"
+    table.insert(msp.callback.received, OnReceived)
+    HookTooltips()
+    Publish()
+end
+
+RPF.Listen("PROFILE_CHANGED", PublishSoon)
+
+-- A line for the bug report and /rpf sharing.
+function Sharing.Describe()
+    if Sharing.mode == "own" then return "RP Forge sends your profile" end
+    if Sharing.mode == "other" then return (Sharing.otherAddon or "another addon") .. " sends your profile" end
+    return "profile sharing is off (player messages are turned off)"
+end
+
+RPF.AddCommand("sharing", "Show which addon shares your profile with other players", function()
+    RPF.Print(Sharing.Describe() .. ".")
+end)

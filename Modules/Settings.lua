@@ -26,12 +26,28 @@ UI.RegisterSettingsPage({
         debug:SetPoint("TOPLEFT", network, "BOTTOMLEFT", 0, -16)
         debug:SetPoint("RIGHT", page, "RIGHT", 0, 0)
 
+        local trpLabel = UI.Text(page, "TOTAL RP 3", 10, "muted")
+        trpLabel:SetPoint("TOPLEFT", debug, "BOTTOMLEFT", 0, -26)
+        page.trpState = UI.Text(page, "", 12, "text")
+        page.trpState:SetPoint("TOPLEFT", trpLabel, "BOTTOMLEFT", 0, -6)
+        page.trpState:SetPoint("RIGHT", page, "RIGHT", -150, 0)
+        page.trpState:SetJustifyH("LEFT")
+        local again = UI.Button(page, "Choose again", 130, 26)
+        again:SetPoint("LEFT", page.trpState, "RIGHT", 14, 0)
+        again:SetScript("OnClick", function() if RPF.TRP3Link then RPF.TRP3Link.Ask() end end)
+        page.trpAgain = again
+
         local windowLabel = UI.Text(page, "WINDOW", 10, "muted")
-        windowLabel:SetPoint("TOPLEFT", debug, "BOTTOMLEFT", 0, -26)
+        windowLabel:SetPoint("TOPLEFT", page.trpState, "BOTTOMLEFT", 0, -26)
         local reset = UI.Button(page, "Move to the middle", 170, 26)
         reset:SetPoint("TOPLEFT", windowLabel, "BOTTOMLEFT", 0, -8)
         reset:SetScript("OnClick", function() UI.ResetWindowPosition() end)
         local resetHint = UI.Text(page, "Puts this window back in the middle of the screen (/rpf reset).", 11, "muted")
         resetHint:SetPoint("LEFT", reset, "RIGHT", 14, 0)
+    end,
+    onShow = function(page)
+        local link = RPF.TRP3Link
+        page.trpState:SetText(link and link.Describe() or "")
+        page.trpAgain:SetEnabled(link ~= nil and link.TRP3Running())
     end,
 })

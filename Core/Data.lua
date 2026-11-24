@@ -15,6 +15,7 @@ local ACCOUNT_DEFAULTS = {
         minimap = { shown = true, angle = 210 },
     },
     profiles = {}, -- roleplay profiles, shared by all characters (Modules\Profiles.lua)
+    people = {},   -- profiles heard from other players (Modules\Sharing.lua)
 }
 
 local CHARACTER_DEFAULTS = {}
