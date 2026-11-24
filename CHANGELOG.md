@@ -2,6 +2,17 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.1.3] - 2026-11-24
+
+### Added
+- A **Settings** section in the side menu, with **General** and **Appearance** pages.
+- General: turn player messages and debug messages on or off, and move the window back to the middle.
+- Themes: **Parchment** (warm paper and dark ink, the new default), **Forge** (charcoal with an ember
+  glow) and **Arcane** (slate blue with a teal light). Pick one under Settings > Appearance or with
+  `/rpf theme parchment`, `forge` or `arcane`. The window changes straight away.
+- Minimap button with an anvil. Left-click opens or closes RP Forge, right-click opens Appearance; drag
+  it to move it around the minimap. Hide or show it under Settings > Appearance or with `/rpf minimap`.
+
 ## [0.1.2] - 2026-11-24
 
 ### Added

@@ -11,6 +11,8 @@ local ACCOUNT_DEFAULTS = {
     settings = {
         debug = false,
         network = true, -- player messages: version check, /rpf who, and later profiles
+        theme = "parchment", -- parchment, forge or arcane (UI\Theme.lua)
+        minimap = { shown = true, angle = 210 },
     },
 }
 

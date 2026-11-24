@@ -23,7 +23,8 @@ end
 function UI.Text(parent, text, size, colorKey, justify)
     local fs = parent:CreateFontString(nil, "OVERLAY")
     fs:SetFont(UI.FONT, size or 12, "")
-    fs:SetShadowColor(0, 0, 0, 0.8)
+    local s = UI.shadow
+    fs:SetShadowColor(s[1], s[2], s[3], s[4])
     fs:SetShadowOffset(1, -1)
     local c = UI.Color(colorKey or "text")
     fs:SetTextColor(c[1], c[2], c[3], c[4] or 1)
@@ -93,6 +94,43 @@ function UI.EditBox(parent, width, height, onCommit)
         if onCommit then RPF.SafeCall("edit box", onCommit, self:GetText()) end
     end)
     return e
+end
+
+-- An on/off setting: a box that is filled when on, a label, and a hint underneath.
+-- getter() returns the current value; setter(value) saves the new one.
+function UI.Toggle(parent, label, hint, getter, setter)
+    local row = CreateFrame("Button", nil, parent)
+    row:SetHeight(hint and 40 or 22)
+    row.box = CreateFrame("Frame", nil, row, UI.BACKDROP_TEMPLATE)
+    row.box:SetSize(18, 18)
+    row.box:SetPoint("TOPLEFT", 0, -2)
+    row.fill = row.box:CreateTexture(nil, "ARTWORK")
+    row.fill:SetTexture(UI.WHITE)
+    row.fill:SetPoint("TOPLEFT", 4, -4)
+    row.fill:SetPoint("BOTTOMRIGHT", -4, 4)
+    local a = UI.Color("accent")
+    row.fill:SetVertexColor(a[1], a[2], a[3], 1)
+    row.label = UI.Text(row, label, 12, "text")
+    row.label:SetPoint("LEFT", row.box, "RIGHT", 10, 0)
+    if hint then
+        row.hint = UI.Text(row, hint, 10, "muted")
+        row.hint:SetPoint("TOPLEFT", row.label, "BOTTOMLEFT", 0, -4)
+        row.hint:SetPoint("RIGHT", row, "RIGHT", 0, 0)
+    end
+
+    function row:Refresh()
+        local on = getter() and true or false
+        row.fill:SetShown(on)
+        UI.Backdrop(row.box, "panelAlt", (on or self:IsMouseOver()) and "accent" or "border")
+    end
+    row:SetScript("OnEnter", function(self) self:Refresh() end)
+    row:SetScript("OnLeave", function(self) self:Refresh() end)
+    row:SetScript("OnClick", function(self)
+        RPF.SafeCall("toggle " .. label, setter, not getter())
+        self:Refresh()
+    end)
+    row:Refresh()
+    return row
 end
 
 -- A simple tooltip for any frame.

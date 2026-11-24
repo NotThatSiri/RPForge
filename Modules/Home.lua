@@ -55,7 +55,7 @@ UI.RegisterPage({
             end)
         end)
 
-        local comingNext = UI.Text(page, "Coming next: settings, then your profile and its link with Total RP 3.", 11, "muted")
+        local comingNext = UI.Text(page, "Coming next: a bug report button, then your profile and its link with Total RP 3.", 11, "muted")
         comingNext:SetPoint("TOPLEFT", card, "BOTTOMLEFT", 0, -18)
     end,
     onShow = function(page)

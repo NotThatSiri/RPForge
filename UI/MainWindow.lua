@@ -125,7 +125,9 @@ local function Build()
     window:EnableMouse(true)
     window:Hide()
     UI.Backdrop(window, "window", "border")
-    table.insert(UISpecialFrames, "RPForgeMainWindow") -- Escape closes it
+    if not tContains(UISpecialFrames, "RPForgeMainWindow") then
+        table.insert(UISpecialFrames, "RPForgeMainWindow") -- Escape closes it
+    end
 
     -- Title bar: drag to move.
     local title = CreateFrame("Frame", nil, window, UI.BACKDROP_TEMPLATE)
@@ -201,6 +203,22 @@ function UI.ToggleWindow()
     else
         UI.OpenWindow()
     end
+end
+
+-- A new theme: throw the window away and build it again in the new colours, on the same page.
+RPF.Listen("THEME_CHANGED", function()
+    if not window then return end
+    local wasShown, key = window:IsShown(), currentKey
+    window:Hide()
+    window:SetParent(nil)
+    window = nil
+    for _, page in pairs(pages) do page.frame = nil end
+    navButtons = {}
+    if wasShown then UI.OpenWindow(key) end
+end)
+
+function UI.IsWindowShown()
+    return window ~= nil and window:IsShown()
 end
 
 function UI.ResetWindowPosition()
