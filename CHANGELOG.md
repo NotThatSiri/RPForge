@@ -2,6 +2,28 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.2.0] - 2026-11-24
+
+Your roleplay profile.
+
+### Added
+- A **Profile** page in the side menu, under Character.
+  - **Identity:** first and last name, title, full title, nickname, pronouns, race, class, age, height,
+    eyes, birthplace, home and house.
+  - **Status:** In character, Looking for RP or Out of character; what you're doing right now; an OOC
+    note; a motto.
+  - **About:** appearance and history.
+  - Everything saves as you type. Your name shows at the top as others will see it, with your full
+    title under it in < >, like Total RP 3.
+- Several profiles: make new ones, copy, rename, delete and switch between them. Profiles are shared by
+  all your characters; each character remembers which one it uses.
+- The page uses the full width. A **Profile** button next to your name opens a menu to switch profiles
+  or make, copy, rename and delete them.
+- Thin scrollbars in the theme's colours, shown only when there is something to scroll.
+- The window background is fully solid, so nothing behind it shows through.
+- New profiles start Out of character, so nobody is shown as IC until they choose it. Copies keep the
+  status of the profile they were copied from.
+
 ## [0.1.3] - 2026-11-24
 
 Bug reports, finishing the Foundation milestone.

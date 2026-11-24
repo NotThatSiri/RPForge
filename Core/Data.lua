@@ -14,6 +14,7 @@ local ACCOUNT_DEFAULTS = {
         theme = "parchment", -- parchment, forge or arcane (UI\Theme.lua)
         minimap = { shown = true, angle = 210 },
     },
+    profiles = {}, -- roleplay profiles, shared by all characters (Modules\Profiles.lua)
 }
 
 local CHARACTER_DEFAULTS = {}

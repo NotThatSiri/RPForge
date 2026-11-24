@@ -168,6 +168,7 @@ local function Build()
         if userInput and window.report then self:SetText(window.report) end
     end)
     scroll:SetScrollChild(text)
+    UI.SkinScrollBar(scroll)
     window.text = text
 
     local selectAll = UI.Button(window, "Select all", 110, 26, "primary")

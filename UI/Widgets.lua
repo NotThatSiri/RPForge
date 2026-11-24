@@ -133,6 +133,225 @@ function UI.Toggle(parent, label, hint, getter, setter)
     return row
 end
 
+-- A label with a one-line text box under it. Saves as you type: onChange(text) runs on every edit.
+-- field:SetValue(text) fills it without calling onChange.
+function UI.Field(parent, label, width, maxLetters, onChange)
+    local field = CreateFrame("Frame", nil, parent)
+    field:SetSize(width or 220, 44)
+    field.label = UI.Text(field, label, 10, "muted")
+    field.label:SetPoint("TOPLEFT", 0, 0)
+    field.box = UI.EditBox(field, width or 220, 24)
+    field.box:SetPoint("TOPLEFT", field.label, "BOTTOMLEFT", 0, -4)
+    field.box:SetPoint("RIGHT", field, "RIGHT", 0, 0)
+    if maxLetters then field.box:SetMaxLetters(maxLetters) end
+    field.box:SetScript("OnTextChanged", function(self, userInput)
+        if userInput and onChange then RPF.SafeCall("field " .. label, onChange, self:GetText()) end
+    end)
+    function field:SetValue(text)
+        self.box:SetText(text or "")
+        self.box:SetCursorPosition(0)
+    end
+    return field
+end
+
+-- A label with a scrolling, multi-line text box under it. Saves as you type, like UI.Field.
+function UI.TextArea(parent, label, height, maxLetters, onChange)
+    local area = CreateFrame("Frame", nil, parent)
+    area:SetHeight((height or 120) + 18)
+    area.label = UI.Text(area, label, 10, "muted")
+    area.label:SetPoint("TOPLEFT", 0, 0)
+    local box = UI.Panel(area, "panelAlt", "border")
+    box:SetPoint("TOPLEFT", area.label, "BOTTOMLEFT", 0, -4)
+    box:SetPoint("BOTTOMRIGHT", 0, 0)
+    local scroll = CreateFrame("ScrollFrame", nil, box, "UIPanelScrollFrameTemplate")
+    scroll:SetPoint("TOPLEFT", 7, -6)
+    scroll:SetPoint("BOTTOMRIGHT", -26, 6)
+    local edit = CreateFrame("EditBox", nil, scroll)
+    edit:SetMultiLine(true)
+    edit:SetAutoFocus(false)
+    edit:SetFont(UI.FONT, 11, "")
+    local c = UI.Color("text")
+    edit:SetTextColor(c[1], c[2], c[3], 1)
+    if maxLetters then edit:SetMaxLetters(maxLetters) end
+    edit:SetWidth(200)
+    scroll:SetScrollChild(edit)
+    UI.SkinScrollBar(scroll)
+    scroll:SetScript("OnSizeChanged", function(_, w) edit:SetWidth(math.max(50, w)) end)
+    -- Clicking anywhere in the box starts typing.
+    box:EnableMouse(true)
+    box:SetScript("OnMouseDown", function() edit:SetFocus() end)
+    edit:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+    edit:SetScript("OnEditFocusGained", function() UI.Backdrop(box, "panelAlt", "accent") end)
+    edit:SetScript("OnEditFocusLost", function() UI.Backdrop(box, "panelAlt", "border") end)
+    edit:SetScript("OnTextChanged", function(self, userInput)
+        if userInput and onChange then RPF.SafeCall("text " .. label, onChange, self:GetText()) end
+    end)
+    -- Keep the typing position in view.
+    edit:SetScript("OnCursorChanged", function(_, _, y, _, cursorHeight)
+        local top = scroll:GetVerticalScroll()
+        local bottom = top + scroll:GetHeight()
+        y = -y
+        if y < top then
+            scroll:SetVerticalScroll(y)
+        elseif y + cursorHeight > bottom then
+            scroll:SetVerticalScroll(y + cursorHeight - scroll:GetHeight())
+        end
+    end)
+    area.edit = edit
+    function area:SetValue(text)
+        edit:SetText(text or "")
+        edit:SetCursorPosition(0)
+        scroll:SetVerticalScroll(0)
+    end
+    return area
+end
+
+-- A row of buttons where exactly one is chosen. choices = { { value, label }, ... }.
+-- onPick(value) runs when the player picks one; row:SetValue(value) shows a choice without calling it.
+function UI.Segmented(parent, choices, width, onPick)
+    local row = CreateFrame("Frame", nil, parent)
+    row:SetSize((width or 110) * #choices + 6 * (#choices - 1), 26)
+    row.buttons = {}
+    for i, choice in ipairs(choices) do
+        local b = UI.Button(row, choice[2], width or 110, 26)
+        b:SetPoint("LEFT", (i - 1) * ((width or 110) + 6), 0)
+        b.value = choice[1]
+        b:SetScript("OnClick", function(self)
+            row:SetValue(self.value)
+            if onPick then RPF.SafeCall("choice", onPick, self.value) end
+        end)
+        row.buttons[i] = b
+    end
+    function row:SetValue(value)
+        for _, b in ipairs(self.buttons) do
+            b.style = (b.value == value) and "primary" or nil
+            b:Refresh()
+        end
+    end
+    return row
+end
+
+-- Restyle a UIPanelScrollFrameTemplate scrollbar: a thin bar in the theme's colours, no arrow buttons,
+-- and hidden while there is nothing to scroll.
+function UI.SkinScrollBar(scroll)
+    local bar = scroll.ScrollBar or (scroll:GetName() and _G[scroll:GetName() .. "ScrollBar"])
+    if not bar then return end
+    for _, child in ipairs({ bar:GetChildren() }) do
+        if child:IsObjectType("Button") then
+            child:Hide()
+            child:SetAlpha(0)
+            child:EnableMouse(false)
+        end
+    end
+    for _, region in ipairs({ bar:GetRegions() }) do
+        if region:IsObjectType("Texture") and region ~= bar:GetThumbTexture() then region:SetAlpha(0) end
+    end
+    bar:ClearAllPoints()
+    bar:SetPoint("TOPRIGHT", scroll, "TOPRIGHT", 18, 0)
+    bar:SetPoint("BOTTOMRIGHT", scroll, "BOTTOMRIGHT", 18, 0)
+    bar:SetWidth(6)
+
+    local track = bar:CreateTexture(nil, "BACKGROUND")
+    track:SetTexture(UI.WHITE)
+    track:SetAllPoints()
+    local b = UI.Color("border")
+    track:SetVertexColor(b[1], b[2], b[3], 0.35)
+
+    local thumb = bar:GetThumbTexture()
+    if thumb then
+        thumb:SetTexture(UI.WHITE)
+        thumb:SetSize(6, 36)
+        local m = UI.Color("muted")
+        thumb:SetVertexColor(m[1], m[2], m[3], 0.9)
+    end
+
+    local function UpdateShown()
+        local range = scroll:GetVerticalScrollRange() or 0
+        bar:SetShown(range > 1)
+    end
+    scroll:HookScript("OnScrollRangeChanged", UpdateShown)
+    UpdateShown()
+end
+
+-- A small pop-up menu under `owner`. items = { { text, onClick, disabled = bool, checked = bool }, "-" (a line), ... }
+-- Closes when an item is picked, when clicking anywhere else, or with Escape.
+local menu, catcher
+function UI.ShowMenu(owner, items)
+    if not menu then
+        catcher = CreateFrame("Button", nil, UIParent)
+        catcher:SetAllPoints(UIParent)
+        catcher:SetFrameStrata("FULLSCREEN_DIALOG")
+        catcher:RegisterForClicks("AnyUp")
+        catcher:SetScript("OnClick", function() UI.HideMenu() end)
+        catcher:Hide()
+        menu = CreateFrame("Frame", "RPForgeMenu", UIParent, UI.BACKDROP_TEMPLATE)
+        menu:SetFrameStrata("FULLSCREEN_DIALOG")
+        menu:SetFrameLevel(catcher:GetFrameLevel() + 10)
+        menu:EnableMouse(true)
+        menu.rows = {}
+        menu:Hide()
+        tinsert(UISpecialFrames, "RPForgeMenu")
+        menu:SetScript("OnHide", function() catcher:Hide() end)
+    end
+    UI.Backdrop(menu, "panel", "border")
+    for _, row in ipairs(menu.rows) do row:Hide() end
+
+    local y, width = -4, math.max(owner:GetWidth(), 180)
+    for i, item in ipairs(items) do
+        local row = menu.rows[i]
+        if not row then
+            row = CreateFrame("Button", nil, menu, UI.BACKDROP_TEMPLATE)
+            row.label = UI.Text(row, "", 12, "text")
+            row.label:SetPoint("LEFT", 12, 0)
+            row.line = row:CreateTexture(nil, "ARTWORK")
+            row.line:SetTexture(UI.WHITE)
+            row.line:SetHeight(1)
+            row.line:SetPoint("LEFT", 8, 0)
+            row.line:SetPoint("RIGHT", -8, 0)
+            row:SetScript("OnEnter", function(self) if self.item and not self.item.disabled then UI.Backdrop(self, "panelAlt", "panelAlt") end end)
+            row:SetScript("OnLeave", function(self) self:SetBackdrop(nil) end)
+            row:SetScript("OnClick", function(self)
+                local picked = self.item
+                if not picked or picked.disabled then return end
+                UI.HideMenu()
+                if picked[2] then RPF.SafeCall("menu " .. tostring(picked[1]), picked[2]) end
+            end)
+            menu.rows[i] = row
+        end
+        row:SetBackdrop(nil)
+        row:ClearAllPoints()
+        row:SetPoint("TOPLEFT", 1, y)
+        row:SetPoint("TOPRIGHT", -1, y)
+        if item == "-" then
+            row.item = nil
+            row:SetHeight(9)
+            row.label:SetText("")
+            local c = UI.Color("border")
+            row.line:SetVertexColor(c[1], c[2], c[3], 1)
+            row.line:Show()
+            y = y - 9
+        else
+            row.item = item
+            row:SetHeight(24)
+            row.line:Hide()
+            row.label:SetText((item.checked and "> " or "") .. item[1])
+            UI.SetTextColor(row.label, item.disabled and "muted" or (item.checked and "accent" or "text"))
+            y = y - 24
+        end
+        row:Show()
+    end
+    menu:SetSize(width, -y + 4)
+    menu:ClearAllPoints()
+    menu:SetPoint("TOPLEFT", owner, "BOTTOMLEFT", 0, -2)
+    catcher:Show()
+    menu:Show()
+    menu:Raise()
+end
+
+function UI.HideMenu()
+    if menu then menu:Hide() end
+end
+
 -- A simple tooltip for any frame.
 function UI.Tooltip(frame, title, body)
     frame:HookScript("OnEnter", function(self)

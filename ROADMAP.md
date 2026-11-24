@@ -37,6 +37,22 @@ RP Forge uses [Semantic Versioning](https://semver.org): `MAJOR.MINOR.PATCH`.
 
 Campaigns may move to 1.1 if that gets 1.0 out sooner.
 
+## 0.2 Profile & Persona in detail
+
+RP Forge shows Total RP 3 profiles and sends its own to Total RP 3 users, using the profile format that
+Total RP 3, MyRolePlay and XRP share. When Total RP 3 is installed too, RP Forge asks once whether to keep
+Total RP 3 for the profile (RP Forge reads it and adds its own parts) or to move the profiles into
+RP Forge (Total RP 3 is then turned off; its saved data is kept). First impressions and traits are shared
+with Total RP 3's glances and traits rather than kept twice.
+
+| Version | Bundle | Contents |
+|---|---|---|
+| 0.2.0 | Your profile | Profile page: identity, status, about; several profiles to switch between |
+| 0.2.1 | Sharing | Send and receive profiles in the shared format; names and status in tooltips; remember people met |
+| 0.2.2 | The Total RP 3 link | One-time choice; read Total RP 3 profiles; move Total RP 3 profiles into RP Forge |
+| 0.2.3 | Persona | First impressions, trait sliders, name colour, profile icon, theme tune |
+| 0.2.4 | Viewing profiles | Open anyone's profile; a People page of everyone met |
+
 ## Principles
 
 - **Players decide.** Content is made in game and shared in packs; the addon provides the tools.
