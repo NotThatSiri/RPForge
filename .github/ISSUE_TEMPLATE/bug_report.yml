@@ -1,0 +1,56 @@
+name: Bug report
+description: Something in RP Forge doesn't work as it should.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! One bug per report, please.
+  - type: input
+    id: version
+    attributes:
+      label: RP Forge version
+      description: Type `/rpf version` in game and copy the line.
+      placeholder: "RP Forge: version 0.1.2  (data 1, messages 1)"
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What went wrong, as it appeared in game.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How can we make it happen?
+      description: The steps that lead to the bug.
+      placeholder: |
+        1. Open the RP Forge window
+        2. Click ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: errors
+    attributes:
+      label: Errors
+      description: Type `/rpf errors` in game and copy what it shows. Screenshots of error popups help too.
+      render: text
+  - type: input
+    id: other-addons
+    attributes:
+      label: Other roleplay addons turned on
+      placeholder: "Total RP 3, ..."
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Drag images here if they help show the problem.
