@@ -345,6 +345,7 @@ end
 
 -- Send what's in the typing box. Called straight from the Enter key: outside instances the game only
 -- lets addons post Say and Yell from a key press, so every part is sent right now, in order.
+local MyTypingChanged -- defined with the typing indicator below
 local function SendFromBox(box)
     local text = box:GetText() or ""
     local mode = RPF.db.settings.chatMode or "SAY"
@@ -359,7 +360,125 @@ local function SendFromBox(box)
         SendChatMessage(part, mode)
     end
     box:SetText("")
+    MyTypingChanged("")
 end
+
+-- Typing indicator ------------------------------------------------------------------------------------
+--
+-- While you write in the RP chat box, RP Forge users near you get an invisible addon whisper ("T" with
+-- "1"), repeated every few seconds while you keep typing, and "0" when the box is emptied. Their RP chat
+-- shows "Kiri Stormcrest is typing..." above the box. It fades by itself if no update comes.
+-- Near you = people you can see (target, mouseover, group, nameplates) or heard in the last 10 minutes,
+-- and known to use RP Forge. Settings > General turns it off both ways.
+
+local TYPING_REPEAT = 6    -- seconds between "still typing" messages
+local TYPING_TIMEOUT = 12  -- seconds before someone's "is typing" disappears without news
+local TYPING_RECENT = 10 * 60
+local TYPING_MAX_PEOPLE = 6
+local typists = {}         -- typists[shortName] = { name = full sender, at = GetTime() }
+local typingTicker
+local myTyping = { on = false, sent = 0 }
+
+local function TypingEnabled() return RPF.db.settings.typingIndicator ~= false end
+
+-- Does this player use RP Forge? Heard on our addon channel, or their profile says so.
+local function UsesRPForge(name)
+    local vc = RPF.GetModule and RPF.GetModule("VersionCheck")
+    if vc and vc.peers and vc.peers[ShortName(name)] then return true end
+    if typists[ShortName(name)] then return true end
+    local fields = Sharing.GetProfile(name)
+    return fields and type(fields.VA) == "string" and fields.VA:find("RPForge/", 1, true) ~= nil
+end
+
+local function NearbyForgeUsers()
+    local out, seen = {}, { [ShortName(UnitName("player") or "")] = true }
+    local function Add(name)
+        if not name or name == "" or #out >= TYPING_MAX_PEOPLE then return end
+        local short = ShortName(name)
+        if seen[short] then return end
+        seen[short] = true
+        if UsesRPForge(name) then out[#out + 1] = name end
+    end
+    local function AddUnit(unit)
+        if UnitExists(unit) and UnitIsPlayer(unit) then Add(GetUnitName(unit, true)) end
+    end
+    AddUnit("target")
+    AddUnit("mouseover")
+    AddUnit("focus")
+    for i = 1, 40 do AddUnit("raid" .. i) end
+    for i = 1, 4 do AddUnit("party" .. i) end
+    local now = time()
+    for i = #messages, 1, -1 do
+        local m = messages[i]
+        if now - (m.at or 0) > TYPING_RECENT then break end
+        Add(m.sender)
+    end
+    for i = 1, 40 do AddUnit("nameplate" .. i) end
+    return out
+end
+
+local function SendTyping(state)
+    for _, name in ipairs(NearbyForgeUsers()) do
+        RPF.Comm.Send("T", state, "WHISPER", name)
+    end
+end
+
+-- Called whenever the text in your box changes because you typed.
+MyTypingChanged = function(text)
+    if not TypingEnabled() then return end
+    local typing = strtrim(text or "") ~= ""
+    if typing and (not myTyping.on or GetTime() - myTyping.sent >= TYPING_REPEAT) then
+        myTyping.on, myTyping.sent = true, GetTime()
+        SendTyping("1")
+    elseif not typing and myTyping.on then
+        myTyping.on = false
+        SendTyping("0")
+    end
+end
+
+local function TypingName(info)
+    local fields = Sharing.GetProfile(info.name) or Sharing.GetProfile(ShortName(info.name))
+    if fields and fields.NA and fields.NA ~= "" then return fields.NA end
+    return ShortName(info.name)
+end
+
+local function ShowTyping()
+    if not window or not window.typing then return end
+    local now, names = GetTime(), {}
+    for short, info in pairs(typists) do
+        if now - info.at > TYPING_TIMEOUT then typists[short] = nil else names[#names + 1] = TypingName(info) end
+    end
+    table.sort(names)
+    local text = ""
+    if #names == 1 then
+        text = names[1] .. UI.ColorCode("muted") .. " is typing...|r"
+    elseif #names == 2 then
+        text = names[1] .. UI.ColorCode("muted") .. " and |r" .. names[2] .. UI.ColorCode("muted") .. " are typing...|r"
+    elseif #names > 2 then
+        text = UI.ColorCode("muted") .. "Several people are typing...|r"
+    end
+    window.typing:SetText(text)
+    if #names == 0 and typingTicker then
+        typingTicker:Cancel()
+        typingTicker = nil
+    end
+end
+
+local function SomeoneTyping(sender, on)
+    local short = ShortName(sender)
+    if on then
+        typists[short] = { name = sender, at = GetTime() }
+        if not typingTicker then typingTicker = C_Timer.NewTicker(1, ShowTyping) end
+    else
+        typists[short] = nil
+    end
+    ShowTyping()
+end
+
+RPF.Comm.On("T", function(payload, sender)
+    if not TypingEnabled() then return end
+    SomeoneTyping(sender, payload == "1")
+end)
 
 -- The window -----------------------------------------------------------------------------------------
 
@@ -493,7 +612,16 @@ local function Build()
         box.measure:SetText(self:GetText() or "")
     end)
 
-    scroll:SetPoint("BOTTOMRIGHT", input, "TOPRIGHT", -18, 8)
+    window.typing = UI.Text(window, "", 11, "text")
+    window.typing:SetPoint("BOTTOMLEFT", input, "TOPLEFT", 2, 5)
+    window.typing:SetPoint("RIGHT", input, "RIGHT", 0, 0)
+    window.typing:SetJustifyH("LEFT")
+    window.typing:SetWordWrap(false)
+    box:HookScript("OnTextChanged", function(self, userInput)
+        if userInput then MyTypingChanged(self:GetText()) end
+    end)
+
+    scroll:SetPoint("BOTTOMRIGHT", input, "TOPRIGHT", -18, 22)
     content = CreateFrame("Frame", nil, scroll)
     content:SetSize(300, 10)
     scroll:SetScrollChild(content)
@@ -527,6 +655,7 @@ function Chat.Show()
     end
     if not window then Build() end
     window:Show()
+    ShowTyping()
     RPF.db.settings.chatOpen = true
     Chat.Refresh()
     Layout(true)
@@ -556,6 +685,7 @@ local function OnChat(event, text, sender, language, _, _, _, _, _, _, _, _, gui
         msg.target = Sharing.MergedName(targetUnit) or UnitName(targetUnit)
         msg.targetGuid = UnitGUID(targetUnit)
     end
+    if typists[ShortName(sender)] then SomeoneTyping(sender, false) end
     local previous = messages[#messages]
     messages[#messages + 1] = msg
     while #messages > MAX_MESSAGES do table.remove(messages, 1) end

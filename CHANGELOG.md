@@ -2,6 +2,14 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.11] - 2026-11-24
+
+### Added
+- **Typing indicator** in the RP chat: "Kiri Stormcrest is typing..." appears above the typing box while an
+  RP Forge user near you writes in their RP chat, and disappears when they post, empty their box or stop
+  for a few seconds. Others see the same when you type. It only goes to RP Forge users you can see or
+  heard recently, by invisible addon whispers. **Settings > General > Typing indicator** turns it off.
+
 ## [0.3.10] - 2026-11-24
 
 ### Fixed

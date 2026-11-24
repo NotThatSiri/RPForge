@@ -16,6 +16,7 @@ local ACCOUNT_DEFAULTS = {
         chatStyle = "game", -- RP chat layout: "game" or "story"
         portraitShape = "circle", -- Home portrait: "circle" or "square"
         chatOpen = false,   -- RP chat window open (reopens after a reload)
+        typingIndicator = true, -- RP chat: tell nearby RP Forge users when you type, and show when they do
     },
     profiles = {}, -- roleplay profiles, shared by all characters (Modules\Profiles.lua)
     people = {},   -- profiles heard from other players (Modules\Sharing.lua)
