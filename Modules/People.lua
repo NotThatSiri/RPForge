@@ -155,26 +155,34 @@ local function RenderInto(v, field, seenText, fallbackName)
     local traits = ParseTraits(field.PS)
     if #traits > 0 then
         Heading("TRAITS")
-        local barLeft, barWidth = 140, body:GetWidth() - 290
+        -- Dots, like a tabletop sheet: five per side, filled from the middle towards the side the
+        -- character leans to. value is how far towards the right-hand trait (0 = fully left, 0.5 = balanced).
+        local DOT, GAP, MIDDLE = 12, 4, 14
+        local media = "Interface\\AddOns\\" .. RPF.ADDON .. "\\Media\\Icons\\"
+        local labelWidth = 150
+        local center = labelWidth + 12 + 5 * (DOT + GAP) + MIDDLE / 2
+        local a, b = UI.Color("accent"), UI.Color("muted")
         for _, trait in ipairs(traits) do
-            local left = UI.Text(body, Plain(trait.left), 11, "text", "RIGHT")
+            local lean = 0.5 - math.max(0, math.min(1, trait.value)) -- above 0 leans left, below 0 right
+            local strength = math.min(5, math.floor(math.abs(lean) * 10 + 0.5))
+            local left = UI.Text(body, Plain(trait.left), 12, lean > 0 and strength > 0 and "accent" or "text", "RIGHT")
             left:SetPoint("TOPLEFT", 0, -y)
-            left:SetWidth(barLeft - 12)
-            local track = body:CreateTexture(nil, "ARTWORK")
-            track:SetTexture(UI.WHITE)
-            local b = UI.Color("border")
-            track:SetVertexColor(b[1], b[2], b[3], 1)
-            track:SetSize(barWidth, 4)
-            track:SetPoint("TOPLEFT", barLeft, -y - 5)
-            local mark = body:CreateTexture(nil, "OVERLAY")
-            mark:SetTexture(UI.WHITE)
-            local a = UI.Color("accent")
-            mark:SetVertexColor(a[1], a[2], a[3], 1)
-            mark:SetSize(8, 14)
-            -- value is how far towards the right-hand trait (0 = fully left).
-            mark:SetPoint("CENTER", track, "LEFT", barWidth * math.max(0, math.min(1, trait.value)), 0)
-            local right = UI.Text(body, Plain(trait.right), 11, "text")
-            right:SetPoint("TOPLEFT", barLeft + barWidth + 12, -y)
+            left:SetWidth(labelWidth)
+            local right = UI.Text(body, Plain(trait.right), 12, lean < 0 and strength > 0 and "accent" or "text")
+            right:SetPoint("TOPLEFT", center + MIDDLE / 2 + 5 * (DOT + GAP) + 8, -y)
+            for i = 1, 5 do
+                -- i counts outwards from the middle on each side.
+                for _, side in ipairs({ -1, 1 }) do
+                    local filled = strength >= i and ((side == -1 and lean > 0) or (side == 1 and lean < 0))
+                    local dot = body:CreateTexture(nil, "ARTWORK")
+                    dot:SetTexture(media .. (filled and "Dot" or "DotEmpty"))
+                    dot:SetSize(DOT, DOT)
+                    local c = filled and a or b
+                    dot:SetVertexColor(c[1], c[2], c[3], filled and 1 or 0.7)
+                    local offset = MIDDLE / 2 + (i - 1) * (DOT + GAP) + DOT / 2
+                    dot:SetPoint("CENTER", body, "TOPLEFT", center + side * offset, -y - 7)
+                end
+            end
             y = y + 24
         end
         y = y + 8

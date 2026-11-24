@@ -45,6 +45,17 @@ def ring(x, y):
     return 27.0 <= r <= 31.5
 
 
+def dot(x, y):
+    # A filled circle, for dot ratings (traits).
+    return math.hypot(x - C, y - C) <= 26.0
+
+
+def hollow(x, y):
+    # An empty circle with a fine edge, for the unfilled dots.
+    r = math.hypot(x - C, y - C)
+    return 21.5 <= r <= 26.0
+
+
 def write(path, shape):
     pixels = bytearray()
     for py in range(N):
@@ -66,3 +77,5 @@ if __name__ == "__main__":
     write(os.path.join(folder, "Cog.tga"), cog)
     write(os.path.join(folder, "Close.tga"), close)
     write(os.path.join(folder, "Ring.tga"), ring)
+    write(os.path.join(folder, "Dot.tga"), dot)
+    write(os.path.join(folder, "DotEmpty.tga"), hollow)

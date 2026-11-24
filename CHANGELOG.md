@@ -2,6 +2,13 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.2.12] - 2026-11-24
+
+### Changed
+- Traits on profiles show as **dots**, like a tabletop character sheet: five on each side, filled from the
+  middle towards the side the character leans to. One dot is a slight lean, five is completely; no
+  filled dots means balanced. The side they lean to is highlighted.
+
 ## [0.2.11] - 2026-11-24
 
 ### Added
