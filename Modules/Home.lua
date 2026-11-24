@@ -75,7 +75,12 @@ local function RefreshHome()
     local guild = GetGuildInfo("player")
     home.guild:SetText(guild and ("<" .. guild .. ">") or "")
 
-    SetPortraitTexture(home.portrait, "player")
+    -- Portrait shape (Settings > Appearance): the game's still portrait, round in a gold ring or
+    -- cropped to fill a square.
+    local square = RPF.db.settings.portraitShape == "square"
+    home.circle:SetShown(not square)
+    home.square:SetShown(square)
+    SetPortraitTexture(square and home.squarePortrait or home.portrait, "player")
     if not Backgrounds.Apply(home.art, ChosenBackground(profile)) then
         Backgrounds.Apply(home.art, Backgrounds.PlayerRace())
     end
@@ -132,13 +137,40 @@ UI.RegisterPage({
         overlay:SetBackdropBorderColor(b[1], b[2], b[3], 1)
 
         -- Portrait in a square frame with a thin border in the theme's accent colour.
-        local portraitFrame = CreateFrame("Frame", nil, overlay, UI.BACKDROP_TEMPLATE)
+        local portraitFrame = CreateFrame("Frame", nil, overlay)
         portraitFrame:SetSize(104, 104)
         portraitFrame:SetPoint("LEFT", 26, 0)
-        UI.Backdrop(portraitFrame, "window", "accent")
-        home.portrait = portraitFrame:CreateTexture(nil, "ARTWORK")
-        home.portrait:SetPoint("TOPLEFT", 2, -2)
-        home.portrait:SetPoint("BOTTOMRIGHT", -2, 2)
+        local a = UI.Color("accent")
+
+        -- Circle: a thin accent-coloured ring like the square's border. The game's round portrait
+        -- shape is drawn as a plain (smooth) disc in the accent colour, a dark disc just inside it,
+        -- and the round portrait on top.
+        home.circle = CreateFrame("Frame", nil, portraitFrame)
+        home.circle:SetAllPoints()
+        local ROUND = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
+        local ring = home.circle:CreateTexture(nil, "BACKGROUND")
+        ring:SetTexture(ROUND)
+        ring:SetAllPoints()
+        ring:SetVertexColor(a[1], a[2], a[3], 1)
+        local inner = home.circle:CreateTexture(nil, "BORDER")
+        inner:SetTexture(ROUND)
+        inner:SetPoint("TOPLEFT", 2, -2)
+        inner:SetPoint("BOTTOMRIGHT", -2, 2)
+        local w = UI.Color("window")
+        inner:SetVertexColor(w[1], w[2], w[3], 1)
+        home.portrait = home.circle:CreateTexture(nil, "ARTWORK")
+        home.portrait:SetPoint("TOPLEFT", 3, -3)
+        home.portrait:SetPoint("BOTTOMRIGHT", -3, 3)
+
+        -- Square: the same still portrait, cropped to the square inside its round picture so it
+        -- fills the frame, in a thin accent border.
+        home.square = CreateFrame("Frame", nil, portraitFrame, UI.BACKDROP_TEMPLATE)
+        home.square:SetAllPoints()
+        UI.Backdrop(home.square, "window", "accent")
+        home.squarePortrait = home.square:CreateTexture(nil, "ARTWORK")
+        home.squarePortrait:SetPoint("TOPLEFT", 2, -2)
+        home.squarePortrait:SetPoint("BOTTOMRIGHT", -2, 2)
+        home.squarePortrait:SetTexCoord(0.15, 0.85, 0.15, 0.85)
 
         home.name = BannerText(overlay, 24, BANNER_NAME)
         home.name:SetPoint("TOPLEFT", portraitFrame, "TOPRIGHT", 20, -14)
@@ -224,6 +256,10 @@ UI.RegisterPage({
         page.players:SetPoint("TOPLEFT", playersLabel, "BOTTOMLEFT", 0, -6)
         local who = UI.Button(card, "Who's around?", 130, 26)
         who:SetPoint("RIGHT", -14, 0)
+        local chat = UI.Button(card, "RP chat", 100, 26, "primary")
+        chat:SetPoint("RIGHT", who, "LEFT", -8, 0)
+        chat:SetScript("OnClick", function() if RPF.RPChat then RPF.RPChat.Toggle() end end)
+        UI.Tooltip(chat, "RP chat", "A window with only Say, Emote and Yell from people nearby. Also /rpf chat, or set a key in Key Bindings > AddOns.")
         UI.Tooltip(who, "Who's around?", "Asks your guild, your group and the RP Forge channel who uses RP Forge. The answers also appear in chat.")
         who:SetScript("OnClick", function()
             SlashCmdList.RPFORGE("who")

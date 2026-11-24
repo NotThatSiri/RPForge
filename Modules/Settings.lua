@@ -19,11 +19,18 @@ UI.RegisterSettingsPage({
         network:SetPoint("TOPLEFT", 0, -4)
         network:SetPoint("RIGHT", page, "RIGHT", 0, 0)
 
+        local typing = UI.Toggle(page, "Typing indicator",
+            "In the RP chat, shows \"Kiri is typing...\" when RP Forge users near you are writing, and lets them see when you are.",
+            function() return RPF.db.settings.typingIndicator ~= false end,
+            function(on) RPF.db.settings.typingIndicator = on end)
+        typing:SetPoint("TOPLEFT", network, "BOTTOMLEFT", 0, -16)
+        typing:SetPoint("RIGHT", page, "RIGHT", 0, 0)
+
         local debug = UI.Toggle(page, "Debug messages",
             "Prints extra details and errors in chat. Useful when something isn't working.",
             function() return RPF.db.settings.debug end,
             function(on) RPF.db.settings.debug = on end)
-        debug:SetPoint("TOPLEFT", network, "BOTTOMLEFT", 0, -16)
+        debug:SetPoint("TOPLEFT", typing, "BOTTOMLEFT", 0, -16)
         debug:SetPoint("RIGHT", page, "RIGHT", 0, 0)
 
         local trpLabel = UI.Text(page, "TOTAL RP 3", 10, "muted")

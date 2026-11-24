@@ -162,6 +162,13 @@ function Sharing.RequestProfile(name)
     end
 end
 
+-- Ask someone for their name card only (the tooltip fields). LibMSP limits how often.
+function Sharing.RequestTooltip(name)
+    if msp and name and name ~= MergedName("player") then
+        RPF.SafeCall("request tooltip", msp.Request, msp, name)
+    end
+end
+
 -- Someone's profile fields: what we just heard, or what was kept from before.
 function Sharing.GetProfile(name)
     if name == MergedName("player") then return Sharing.BuildFields() end

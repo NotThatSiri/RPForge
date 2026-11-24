@@ -15,6 +15,9 @@ UI.THEMES = {
     parchment = {
         name = "Parchment",
         description = "Warm paper, dark ink and wax-red accents, like a journal.",
+        light = true,
+        -- The game's chat colours (white Say, pale orange Emote) are made for dark backgrounds.
+        chat = { SAY = { 0.17, 0.12, 0.08 }, EMOTE = { 0.60, 0.31, 0.05 }, YELL = { 0.66, 0.11, 0.09 } },
         shadow = { 1, 1, 1, 0 },
         colors = {
             window   = { 0.89, 0.83, 0.70, 1 },

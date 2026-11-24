@@ -1,0 +1,9 @@
+<Bindings>
+    <!-- header starts the "RP Forge" section; the bindings after it belong to that section. -->
+    <Binding name="RPFORGE_TOGGLE_WINDOW" header="RPFORGE">
+        RPForge_ToggleWindow()
+    </Binding>
+    <Binding name="RPFORGE_TOGGLE_CHAT">
+        RPForge_ToggleChat()
+    </Binding>
+</Bindings>

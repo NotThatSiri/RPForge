@@ -2,6 +2,108 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.11] - 2026-11-24
+
+### Added
+- **Typing indicator** in the RP chat: "Kiri Stormcrest is typing..." appears above the typing box while an
+  RP Forge user near you writes in their RP chat, and disappears when they post, empty their box or stop
+  for a few seconds. Others see the same when you type. It only goes to RP Forge users you can see or
+  heard recently, by invisible addon whispers. **Settings > General > Typing indicator** turns it off.
+
+## [0.3.10] - 2026-11-24
+
+### Fixed
+- Opening the RP chat gave the error "Cannot set tex coords when texture has mask" when a message came
+  from someone out of sight with no profile icon (shown with their class icon).
+
+## [0.3.9] - 2026-11-24
+
+### Changed
+- RP chat portraits use the same thin accent-coloured ring as the Home portrait, instead of the thick
+  gold border.
+
+## [0.3.8] - 2026-11-24
+
+### Changed
+- The round Home portrait now has a thin ring in the theme's accent colour, matching the square frame,
+  instead of the thick gold border.
+
+## [0.3.7] - 2026-11-24
+
+### Changed
+- The **Square** portrait shape no longer shows a moving 3D model. It uses the same still portrait as
+  Circle, cropped to fill the square.
+
+## [0.3.6] - 2026-11-24
+
+### Fixed
+- The round Home portrait had blocky orange corners instead of a frame. It now sits in the game's gold
+  round border, the same one the RP chat uses.
+
+## [0.3.5] - 2026-11-24
+
+### Added
+- RP chat shows **whom a message was aimed at**: "Kiri Stormcrest -> Sigoblanc Fireheart says:", using
+  roleplay names when known. For other players this works when the game can see them (target, mouseover,
+  group or nameplates).
+
+### Changed
+- Messages in a row from the same person now stay together under one name and portrait until someone
+  else speaks, they switch between Say, Emote and Yell, change target, or pause for more than 15 minutes
+  (it was 2 minutes, too short for RP). Point at a grouped message to see its time.
+
+## [0.3.4] - 2026-11-24
+
+### Added
+- A **cogwheel** in the RP chat title bar opens Settings > Appearance, where the RP chat layout is chosen.
+
+## [0.3.3] - 2026-11-24
+
+### Added
+- A **typing box** at the bottom of the RP chat window:
+  - **Say**, **Emote** and **Yell** buttons choose how you post; it remembers your last choice. Starting
+    with /s, /e (or /me) or /y switches for that post.
+  - **Enter** sends, **Shift+Enter** starts a new line, Escape leaves the box. The box grows as you write.
+  - Long posts are split at word boundaries into several messages marked **(1/3), (2/3), (3/3)**; a
+    counter shows how many posts it will be. New lines become spaces, as the game can't send them.
+
+### Fixed
+- The RP chat was hard to read on the **Parchment** theme. Parchment now uses dark chat colours (ink for
+  Say, amber for Emote, deep red for Yell), and very light class colours are darkened for names.
+
+## [0.3.2] - 2026-11-24
+
+### Added
+- **Settings > Appearance > Portrait shape** for your portrait on Home:
+  - **Circle** (the default): a round portrait in a ring of the theme's colour.
+  - **Square**: a close-up of your character that fills the whole square.
+
+### Fixed
+- The Home portrait was round inside a square frame.
+
+## [0.3.1] - 2026-11-24
+
+### Fixed
+- A warning, "Binding header RPFORGE was attempted to be loaded more than once", after logging in.
+
+## [0.3.0] - 2026-11-24
+
+The RP chat window, the start of the Chat & Session Log milestone.
+
+### Added
+- An **RP chat** window: only Say, Emote and Yell from people nearby, without trade, guild or system
+  messages. Your normal chat stays as it is.
+  - Each message shows the speaker's **portrait** in a round frame (their profile icon or class icon when
+    the game can't show them), their **roleplay name** in its colour, and the time.
+  - Speech in "quotes" inside emotes is coloured like Say; ((OOC)) text is dimmed.
+  - Several messages in a row from the same person share one name and portrait.
+  - Move it by its title bar and resize it from the corner; it remembers where it was and keeps the last
+    messages after a reload.
+- Open it with the **RP chat** button on Home, `/rpf chat`, or a key you set under Key Bindings >
+  AddOns > RP Forge (there's also a key for the RP Forge window).
+- **Settings > Appearance > RP chat layout:** game style (Kiri says: Well met.) or story style
+  (Kiri: "Well met.").
+
 ## [0.2.15] - 2026-11-24
 
 ### Changed

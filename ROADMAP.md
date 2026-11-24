@@ -57,6 +57,18 @@ with Total RP 3's glances and traits rather than kept twice.
 Home grows with each milestone: cards for people met, sessions, health, quests and progress appear as
 those parts arrive.
 
+## 0.3 Chat & Session Log in detail
+
+| Order | Part | Contents |
+|---|---|---|
+| 1 | RP chat window | Its own window with Say, Emote and Yell nearby: round portraits, roleplay names, coloured speech, dimmed OOC; game or story layout |
+| 2 | Typing box | Multi-line typing in the RP chat window; Say / Emote / Yell; long posts split with (1/3) markers |
+| 3 | Typing indicator | "Kiri is typing..." above the box, between RP Forge users nearby |
+| 4 | Accents | Starter accents for Alliance and Horde races at three strengths |
+| 5 | Your own accents | An editor for word swaps and endings |
+| 6 | Session log | Automatic sessions: who, where, how long, and the IC transcript; titles and notes |
+| 7 | Sessions page | A Sessions page under Stories, and a Home card for the last session |
+
 ## Principles
 
 - **Players decide.** Content is made in game and shared in packs; the addon provides the tools.
