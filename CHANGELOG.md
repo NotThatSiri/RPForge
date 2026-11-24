@@ -2,6 +2,25 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.17] - 2026-11-24
+
+### Changed
+- **Your accent shows as you type** in the RP chat window: each word changes as soon as you finish it,
+  so you see what you will post before you send it.
+- **Dwarven** now sounds like the game's dwarves (Falstad, Kurdran, quest text) instead of Scots:
+  - Light: ye, yer, me, aye, lad/lass, -in'.
+  - Medium: adds fer, tae, wi', an', 'em, 'tis, wee.
+  - Strong: adds th', o', nae, och, cannae, dinnae, laddie/lassie.
+- **Kaldorei** starts formal and saves Darnassian for Strong:
+  - Light: no contractions ("I don't" becomes "I do not", "isn't it" becomes "is it not").
+  - Medium: formal words (greetings, farewell, very well, thank you).
+  - Strong: Ishnu-alah and Elune-adore.
+
+### Fixed
+- Words where "ing" is part of the word are left alone ("string", "spring", "during", "ceiling").
+- An accent never changes its own words a second time (Draenei "by the Naaru" stays "by ze Naaru",
+  Trollish "sometin'", Gilnean "smashin'").
+
 ## [0.3.16] - 2026-11-24
 
 ### Fixed

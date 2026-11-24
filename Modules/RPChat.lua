@@ -654,6 +654,15 @@ local function Build()
                 end
             end
         end
+        -- Your accent shows as you type: each word changes once it's finished.
+        if userInput then
+            local changed, cursor = RPF.Accents.ApplyTyping(text, self:GetCursorPosition(), RPF.db.settings.chatMode or "SAY")
+            if changed then
+                self:SetText(changed)
+                self:SetCursorPosition(cursor)
+                return
+            end
+        end
         placeholder:SetShown(text == "")
         window.UpdateCorner()
         -- Grow from 2 to 6 lines as you type.

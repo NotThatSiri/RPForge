@@ -20,17 +20,24 @@ Accents.STRENGTH_NAMES = { "Light", "Medium", "Strong" }
 
 Accents.LIST = {
     -- Alliance -----------------------------------------------------------------------------------
+    -- Dwarven: how the game writes its dwarves (Falstad, Kurdran, quest text). Mostly plain English with
+    -- a few markers; no Scots words (ken, aboot, bairn) that players wouldn't recognise.
+    --   Light: ye, yer, me, aye, lad/lass, -in'.  Medium: fer, tae, wi', an', 'em, 'tis, wee.
+    --   Strong: th', o', nae, och, cannae, dinnae, laddie/lassie.
     { key = "dwarven", name = "Dwarven", side = "Alliance", rules = {
-        { 1, "you", "ye" }, { 1, "your", "yer" }, { 2, "you're", "ye're" }, { 1, "yourself", "yerself" }, { 1, "yes", "aye" },
-        { 1, "little", "wee" }, { 1, "small", "wee" }, { 1, "girl", "lass" }, { 1, "boy", "lad" },
-        { 1, "girls", "lasses" }, { 1, "boys", "lads" },
-        { 2, "my", "me" }, { 2, "myself", "meself" }, { 2, "don't", "dinnae" }, { 2, "can't", "cannae" },
-        { 2, "won't", "willnae" }, { 2, "isn't", "isnae" }, { 2, "didn't", "didnae" },
-        { 2, "couldn't", "couldnae" }, { 2, "wouldn't", "wouldnae" }, { 2, "shouldn't", "shouldnae" },
-        { 2, "about", "aboot" }, { 2, "of", "o'" }, { 2, "ing", "in'", "end" },
-        { 3, "not", "nae" }, { 3, "no", "nae" }, { 3, "know", "ken" }, { 3, "to", "tae" }, { 3, "out", "oot" },
-        { 3, "old", "auld" }, { 3, "from", "fae" }, { 3, "with", "wi'" }, { 3, "and", "an'" },
-        { 3, "own", "ain" }, { 3, "child", "bairn" }, { 3, "children", "bairns" },
+        { 1, "you", "ye" }, { 1, "your", "yer" }, { 1, "yours", "yers" }, { 1, "yourself", "yerself" },
+        { 1, "yourselves", "yerselves" }, { 1, "you're", "ye're" }, { 1, "you've", "ye've" }, { 1, "you'll", "ye'll" },
+        { 1, "my", "me" }, { 1, "myself", "meself" }, { 1, "yes", "aye" }, { 1, "yeah", "aye" }, { 1, "yep", "aye" },
+        { 1, "boy", "lad" }, { 1, "boys", "lads" }, { 1, "girl", "lass" }, { 1, "girls", "lasses" },
+        { 1, "ing", "in'", "end" },
+        { 2, "for", "fer" }, { 2, "to", "tae" }, { 2, "with", "wi'" }, { 2, "and", "an'" }, { 2, "them", "'em" },
+        { 2, "it's", "'tis" }, { 2, "little", "wee" }, { 2, "small", "wee" }, { 2, "tiny", "wee" },
+        { 3, "the", "th'" }, { 3, "of", "o'" }, { 3, "no", "nae" }, { 3, "not", "nae" }, { 3, "oh", "och" },
+        { 3, "can't", "cannae" }, { 3, "cannot", "cannae" }, { 3, "don't", "dinnae" }, { 3, "didn't", "didnae" },
+        { 3, "won't", "willnae" }, { 3, "wouldn't", "wouldnae" }, { 3, "couldn't", "couldnae" },
+        { 3, "shouldn't", "shouldnae" }, { 3, "isn't", "isnae" }, { 3, "wasn't", "wasnae" },
+        { 3, "doesn't", "doesnae" }, { 3, "haven't", "havenae" }, { 3, "aren't", "arenae" },
+        { 3, "boy", "laddie" }, { 3, "girl", "lassie" },
     } },
     { key = "gnomish", name = "Gnomish", side = "Alliance", rules = {
         { 1, "wow", "fascinating" }, { 1, "good", "splendid" }, { 1, "great", "marvellous" },
@@ -42,20 +49,35 @@ Accents.LIST = {
         { 3, "small", "pocket-sized" }, { 3, "yes", "affirmative" }, { 3, "no", "negative" },
         { 3, "fast", "high-velocity" }, { 3, "quickly", "at optimal velocity" },
     } },
+    -- Kaldorei: formal and old-fashioned rather than a sound. Night elves in the game hardly use
+    -- contractions, and greet in Darnassian.
+    --   Light: no contractions.  Medium: formal words.  Strong: Ishnu-alah, Elune-adore.
     { key = "kaldorei", name = "Kaldorei", side = "Alliance", rules = {
-        { 1, "hello", "Ishnu-alah" }, { 1, "hi", "Ishnu-alah" }, { 1, "goodbye", "Elune-adore" },
-        { 1, "bye", "Elune-adore" }, { 1, "oh my god", "by Elune" }, { 1, "my god", "by Elune" },
-        { 1, "can't", "cannot" }, { 1, "don't", "do not" }, { 1, "won't", "will not" },
-        { 2, "it's", "it is" }, { 2, "i'm", "I am" }, { 2, "you're", "you are" }, { 2, "we're", "we are" },
-        { 2, "yes", "indeed" }, { 2, "okay", "very well" }, { 2, "ok", "very well" },
-        { 2, "thank you", "my thanks" }, { 2, "thanks", "my thanks" }, { 2, "kid", "youngling" },
-        { 2, "kids", "younglings" },
-        { 3, "teacher", "shan'do" }, { 3, "old", "ancient" }, { 3, "very", "most" }, { 3, "night", "eventide" },
-        { 3, "forest", "wilds" },
+        { 1, "don't", "do not" }, { 1, "can't", "cannot" }, { 1, "won't", "will not" }, { 1, "didn't", "did not" },
+        { 1, "doesn't", "does not" }, { 1, "isn't", "is not" }, { 1, "aren't", "are not" },
+        { 1, "wasn't", "was not" }, { 1, "weren't", "were not" }, { 1, "haven't", "have not" },
+        { 1, "hasn't", "has not" }, { 1, "couldn't", "could not" }, { 1, "wouldn't", "would not" },
+        { 1, "shouldn't", "should not" }, { 1, "i'm", "I am" }, { 1, "you're", "you are" }, { 1, "we're", "we are" },
+        { 1, "they're", "they are" }, { 1, "it's", "it is" }, { 1, "that's", "that is" },
+        { 1, "there's", "there is" }, { 1, "what's", "what is" }, { 1, "i'll", "I will" },
+        { 1, "you'll", "you will" }, { 1, "we'll", "we will" }, { 1, "they'll", "they will" },
+        { 1, "i've", "I have" }, { 1, "you've", "you have" }, { 1, "we've", "we have" },
+        { 1, "they've", "they have" }, { 1, "let's", "let us" },
+        { 1, "isn't it", "is it not" }, { 1, "aren't you", "are you not" }, { 1, "don't you", "do you not" },
+        { 1, "can't you", "can you not" }, { 1, "won't you", "will you not" }, { 1, "didn't you", "did you not" },
+        { 2, "yeah", "yes" }, { 2, "yep", "yes" }, { 2, "yup", "yes" }, { 2, "nope", "no" },
+        { 2, "okay", "very well" }, { 2, "ok", "very well" }, { 2, "hi", "greetings" }, { 2, "hey", "greetings" },
+        { 2, "hello", "greetings" }, { 2, "bye", "farewell" }, { 2, "goodbye", "farewell" },
+        { 2, "thanks", "thank you" }, { 2, "gonna", "going to" }, { 2, "wanna", "want to" },
+        { 2, "gotta", "must" }, { 2, "kid", "child" }, { 2, "kids", "children" }, { 2, "mom", "mother" },
+        { 2, "dad", "father" }, { 2, "oh my god", "by Elune" }, { 2, "my god", "by Elune" },
+        { 3, "hi", "Ishnu-alah" }, { 3, "hey", "Ishnu-alah" }, { 3, "hello", "Ishnu-alah" },
+        { 3, "greetings", "Ishnu-alah" }, { 3, "bye", "Elune-adore" }, { 3, "goodbye", "Elune-adore" },
+        { 3, "farewell", "Elune-adore" }, { 3, "teacher", "shan'do" },
     } },
     { key = "draenei", name = "Draenei", side = "Alliance", rules = {
-        { 1, "goodbye", "Archenon poros" }, { 1, "bye", "Archenon poros" }, { 1, "oh my god", "by the Naaru" },
-        { 1, "my god", "by the Naaru" },
+        { 1, "goodbye", "Archenon poros" }, { 1, "bye", "Archenon poros" }, { 1, "oh my god", "by ze Naaru" },
+        { 1, "my god", "by ze Naaru" },
         { 1, "the", "ze" }, { 2, "this", "zis" }, { 2, "that", "zat" }, { 2, "they", "zey" },
         { 2, "them", "zem" }, { 2, "there", "zere" }, { 2, "these", "zese" }, { 2, "those", "zose" },
         { 3, "think", "zink" }, { 3, "with", "vith" }, { 3, "what", "vhat" }, { 3, "we", "ve" },
@@ -68,7 +90,7 @@ Accents.LIST = {
         { 2, "okay", "right then" }, { 2, "ok", "right then" }, { 2, "cool", "smashing" },
         { 2, "goodbye", "cheerio" }, { 2, "bye", "cheerio" }, { 2, "friend", "mate" }, { 2, "friends", "mates" },
         { 2, "guy", "chap" }, { 2, "guys", "chaps" }, { 2, "crazy", "barmy" },
-        { 3, "tired", "knackered" }, { 3, "isn't it", "innit" }, { 3, "h", "'", "start" },
+        { 3, "cool", "smashin'" }, { 3, "tired", "knackered" }, { 3, "isn't it", "innit" }, { 3, "h", "'", "start" },
         { 3, "ing", "in'", "end" },
     } },
     -- Horde --------------------------------------------------------------------------------------
@@ -87,7 +109,7 @@ Accents.LIST = {
         { 2, "there", "dere" }, { 2, "with", "wit'" }, { 2, "think", "t'ink" }, { 2, "thing", "ting" },
         { 2, "things", "tings" }, { 2, "my", "me" }, { 2, "brother", "bruddah" }, { 2, "ing", "in'", "end" },
         { 3, "is", "be" }, { 3, "are", "be" }, { 3, "am", "be" }, { 3, "nothing", "nuttin'" },
-        { 3, "something", "someting" }, { 3, "gods", "loa" }, { 3, "what", "wha'" }, { 3, "little", "likkle" },
+        { 3, "something", "sometin'" }, { 3, "gods", "loa" }, { 3, "what", "wha'" }, { 3, "little", "likkle" },
     } },
     { key = "forsaken", name = "Forsaken", side = "Horde", rules = {
         { 1, "hello", "greetings" }, { 1, "goodbye", "Dark Lady watch over you" },
@@ -155,7 +177,7 @@ end
 local function Compile(accent, strength)
     local id = accent.key .. strength
     if compiled[id] then return compiled[id] end
-    local c = { words = {}, phrases = {}, ends = {}, starts = {} }
+    local c = { words = {}, phrases = {}, ends = {}, starts = {}, beginnings = {}, longest = 0 }
     for _, rule in ipairs(accent.rules) do
         local level, from, to, where = rule[1], rule[2], rule[3], rule[4]
         if level <= strength then
@@ -165,6 +187,11 @@ local function Compile(accent, strength)
                 c.starts[#c.starts + 1] = { from, to }
             elseif from:find(" ", 1, true) then
                 c.phrases[#c.phrases + 1] = { PhrasePattern(from), to, #from }
+                -- "oh my god" begins with "oh" and "oh my".
+                local words = {}
+                for word in from:gmatch("%S+") do words[#words + 1] = word end
+                for n = 1, #words - 1 do c.beginnings[table.concat(words, " ", 1, n)] = true end
+                c.longest = math.max(c.longest, #words - 1)
             else
                 c.words[from] = to
             end
@@ -188,6 +215,13 @@ local function MatchCase(original, replacement)
     return replacement
 end
 
+-- Words of six letters or more where the ending is part of the word, not "-ing".
+local KEEP_ENDING = {
+    string = true, spring = true, during = true, ceiling = true, offspring = true, earring = true,
+    herring = true, sibling = true, awning = true, viking = true, sterling = true, wellspring = true,
+    bowstring = true, hamstring = true, plaything = true, wingding = true,
+}
+
 local function ChangeWord(c, word)
     local core, tail = word:match("^(.-)('*)$")
     local lower = core:lower()
@@ -196,7 +230,7 @@ local function ChangeWord(c, word)
     -- Otherwise one ending rule and one beginning rule can both apply ("having" -> "'avin'").
     for _, rule in ipairs(c.ends) do
         local from = rule[1]
-        if #lower > #from + 2 and lower:sub(-#from) == from then
+        if #lower > #from + 2 and lower:sub(-#from) == from and not KEEP_ENDING[lower] then
             local ending = rule[2]
             if core:upper() == core then ending = ending:upper() end
             core = core:sub(1, #core - #from) .. ending
@@ -232,7 +266,7 @@ end
 
 -- Parts never changed: ((OOC)), *actions*, links, colour codes and textures.
 local PROTECTED = {
-    "%(%(.-%)%)", "%(%(.*$", "%*.-%*", "|H.-|h.-|h", "|c%x%x%x%x%x%x%x%x", "|r", "|T.-|t", "|A.-|a",
+    "%(%(.-%)%)", "%(%(.*$", "%*.-%*", "%*[^*]*$", "|H.-|h.-|h", "|c%x%x%x%x%x%x%x%x", "|r", "|T.-|t", "|A.-|a",
 }
 
 local function ApplyProtected(c, text)
@@ -327,10 +361,46 @@ function Accents.Apply(text, mode, accent, strength)
     if not accent or not text or text == "" then return text end
     local c = Compile(accent, strength or 1)
     if mode == "EMOTE" then
-        text = text:gsub('(")([^"]*)(")', function(a, inner, b) return a .. ApplyProtected(c, inner) .. b end)
+        -- Every other piece between straight quotes is speech (an open quote runs to the end).
+        local pieces, inside = {}, false
+        for piece in (text .. '"'):gmatch('([^"]*)"') do
+            pieces[#pieces + 1] = inside and ApplyProtected(c, piece) or piece
+            inside = not inside
+        end
+        text = table.concat(pieces, '"')
         -- Curly quotes too.
         text = text:gsub("(\226\128\156)(.-)(\226\128\157)", function(a, inner, b) return a .. ApplyProtected(c, inner) .. b end)
         return text
     end
     return ApplyProtected(c, text)
+end
+
+-- While typing: once a word is finished (the character before the cursor is not part of a word), change
+-- the text before the cursor. Returns the new text and cursor (a byte position), or nil if nothing
+-- changed. Applying an accent again never changes its own words, so sending can apply it once more.
+function Accents.ApplyTyping(text, cursor, mode, accent, strength)
+    if not accent then accent, strength = Accents.Current() end
+    if not accent or not text or not cursor or cursor < 1 then return nil end
+    local before = text:sub(1, cursor)
+    if before:sub(-1):match("[%a']") or before:sub(-1):byte() >= 128 then return nil end
+    -- If the last words could begin a phrase ("isn't" of "isn't it"), leave them until the phrase is
+    -- finished or broken.
+    local c = Compile(accent, strength or 1)
+    local cut = #before + 1
+    if c.longest > 0 then
+        local found = {}
+        for at, word in before:gmatch("()(%a[%a']*)") do found[#found + 1] = { at, word:lower() } end
+        for n = math.min(c.longest, #found), 1, -1 do
+            local words = {}
+            for k = #found - n + 1, #found do words[#words + 1] = found[k][2] end
+            if c.beginnings[table.concat(words, " ")] then
+                cut = found[#found - n + 1][1]
+                break
+            end
+        end
+    end
+    local head = before:sub(1, cut - 1)
+    local changed = Accents.Apply(head, mode, accent, strength)
+    if changed == head then return nil end
+    return changed .. text:sub(cut), cursor + #changed - #head
 end
