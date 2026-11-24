@@ -2,6 +2,12 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.1.5] - 2026-11-24
+
+### Fixed
+- The cogwheel showed a game icon with a dark square behind it. It is now RP Forge's own cogwheel and
+  takes the theme's colours.
+
 ## [0.1.4] - 2026-11-24
 
 ### Changed
@@ -9,10 +15,6 @@ All notable changes to RP Forge are listed here. Versions follow [Semantic Versi
   Settings; click it again to go back to the page you were on. General and Appearance are tabs at the
   top of Settings.
 - Right-clicking the minimap anvil opens Settings > Appearance.
-
-### Fixed
-- The cogwheel showed a game icon with a dark square behind it. It is now RP Forge's own cogwheel and
-  takes the theme's colours.
 
 ## [0.1.3] - 2026-11-24
 
