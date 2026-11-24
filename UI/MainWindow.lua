@@ -11,8 +11,9 @@ local window, nav, content
 local navButtons = {}
 local currentKey
 
--- page = { key, title, section, order, build = function(frame) end, onShow = function(frame) end }
+-- page = { key, title, section, order, hidden, build = function(frame) end, onShow = function(frame) end }
 -- build runs once, the first time the page is opened. onShow runs every time it is shown.
+-- hidden pages are not listed in the side menu (Settings opens from the cogwheel instead).
 function UI.RegisterPage(page)
     assert(page.key and page.title and page.build, "RegisterPage needs key, title and build")
     page.section = page.section or "RP Forge"
@@ -80,7 +81,12 @@ function UI.RebuildNav()
     for _, header in ipairs(nav.headers or {}) do header:Hide() end
     navButtons, nav.headers = {}, {}
     local y, lastSection = -10, nil
+    local listed = {}
     for _, page in ipairs(pageOrder) do
+        -- Hidden pages are opened another way (Settings from the cogwheel) and are not listed.
+        if not page.hidden then listed[#listed + 1] = page end
+    end
+    for _, page in ipairs(listed) do
         if page.section ~= lastSection then
             lastSection = page.section
             local header = UI.Text(nav, string.upper(page.section), 10, "muted")
@@ -108,11 +114,17 @@ function UI.ShowPage(key)
         page.frame:SetAllPoints(content)
         RPF.SafeCall("build page " .. page.key, page.build, page.frame)
     end
+    if currentKey and currentKey ~= page.key then UI.previousPage = currentKey end
     currentKey = page.key
     RPF.db.lastPage = page.key
     page.frame:Show()
     if page.onShow then RPF.SafeCall("show page " .. page.key, page.onShow, page.frame) end
     for _, b in ipairs(navButtons) do b:Refresh() end
+    if window and window.cog then window.cog:Refresh() end
+end
+
+function UI.CurrentPage()
+    return currentKey
 end
 
 local function Build()
@@ -155,6 +167,31 @@ local function Build()
     close:SetScript("OnEnter", function(self) UI.SetTextColor(self.label, "bad") end)
     close:SetScript("OnLeave", function(self) UI.SetTextColor(self.label, "muted") end)
     close:SetScript("OnClick", function() window:Hide() end)
+
+    -- Cogwheel: opens Settings, or goes back to the previous page when Settings is open.
+    local cog = CreateFrame("Button", nil, title)
+    cog:SetSize(TITLE_HEIGHT - 6, TITLE_HEIGHT - 6)
+    cog:SetPoint("RIGHT", close, "LEFT", -2, 0)
+    cog.icon = cog:CreateTexture(nil, "ARTWORK")
+    cog.icon:SetTexture("Interface\\Icons\\INV_Misc_Gear_01")
+    cog.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    cog.icon:SetPoint("CENTER")
+    cog.icon:SetSize(18, 18)
+    function cog:Refresh()
+        local active = currentKey == "settings"
+        self.icon:SetDesaturated(not (active or self:IsMouseOver()))
+        self.icon:SetAlpha((active or self:IsMouseOver()) and 1 or 0.7)
+    end
+    cog:SetScript("OnEnter", function(self)
+        self:Refresh()
+        GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
+        GameTooltip:AddLine("Settings", 1, 0.82, 0.45)
+        GameTooltip:Show()
+    end)
+    cog:SetScript("OnLeave", function(self) self:Refresh(); GameTooltip:Hide() end)
+    cog:SetScript("OnClick", function() UI.ToggleSettings() end)
+    window.cog = cog
+    cog:Refresh()
 
     local line = window:CreateTexture(nil, "ARTWORK")
     line:SetTexture(UI.WHITE)

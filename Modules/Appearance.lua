@@ -61,27 +61,23 @@ local function ThemeCard(parent, key)
     return card
 end
 
-UI.RegisterPage({
+UI.RegisterSettingsPage({
     key = "appearance",
     title = "Appearance",
-    section = "Settings",
-    sectionOrder = 90,
     order = 20,
     build = function(page)
-        local heading = UI.Text(page, "Appearance", 20, "accent")
-        heading:SetPoint("TOPLEFT", 28, -26)
         local intro = UI.Text(page, "Choose how RP Forge looks. Click a theme to use it straight away.", 12, "text")
-        intro:SetPoint("TOPLEFT", heading, "BOTTOMLEFT", 0, -12)
+        intro:SetPoint("TOPLEFT", 0, -4)
 
-        local x = 28
+        local x = 0
         for _, key in ipairs(UI.THEME_ORDER) do
             local card = ThemeCard(page, key)
-            card:SetPoint("TOPLEFT", x, -100)
+            card:SetPoint("TOPLEFT", x, -34)
             x = x + 236
         end
 
         local minimapLabel = UI.Text(page, "MINIMAP BUTTON", 10, "muted")
-        minimapLabel:SetPoint("TOPLEFT", 28, -278)
+        minimapLabel:SetPoint("TOPLEFT", 0, -212)
         page.minimap = UI.Button(page, "", 170, 26)
         page.minimap:SetPoint("TOPLEFT", minimapLabel, "BOTTOMLEFT", 0, -8)
         page.minimap:SetScript("OnClick", function()

@@ -2,6 +2,14 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.1.4] - 2026-11-24
+
+### Changed
+- Settings moved out of the side menu to a cogwheel next to the close button. Click it to open
+  Settings; click it again to go back to the page you were on. General and Appearance are tabs at the
+  top of Settings.
+- Right-clicking the minimap anvil opens Settings > Appearance.
+
 ## [0.1.3] - 2026-11-24
 
 ### Added

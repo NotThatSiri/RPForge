@@ -48,7 +48,7 @@ local function Build()
 
     button:SetScript("OnClick", function(_, mouse)
         if mouse == "RightButton" then
-            UI.OpenWindow("appearance")
+            UI.OpenSettings("appearance")
         else
             UI.ToggleWindow()
         end
