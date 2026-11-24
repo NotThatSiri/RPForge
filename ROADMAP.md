@@ -8,14 +8,16 @@ players in game, not hard-coded into the addon. It is built for Horde and Allian
 
 RP Forge uses [Semantic Versioning](https://semver.org): `MAJOR.MINOR.PATCH`.
 
-- **Before 1.0 (`0.x`):** each minor version is one milestone below. Every build inside a milestone raises
-  the patch number: `0.1.0`, `0.1.1`, `0.1.2` and so on. Starting the next milestone resets it: `0.2.0`.
+- **Before 1.0 (`0.x`):** each minor version is one milestone below. Inside a milestone, work is done in
+  bundles (for example "the window and its look"). Small changes don't change the version; when a bundle
+  is finished, it becomes one version and the patch number goes up once: `0.1.0`, `0.1.1`, `0.1.2` and so
+  on. Starting the next milestone resets it: `0.2.0`.
 - **Release candidates:** `1.0.0-rc.1`, `1.0.0-rc.2` before the 1.0 release.
 - **From 1.0:** major for changes that break saved data or compatibility between players, minor for new
   features, patch for fixes.
 - **Saved data** and **player-to-player messages** have their own version numbers. Saved data upgrades itself
   when its version changes.
-- The version lives in `RPForge.toc`. Every release gets a `CHANGELOG.md` entry and a git tag (`v0.1.0`).
+- The version lives in `RPForge.toc`. Every version gets one `CHANGELOG.md` entry and a git tag (`v0.1.0`).
 
 ## Milestones
 
