@@ -133,6 +133,103 @@ function UI.Toggle(parent, label, hint, getter, setter)
     return row
 end
 
+-- A label with a one-line text box under it. Saves as you type: onChange(text) runs on every edit.
+-- field:SetValue(text) fills it without calling onChange.
+function UI.Field(parent, label, width, maxLetters, onChange)
+    local field = CreateFrame("Frame", nil, parent)
+    field:SetSize(width or 220, 44)
+    field.label = UI.Text(field, label, 10, "muted")
+    field.label:SetPoint("TOPLEFT", 0, 0)
+    field.box = UI.EditBox(field, width or 220, 24)
+    field.box:SetPoint("TOPLEFT", field.label, "BOTTOMLEFT", 0, -4)
+    field.box:SetPoint("RIGHT", field, "RIGHT", 0, 0)
+    if maxLetters then field.box:SetMaxLetters(maxLetters) end
+    field.box:SetScript("OnTextChanged", function(self, userInput)
+        if userInput and onChange then RPF.SafeCall("field " .. label, onChange, self:GetText()) end
+    end)
+    function field:SetValue(text)
+        self.box:SetText(text or "")
+        self.box:SetCursorPosition(0)
+    end
+    return field
+end
+
+-- A label with a scrolling, multi-line text box under it. Saves as you type, like UI.Field.
+function UI.TextArea(parent, label, height, maxLetters, onChange)
+    local area = CreateFrame("Frame", nil, parent)
+    area:SetHeight((height or 120) + 18)
+    area.label = UI.Text(area, label, 10, "muted")
+    area.label:SetPoint("TOPLEFT", 0, 0)
+    local box = UI.Panel(area, "panelAlt", "border")
+    box:SetPoint("TOPLEFT", area.label, "BOTTOMLEFT", 0, -4)
+    box:SetPoint("BOTTOMRIGHT", 0, 0)
+    local scroll = CreateFrame("ScrollFrame", nil, box, "UIPanelScrollFrameTemplate")
+    scroll:SetPoint("TOPLEFT", 7, -6)
+    scroll:SetPoint("BOTTOMRIGHT", -26, 6)
+    local edit = CreateFrame("EditBox", nil, scroll)
+    edit:SetMultiLine(true)
+    edit:SetAutoFocus(false)
+    edit:SetFont(UI.FONT, 11, "")
+    local c = UI.Color("text")
+    edit:SetTextColor(c[1], c[2], c[3], 1)
+    if maxLetters then edit:SetMaxLetters(maxLetters) end
+    edit:SetWidth(200)
+    scroll:SetScrollChild(edit)
+    scroll:SetScript("OnSizeChanged", function(_, w) edit:SetWidth(math.max(50, w)) end)
+    -- Clicking anywhere in the box starts typing.
+    box:EnableMouse(true)
+    box:SetScript("OnMouseDown", function() edit:SetFocus() end)
+    edit:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+    edit:SetScript("OnEditFocusGained", function() UI.Backdrop(box, "panelAlt", "accent") end)
+    edit:SetScript("OnEditFocusLost", function() UI.Backdrop(box, "panelAlt", "border") end)
+    edit:SetScript("OnTextChanged", function(self, userInput)
+        if userInput and onChange then RPF.SafeCall("text " .. label, onChange, self:GetText()) end
+    end)
+    -- Keep the typing position in view.
+    edit:SetScript("OnCursorChanged", function(_, _, y, _, cursorHeight)
+        local top = scroll:GetVerticalScroll()
+        local bottom = top + scroll:GetHeight()
+        y = -y
+        if y < top then
+            scroll:SetVerticalScroll(y)
+        elseif y + cursorHeight > bottom then
+            scroll:SetVerticalScroll(y + cursorHeight - scroll:GetHeight())
+        end
+    end)
+    area.edit = edit
+    function area:SetValue(text)
+        edit:SetText(text or "")
+        edit:SetCursorPosition(0)
+        scroll:SetVerticalScroll(0)
+    end
+    return area
+end
+
+-- A row of buttons where exactly one is chosen. choices = { { value, label }, ... }.
+-- onPick(value) runs when the player picks one; row:SetValue(value) shows a choice without calling it.
+function UI.Segmented(parent, choices, width, onPick)
+    local row = CreateFrame("Frame", nil, parent)
+    row:SetSize((width or 110) * #choices + 6 * (#choices - 1), 26)
+    row.buttons = {}
+    for i, choice in ipairs(choices) do
+        local b = UI.Button(row, choice[2], width or 110, 26)
+        b:SetPoint("LEFT", (i - 1) * ((width or 110) + 6), 0)
+        b.value = choice[1]
+        b:SetScript("OnClick", function(self)
+            row:SetValue(self.value)
+            if onPick then RPF.SafeCall("choice", onPick, self.value) end
+        end)
+        row.buttons[i] = b
+    end
+    function row:SetValue(value)
+        for _, b in ipairs(self.buttons) do
+            b.style = (b.value == value) and "primary" or nil
+            b:Refresh()
+        end
+    end
+    return row
+end
+
 -- A simple tooltip for any frame.
 function UI.Tooltip(frame, title, body)
     frame:HookScript("OnEnter", function(self)
