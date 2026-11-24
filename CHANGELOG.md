@@ -2,9 +2,16 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
-## [Unreleased]
+## [0.1.1] - 2026-11-24
 
 ### Added
+- Update notice: RP Forge tells you when another player has a newer version. You hear it once per
+  session, and again at login if that version was seen in the last 3 days.
+- `/rpf who` lists the RP Forge users around you (guild, group and the RP Forge channel) and their
+  versions. Newer versions show in green, older ones in orange.
+- `/rpf network` turns player messages on or off.
+- RP Forge joins a hidden channel, `RPForgeNet`, to reach players outside your guild and group. It does
+  not show in your chat.
 - Licensed under the Apache License 2.0 (`LICENSE`, `NOTICE`).
 
 ## [0.1.0] - 2026-11-24

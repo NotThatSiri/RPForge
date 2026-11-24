@@ -10,6 +10,7 @@ local ADDON_NAME, RPF = ...
 local ACCOUNT_DEFAULTS = {
     settings = {
         debug = false,
+        network = true, -- player messages: version check, /rpf who, and later profiles
     },
 }
 
