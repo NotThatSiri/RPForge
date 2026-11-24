@@ -21,7 +21,6 @@ local EVENTS = {
     CHAT_MSG_SAY = "SAY", CHAT_MSG_YELL = "YELL", CHAT_MSG_EMOTE = "EMOTE", CHAT_MSG_TEXT_EMOTE = "TEXT_EMOTE",
 }
 local CIRCLE_MASK = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
-local RING = "Interface\\Minimap\\MiniMap-TrackingBorder"
 local CLASS_CIRCLES = "Interface\\TargetingFrame\\UI-Classes-Circles"
 
 local messages = {} -- { at, kind, sender, guid, text, language }
@@ -202,18 +201,27 @@ local function NewRow(msg, grouped)
         local holder = CreateFrame("Frame", nil, row)
         holder:SetSize(PORTRAIT, PORTRAIT)
         holder:SetPoint("TOPLEFT", 0, 0)
-        -- The round picture sits inside the game's own round border (the minimap button ring).
+        -- A thin ring in the theme's accent colour, like the Home portrait: the game's round shape
+        -- as a smooth accent disc, a dark disc just inside it, and the round picture on top.
+        local DISC = 38
+        local a, w = UI.Color("accent"), UI.Color("window")
+        local ring = holder:CreateTexture(nil, "BACKGROUND")
+        ring:SetTexture(CIRCLE_MASK)
+        ring:SetSize(DISC, DISC)
+        ring:SetPoint("TOPLEFT", 2, -2)
+        ring:SetVertexColor(a[1], a[2], a[3], 1)
+        local inner = holder:CreateTexture(nil, "BORDER")
+        inner:SetTexture(CIRCLE_MASK)
+        inner:SetSize(DISC - 4, DISC - 4)
+        inner:SetPoint("CENTER", ring, "CENTER", 0, 0)
+        inner:SetVertexColor(w[1], w[2], w[3], 1)
         row.portrait = holder:CreateTexture(nil, "ARTWORK")
-        row.portrait:SetSize(30, 30)
-        row.portrait:SetPoint("TOPLEFT", 10, -7)
+        row.portrait:SetSize(DISC - 6, DISC - 6)
+        row.portrait:SetPoint("CENTER", ring, "CENTER", 0, 0)
         row.icon = holder:CreateTexture(nil, "ARTWORK")
-        row.icon:SetSize(30, 30)
-        row.icon:SetPoint("TOPLEFT", 10, -7)
+        row.icon:SetSize(DISC - 6, DISC - 6)
+        row.icon:SetPoint("CENTER", ring, "CENTER", 0, 0)
         if row.icon.SetMask then row.icon:SetMask(CIRCLE_MASK) end
-        local ring = holder:CreateTexture(nil, "OVERLAY")
-        ring:SetTexture(RING)
-        ring:SetSize(PORTRAIT * 1.71, PORTRAIT * 1.71)
-        ring:SetPoint("TOPLEFT", 0, 0)
         row.header = UI.Text(row, "", 12, "text")
         row.header:SetPoint("TOPLEFT", PORTRAIT + 6, -4)
         row.header:SetWordWrap(false)

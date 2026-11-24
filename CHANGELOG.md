@@ -2,6 +2,12 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.9] - 2026-11-24
+
+### Changed
+- RP chat portraits use the same thin accent-coloured ring as the Home portrait, instead of the thick
+  gold border.
+
 ## [0.3.8] - 2026-11-24
 
 ### Changed
