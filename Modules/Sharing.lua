@@ -57,13 +57,15 @@ end
 
 -- Sending ---------------------------------------------------------------------------------
 
--- Put the active profile into LibMSP's table and tell it to update.
-local function Publish()
-    if Sharing.mode ~= "own" or not msp then return end
-    local profile = Profiles.GetActive()
+-- Every MSP field RP Forge sends, so fields left empty are cleared too.
+local SENT_FIELDS = { "NA", "PX", "NT", "NI", "NH", "PN", "RA", "RC", "AG", "AH", "AE", "HB", "HH", "MO",
+    "CU", "CO", "DE", "HI", "FC", "IC", "MU", "PE", "PS" }
+
+-- A profile as MSP fields (the same table other players receive).
+function Sharing.BuildFields(profile)
+    profile = profile or Profiles.GetActive()
     local f = profile and profile.fields or {}
-    local my = msp.my
-    my.VA = "RPForge/" .. RPF.VERSION
+    local my = {}
     local name = strtrim((f.firstName or "") .. " " .. (f.lastName or ""))
     my.NA = name ~= "" and name or UnitName("player")
     for ours, theirs in pairs(FIELD_MAP) do
@@ -96,6 +98,15 @@ local function Publish()
         end
     end
     my.PS = #traits > 0 and table.concat(traits, "\n") or nil
+    return my
+end
+
+-- Put the active profile into LibMSP's table and tell it to update.
+local function Publish()
+    if Sharing.mode ~= "own" or not msp then return end
+    local fields = Sharing.BuildFields()
+    for _, key in ipairs(SENT_FIELDS) do msp.my[key] = fields[key] end
+    msp.my.VA = "RPForge/" .. RPF.VERSION
     RPF.SafeCall("msp update", msp.Update, msp)
 end
 
@@ -112,20 +123,55 @@ end
 
 -- Receiving -------------------------------------------------------------------------------
 
--- Keep a small record of each profile heard, for the People page later.
+-- The fields kept for each person, so their profile can be shown later (the People page).
+local KEPT_FIELDS = { "NA", "PX", "NT", "NI", "NH", "PN", "RA", "RC", "AG", "AH", "AE", "AW", "HB", "HH",
+    "MO", "CU", "CO", "DE", "HI", "FC", "IC", "MU", "PE", "PS", "VA" }
+local MAX_PEOPLE = 500
+
+-- Forget the people seen longest ago once there are too many.
+local function Prune()
+    local list = {}
+    for name, person in pairs(RPF.db.people) do list[#list + 1] = { name = name, seen = person.seen or 0 } end
+    if #list <= MAX_PEOPLE then return end
+    table.sort(list, function(a, b) return a.seen > b.seen end)
+    for i = MAX_PEOPLE + 1, #list do RPF.db.people[list[i].name] = nil end
+end
+
+-- Keep a record of each profile heard.
 local function Remember(name)
     local char = msp and msp.char[name]
     local field = char and char.field
     if not field or not field.NA or field.NA == "" then return end
     RPF.db.people = RPF.db.people or {}
     local person = RPF.db.people[name] or {}
-    person.name, person.title = field.NA, field.NT
-    person.status, person.currently = field.FC, field.CU
-    person.race, person.class = field.RA, field.RC
-    person.addon = field.VA
+    person.fields = person.fields or {}
+    for _, key in ipairs(KEPT_FIELDS) do
+        if field[key] ~= nil then person.fields[key] = field[key] end
+    end
+    local isNew = person.seen == nil
     person.seen = time()
     RPF.db.people[name] = person
+    if isNew then Prune() end
+    RPF.Send("PERSON_UPDATED", name)
 end
+
+-- Ask someone for their whole profile (used when opening it). LibMSP limits how often.
+function Sharing.RequestProfile(name)
+    if msp and name and name ~= MergedName("player") then
+        RPF.SafeCall("request profile", msp.Request, msp, name, KEPT_FIELDS)
+    end
+end
+
+-- Someone's profile fields: what we just heard, or what was kept from before.
+function Sharing.GetProfile(name)
+    if name == MergedName("player") then return Sharing.BuildFields() end
+    local live = msp and msp.char[name] and msp.char[name].field
+    if live and live.NA and live.NA ~= "" then return live end
+    local person = RPF.db.people and RPF.db.people[name]
+    return person and person.fields or nil
+end
+
+Sharing.MergedName = MergedName
 
 -- Tooltips ---------------------------------------------------------------------------------
 
@@ -187,6 +233,8 @@ function Sharing:OnLogin()
         RPF.LogError("sharing", "LibMSP did not load")
         return
     end
+    -- Remember the profiles that arrive, whichever addon asked for them.
+    table.insert(msp.callback.received, OnReceived)
     for _, other in ipairs(OTHER_ADDONS) do
         if IsLoaded(other.folder) then
             Sharing.mode, Sharing.otherAddon = "other", other.name
@@ -200,7 +248,6 @@ function Sharing:OnLogin()
     if not RPF.db.settings.network then return end
     msp_RPAddOn = "RP Forge"
     Sharing.mode = "own"
-    table.insert(msp.callback.received, OnReceived)
     HookTooltips()
     Publish()
 end

@@ -2,6 +2,22 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.2.10] - 2026-11-24
+
+Viewing profiles, finishing the Profile & Persona milestone.
+
+### Added
+- A **People** page (side menu, under Character): everyone whose roleplay profile RP Forge has heard,
+  most recent first, with their icon, roleplay name, title, race and class, status and when you last saw
+  them. Search by name, title or race. Click someone to open their profile.
+- A **profile viewer**: icon, name and full title, status, what they're doing, their OOC note, details
+  (nickname, pronouns, age, height, eyes, birthplace, home, house, motto), first impressions, traits,
+  appearance and history, and **Play theme** for their theme tune. It works for profiles from RP Forge,
+  Total RP 3, MyRolePlay and XRP.
+- `/rpf view` opens your target's profile, or your own when you have no player targeted.
+- RP Forge keeps the profiles it hears (up to 500 people), so they can be read later, even offline. It
+  does this also when Total RP 3 shares your profile.
+
 ## [0.2.9] - 2026-11-24
 
 ### Added
