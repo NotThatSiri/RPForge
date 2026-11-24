@@ -13,6 +13,8 @@ local ACCOUNT_DEFAULTS = {
         network = true, -- player messages: version check, /rpf who, and later profiles
         theme = "parchment", -- parchment, forge or arcane (UI\Theme.lua)
         minimap = { shown = true, angle = 210 },
+        chatStyle = "game", -- RP chat layout: "game" or "story"
+        chatOpen = false,   -- RP chat window open (reopens after a reload)
     },
     profiles = {}, -- roleplay profiles, shared by all characters (Modules\Profiles.lua)
     people = {},   -- profiles heard from other players (Modules\Sharing.lua)

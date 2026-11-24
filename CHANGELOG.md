@@ -2,6 +2,24 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.0] - 2026-11-24
+
+The RP chat window, the start of the Chat & Session Log milestone.
+
+### Added
+- An **RP chat** window: only Say, Emote and Yell from people nearby, without trade, guild or system
+  messages. Your normal chat stays as it is.
+  - Each message shows the speaker's **portrait** in a round frame (their profile icon or class icon when
+    the game can't show them), their **roleplay name** in its colour, and the time.
+  - Speech in "quotes" inside emotes is coloured like Say; ((OOC)) text is dimmed.
+  - Several messages in a row from the same person share one name and portrait.
+  - Move it by its title bar and resize it from the corner; it remembers where it was and keeps the last
+    messages after a reload.
+- Open it with the **RP chat** button on Home, `/rpf chat`, or a key you set under Key Bindings >
+  AddOns > RP Forge (there's also a key for the RP Forge window).
+- **Settings > Appearance > RP chat layout:** game style (Kiri says: Well met.) or story style
+  (Kiri: "Well met.").
+
 ## [0.2.15] - 2026-11-24
 
 ### Changed

@@ -1,0 +1,8 @@
+<Bindings>
+    <Binding name="RPFORGE_TOGGLE_WINDOW" header="RPFORGE">
+        RPForge_ToggleWindow()
+    </Binding>
+    <Binding name="RPFORGE_TOGGLE_CHAT" header="RPFORGE">
+        RPForge_ToggleChat()
+    </Binding>
+</Bindings>
