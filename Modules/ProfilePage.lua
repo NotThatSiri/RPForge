@@ -303,16 +303,58 @@ local function BuildPersona(frame, width)
         FillPersona()
     end)
 
+    -- Class colour presets: your own class first, then every class this client knows.
+    local classes = {}
+    local _, ownClass = UnitClass("player")
+    if RAID_CLASS_COLORS then
+        for token in pairs(RAID_CLASS_COLORS) do
+            if token ~= ownClass then classes[#classes + 1] = token end
+        end
+        table.sort(classes)
+        if ownClass and RAID_CLASS_COLORS[ownClass] then table.insert(classes, 1, ownClass) end
+    end
+    local presetX = 0
+    for _, token in ipairs(classes) do
+        local c = RAID_CLASS_COLORS[token]
+        local hex = string.format("%02x%02x%02x", c.r * 255, c.g * 255, c.b * 255)
+        local swatch = CreateFrame("Button", nil, frame, UI.BACKDROP_TEMPLATE)
+        swatch:SetSize(16, 16)
+        swatch:SetPoint("TOPLEFT", page.colorState, "BOTTOMLEFT", presetX, -6)
+        UI.Backdrop(swatch, "panelAlt", "border")
+        local fill = swatch:CreateTexture(nil, "ARTWORK")
+        fill:SetTexture(UI.WHITE)
+        fill:SetPoint("TOPLEFT", 2, -2)
+        fill:SetPoint("BOTTOMRIGHT", -2, 2)
+        fill:SetVertexColor(c.r, c.g, c.b, 1)
+        local className = (LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[token]) or token
+        swatch:SetScript("OnEnter", function(self)
+            UI.Backdrop(self, "panelAlt", "accent")
+            GameTooltip:SetOwner(self, "ANCHOR_TOP")
+            GameTooltip:AddLine(className .. (token == ownClass and "  (your class)" or ""), c.r, c.g, c.b)
+            GameTooltip:Show()
+        end)
+        swatch:SetScript("OnLeave", function(self)
+            UI.Backdrop(self, "panelAlt", "border")
+            GameTooltip:Hide()
+        end)
+        swatch:SetScript("OnClick", function()
+            Profiles.GetPersona().nameColor = hex
+            Profiles.PersonaChanged()
+            FillPersona()
+        end)
+        presetX = presetX + (token == ownClass and 26 or 20) -- a little gap after your own class
+    end
+
     local impressionsLabel = UI.Text(frame, "FIRST IMPRESSIONS  (what people notice at first sight, up to 5)", 10, "muted")
-    impressionsLabel:SetPoint("TOPLEFT", 0, -82)
+    impressionsLabel:SetPoint("TOPLEFT", 0, -92)
     local titleHead = UI.Text(frame, "TITLE", 9, "muted")
-    titleHead:SetPoint("TOPLEFT", 48, -100)
+    titleHead:SetPoint("TOPLEFT", 48, -110)
     local textHead = UI.Text(frame, "WHAT THEY NOTICE", 9, "muted")
-    textHead:SetPoint("TOPLEFT", 264, -100)
+    textHead:SetPoint("TOPLEFT", 264, -110)
 
     page.impressionRows = {}
     for slot = 1, Profiles.MAX_IMPRESSIONS do
-        local y = -114 - (slot - 1) * 44
+        local y = -124 - (slot - 1) * 44
         local row = {}
         row.icon = UI.IconButton(frame, 36, function(self)
             UI.PickIcon(self.value, function(icon)
@@ -337,7 +379,7 @@ local function BuildPersona(frame, width)
         page.impressionRows[slot] = row
     end
     local hint = UI.Text(frame, "For example: a scar across the cheek, the smell of pipe smoke, a holy symbol worn openly.", 10, "muted")
-    hint:SetPoint("TOPLEFT", 0, -114 - Profiles.MAX_IMPRESSIONS * 44 - 2)
+    hint:SetPoint("TOPLEFT", 0, -124 - Profiles.MAX_IMPRESSIONS * 44 - 2)
 end
 
 local function BuildTraits(frame, width)

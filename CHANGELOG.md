@@ -2,6 +2,12 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.2.8] - 2026-11-24
+
+### Added
+- **Class colour presets** for your name colour: a row of swatches under Name colour, your own class first.
+  Point at one to see the class; click to use it.
+
 ## [0.2.7] - 2026-11-24
 
 ### Added
