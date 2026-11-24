@@ -16,6 +16,8 @@ Your roleplay profile.
   - Everything saves as you type. Your name shows at the top as others will see it.
 - Several profiles: make new ones, copy, rename, delete and switch between them. Profiles are shared by
   all your characters; each character remembers which one it uses.
+- New profiles start Out of character, so nobody is shown as IC until they choose it. Copies keep the
+  status of the profile they were copied from.
 
 ## [0.1.3] - 2026-11-24
 

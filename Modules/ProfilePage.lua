@@ -101,7 +101,7 @@ local function FillFields()
     for key, control in pairs(page.controls) do
         control:SetValue(Profiles.GetField(key, profile))
     end
-    page.statusRow:SetValue(Profiles.GetField("status", profile) or "ic")
+    page.statusRow:SetValue(Profiles.GetField("status", profile) or "ooc")
 end
 
 local function ShowTab(key)

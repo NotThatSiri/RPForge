@@ -83,7 +83,8 @@ function Profiles.Create(name, copyFromID)
     if source then
         for key, value in pairs(source.fields) do fields[key] = value end
     else
-        fields.status = "ic"
+        -- New profiles start out of character: nobody is shown as IC until they choose it.
+        fields.status = "ooc"
     end
     local profile = { id = id, name = UniqueName(name), createdAt = time(), fields = fields }
     Store()[id] = profile
