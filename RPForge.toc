@@ -3,6 +3,7 @@
 ## Notes: Roleplay tools for WoW Forever: character sheet, chat, places, items, quests and more. Works with Total RP 3.
 ## Author: NotThatSiri
 ## Version: 0.1.0
+## X-License: Apache-2.0
 ## SavedVariables: RPForgeDB
 ## SavedVariablesPerCharacter: RPForgeCharDB
 

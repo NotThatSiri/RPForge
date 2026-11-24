@@ -2,6 +2,11 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [Unreleased]
+
+### Added
+- Licensed under the Apache License 2.0 (`LICENSE`, `NOTICE`).
+
 ## [0.1.0] - 2026-11-24
 
 ### Added
