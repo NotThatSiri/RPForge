@@ -84,6 +84,7 @@ local function FillFields()
     end
     page.statusRow:SetValue(Profiles.GetField("status", profile) or "ooc")
     if page.FillPersona then page.FillPersona() end
+    if page.FillVoice then page.FillVoice() end
 end
 
 local function ShowTab(key)
@@ -482,6 +483,64 @@ local function BuildTraits(frame, width)
     end)
 end
 
+-- Voice tab: accent ---------------------------------------------------------------------------
+
+local Accents = RPF.Accents
+local EMOTE_SAMPLE = 'waves. "Hello there, friend! Are you going to the tavern?" *winks* ((afk soon))'
+
+local function FillVoice()
+    if not page.accentButton then return end
+    local choice = Profiles.GetPersona().accent
+    local accent = choice and Accents.BY_KEY[choice.key]
+    page.accentButton.label:SetText(accent and accent.name or "No accent")
+    page.strength:SetValue(accent and (choice.strength or 1) or 0)
+    for _, b in ipairs(page.strength.buttons) do b:SetEnabled(accent ~= nil) end
+    local sample = page.trySay:GetText() or ""
+    local say = accent and Accents.Apply(sample, "SAY") or sample
+    local emote = accent and Accents.Apply(EMOTE_SAMPLE, "EMOTE") or EMOTE_SAMPLE
+    page.saidText:SetText(UI.ColorCode("muted") .. "Say:|r  " .. say)
+    page.emoteText:SetText(UI.ColorCode("muted") .. "Emote:|r  " .. UnitName("player") .. " " .. emote)
+end
+
+local function BuildVoice(frame, width)
+    page.FillVoice = FillVoice
+    local label = UI.Text(frame, "ACCENT", 10, "muted")
+    label:SetPoint("TOPLEFT", 0, 0)
+    page.accentButton = UI.Button(frame, "No accent", 200, 26)
+    page.accentButton:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -8)
+    page.accentButton:SetScript("OnClick", function(self) Accents.ShowMenu(self) end)
+
+    local strengthLabel = UI.Text(frame, "STRENGTH", 10, "muted")
+    strengthLabel:SetPoint("TOPLEFT", 230, 0)
+    page.strength = UI.Segmented(frame, Accents.STRENGTHS, 90, function(value) Accents.SetStrength(value) end)
+    page.strength:SetPoint("TOPLEFT", strengthLabel, "BOTTOMLEFT", 0, -8)
+
+    local hint = UI.Text(frame, "Your accent changes what you post from the RP chat window: everything you say or yell, "
+        .. "and the words in \"quotes\" when you emote. *Actions* and ((OOC)) stay as you wrote them. "
+        .. "Light changes a few words, Strong changes many.", 11, "muted")
+    hint:SetPoint("TOPLEFT", page.accentButton, "BOTTOMLEFT", 0, -16)
+    hint:SetWidth(width)
+    hint:SetJustifyH("LEFT")
+
+    local tryLabel = UI.Text(frame, "TRY IT", 10, "muted")
+    tryLabel:SetPoint("TOPLEFT", hint, "BOTTOMLEFT", 0, -22)
+    page.trySay = UI.EditBox(frame, width, 26)
+    page.trySay:SetPoint("TOPLEFT", tryLabel, "BOTTOMLEFT", 0, -8)
+    page.trySay:SetMaxLetters(255)
+    page.trySay:SetText(Accents.SAMPLE)
+    page.trySay:SetCursorPosition(0)
+    page.trySay:HookScript("OnTextChanged", function() FillVoice() end)
+    page.saidText = UI.Text(frame, "", 12, "text")
+    page.saidText:SetPoint("TOPLEFT", page.trySay, "BOTTOMLEFT", 2, -14)
+    page.saidText:SetWidth(width - 4)
+    page.saidText:SetJustifyH("LEFT")
+    page.emoteText = UI.Text(frame, "", 12, "text")
+    page.emoteText:SetPoint("TOPLEFT", page.saidText, "BOTTOMLEFT", 0, -10)
+    page.emoteText:SetWidth(width - 4)
+    page.emoteText:SetJustifyH("LEFT")
+    FillVoice()
+end
+
 local MARGIN = 28
 
 UI.RegisterPage({
@@ -523,13 +582,13 @@ UI.RegisterPage({
 
         page.tabButtons, page.tabs = {}, {}
         local tabX = MARGIN
-        for _, spec in ipairs({ { "identity", "Identity" }, { "status", "Status" }, { "about", "About" }, { "persona", "Persona" }, { "traits", "Traits" } }) do
-            local b = UI.Button(frame, spec[2], 120, 26)
+        for _, spec in ipairs({ { "identity", "Identity" }, { "status", "Status" }, { "about", "About" }, { "persona", "Persona" }, { "traits", "Traits" }, { "voice", "Voice" } }) do
+            local b = UI.Button(frame, spec[2], 114, 26)
             b.tabKey = spec[1]
             b:SetPoint("TOPLEFT", tabX, -80)
             b:SetScript("OnClick", function() ShowTab(spec[1]) end)
             page.tabButtons[#page.tabButtons + 1] = b
-            tabX = tabX + 126
+            tabX = tabX + 120
 
             local tab = CreateFrame("Frame", nil, frame)
             tab:SetPoint("TOPLEFT", MARGIN, -126)
@@ -543,6 +602,7 @@ UI.RegisterPage({
         BuildAbout(page.tabs.about)
         BuildPersona(page.tabs.persona, width)
         BuildTraits(page.tabs.traits, width)
+        BuildVoice(page.tabs.voice, width)
         ShowTab("identity")
     end,
     onShow = function()
@@ -575,5 +635,6 @@ RPF.Listen("PROFILE_CHANGED", function()
     if not page or not page:IsVisible() then return end
     RefreshHeader()
     if page.loadedProfile ~= RPF.char.activeProfile then FillFields() end
+    if page.FillVoice then page.FillVoice() end
 end)
 -- (A new theme rebuilds the window; build() then replaces `page` with the new frame.)

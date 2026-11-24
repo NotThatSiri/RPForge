@@ -14,6 +14,33 @@ RPF.SCHEMA_VERSION = 1
 -- Player-to-player message format. Raise it when older versions can no longer read our messages.
 RPF.PROTOCOL_VERSION = 1
 
+-- Secret values ---------------------------------------------------------------
+-- This client hides some unit details from addons (for example who a nameplate belongs to) as "secret"
+-- values. Addons may not compare or test them, so every unit lookup goes through these helpers, which
+-- return nil instead of a secret.
+
+function RPF.IsSecret(value)
+    return issecretvalue ~= nil and issecretvalue(value) == true
+end
+
+-- UnitGUID(unit), or nil when hidden.
+function RPF.UnitGUID(unit)
+    local guid = UnitGUID(unit)
+    if RPF.IsSecret(guid) then return nil end
+    return guid
+end
+
+-- The unit's name ("Name-Realm" for other realms), or nil when hidden or not a player.
+function RPF.PlayerName(unit)
+    local exists = UnitExists(unit)
+    if RPF.IsSecret(exists) or not exists then return nil end
+    local isPlayer = UnitIsPlayer(unit)
+    if RPF.IsSecret(isPlayer) or not isPlayer then return nil end
+    local name = GetUnitName(unit, true)
+    if RPF.IsSecret(name) then return nil end
+    return name
+end
+
 -- Game events ---------------------------------------------------------------
 
 local eventFrame = CreateFrame("Frame")

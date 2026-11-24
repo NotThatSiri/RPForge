@@ -152,14 +152,14 @@ end
 local function FindUnit(guid)
     if not guid then return nil end
     for _, unit in ipairs({ "player", "target", "mouseover", "focus" }) do
-        if UnitGUID(unit) == guid then return unit end
+        if RPF.UnitGUID(unit) == guid then return unit end
     end
-    for i = 1, 4 do if UnitGUID("party" .. i) == guid then return "party" .. i end end
-    for i = 1, 40 do if UnitGUID("raid" .. i) == guid then return "raid" .. i end end
+    for i = 1, 4 do if RPF.UnitGUID("party" .. i) == guid then return "party" .. i end end
+    for i = 1, 40 do if RPF.UnitGUID("raid" .. i) == guid then return "raid" .. i end end
     if C_NamePlate and C_NamePlate.GetNamePlates then
         for _, plate in ipairs(C_NamePlate.GetNamePlates()) do
             local unit = plate.namePlateUnitToken or (plate.UnitFrame and plate.UnitFrame.unit)
-            if unit and UnitGUID(unit) == guid then return unit end
+            if unit and not RPF.IsSecret(unit) and RPF.UnitGUID(unit) == guid then return unit end
         end
     end
     return nil
@@ -361,6 +361,7 @@ local function SendFromBox(box)
             break
         end
     end
+    text = RPF.Accents.Apply(text, mode)
     for _, part in ipairs(Chat.SplitPost(text)) do
         SendChatMessage(part, mode)
     end
@@ -405,7 +406,7 @@ local function NearbyForgeUsers()
         if UsesRPForge(name) then out[#out + 1] = name end
     end
     local function AddUnit(unit)
-        if UnitExists(unit) and UnitIsPlayer(unit) then Add(GetUnitName(unit, true)) end
+        Add(RPF.PlayerName(unit))
     end
     AddUnit("target")
     AddUnit("mouseover")
@@ -569,8 +570,27 @@ local function Build()
     boxFrame:SetAllPoints()
     local modeLabel = UI.Text(boxFrame, "", 12, "text")
     modeLabel:SetPoint("TOPLEFT", 8, -7)
-    window.parts = UI.Text(boxFrame, "", 10, "muted", "RIGHT")
-    window.parts:SetPoint("BOTTOMRIGHT", -6, 4)
+    -- Above the box on the right: your accent (click to change it), and how many posts a long text makes.
+    local accentButton = CreateFrame("Button", nil, input)
+    accentButton:SetHeight(16)
+    accentButton:SetPoint("BOTTOMRIGHT", input, "TOPRIGHT", 0, 3)
+    accentButton.label = UI.Text(accentButton, "", 11, "muted", "RIGHT")
+    accentButton.label:SetPoint("RIGHT", 0, 0)
+    accentButton:SetScript("OnClick", function(self) RPF.Accents.ShowMenu(self, true) end)
+    accentButton:SetScript("OnEnter", function(self)
+        UI.SetTextColor(self.label, "accent")
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:AddLine("Accent")
+        GameTooltip:AddLine("Changes what you say and yell, and \"quoted\" words in emotes. Click to choose.", 0.9, 0.9, 0.9, true)
+        GameTooltip:Show()
+    end)
+    accentButton:SetScript("OnLeave", function(self)
+        UI.SetTextColor(self.label, "muted")
+        GameTooltip:Hide()
+    end)
+    window.accentButton = accentButton
+    window.parts = UI.Text(input, "", 10, "muted", "RIGHT")
+    window.parts:SetPoint("RIGHT", accentButton, "LEFT", -10, 0)
     local box = CreateFrame("EditBox", nil, boxFrame)
     box:SetMultiLine(true)
     box:SetAutoFocus(false)
@@ -597,8 +617,18 @@ local function Build()
         box:SetTextColor(r, g, b, 1)
         placeholder:SetText(MODE_HINTS[mode])
         boxFrame:SetBackdropBorderColor(r, g, b, box:HasFocus() and 1 or 0.45)
+        if window.UpdateCorner then window.UpdateCorner() end
     end
     window.ShowMode = ShowMode
+    -- Bottom-right corner: your accent, and how many posts a long text becomes.
+    function window.UpdateCorner()
+        local text = box:GetText() or ""
+        local count = #Chat.SplitPost(RPF.Accents.Apply(text, RPF.db.settings.chatMode or "SAY"))
+        local accent = RPF.Accents.Describe()
+        window.accentButton.label:SetText("Accent: " .. (accent or "none"))
+        window.accentButton:SetWidth(window.accentButton.label:GetStringWidth() + 4)
+        window.parts:SetText(count > 1 and (count .. " posts") or "")
+    end
     ShowMode()
     box:SetScript("OnEditFocusGained", ShowMode)
     box:SetScript("OnEditFocusLost", ShowMode)
@@ -625,8 +655,7 @@ local function Build()
             end
         end
         placeholder:SetShown(text == "")
-        local count = #Chat.SplitPost(text)
-        window.parts:SetText(count > 1 and (count .. " posts") or "")
+        window.UpdateCorner()
         -- Grow from 2 to 6 lines as you type.
         local lines = math.max(2, math.min(6, math.ceil((self:GetHeight() > 0 and select(2, text:gsub("\n", "")) + 1) or 1)))
         local _, fontHeight = self:GetFont()
@@ -645,7 +674,7 @@ local function Build()
 
     window.typing = UI.Text(window, "", 11, "text")
     window.typing:SetPoint("BOTTOMLEFT", input, "TOPLEFT", 2, 5)
-    window.typing:SetPoint("RIGHT", input, "RIGHT", 0, 0)
+    window.typing:SetPoint("RIGHT", window.parts, "LEFT", -10, 0)
     window.typing:SetJustifyH("LEFT")
     window.typing:SetWordWrap(false)
     box:HookScript("OnTextChanged", function(self, userInput)
@@ -712,9 +741,10 @@ local function OnChat(event, text, sender, language, _, _, _, _, _, _, _, _, gui
     -- mouseover, group or nameplates): then their target is "<unit>target".
     local unit = FindUnit(guid)
     local targetUnit = unit and (unit == "player" and "target" or (unit .. "target"))
-    if targetUnit and UnitExists(targetUnit) and UnitGUID(targetUnit) ~= guid then
-        msg.target = Sharing.MergedName(targetUnit) or UnitName(targetUnit)
-        msg.targetGuid = UnitGUID(targetUnit)
+    local targetGuid = targetUnit and RPF.UnitGUID(targetUnit)
+    if targetGuid and targetGuid ~= guid then
+        msg.target = Sharing.MergedName(targetUnit) or RPF.PlayerName(targetUnit)
+        msg.targetGuid = targetGuid
     end
     if typists[ShortName(sender)] then SomeoneTyping(sender, false) end
     local previous = messages[#messages]
@@ -746,7 +776,12 @@ RPF.Listen("PERSON_UPDATED", function()
         Chat.Refresh()
     end)
 end)
-RPF.Listen("PROFILE_CHANGED", function() if window and window:IsShown() then Chat.Refresh() end end)
+RPF.Listen("PROFILE_CHANGED", function()
+    if window and window:IsShown() then
+        Chat.Refresh()
+        if window.UpdateCorner then window.UpdateCorner() end
+    end
+end)
 
 RPF.Listen("DATA_READY", function()
     RPF.char.chatLog = RPF.char.chatLog or {}

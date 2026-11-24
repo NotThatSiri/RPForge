@@ -2,6 +2,42 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.16] - 2026-11-24
+
+### Fixed
+- Opening the RP chat could give "attempt to compare a secret string value" while nameplates were shown.
+  The game hides who some nameplates belong to; RP Forge now skips those instead of failing (for
+  portraits, "Name -> Target" and the typing indicator).
+
+## [0.3.15] - 2026-11-24
+
+### Added
+- The RP chat window shows your accent above the typing box ("Accent: Dwarven, medium"). Click it to
+  choose an accent and strength without leaving the chat, or to open the Voice tab and try it out.
+
+### Fixed
+- Pop-up menus open upwards when there is no room below them, and always stay on screen.
+
+## [0.3.14] - 2026-11-24
+
+### Fixed
+- An error ("bad argument #1 to 'UnitFullName' ... Secret values are only allowed during untainted
+  execution") could appear when someone's profile arrived while a player tooltip was open. The game now
+  hides which unit a tooltip shows in some cases; RP Forge then uses the player under your mouse.
+
+## [0.3.13] - 2026-11-24
+
+### Added
+- **Accents.** A new **Voice** tab in the profile editor lets each profile pick an accent and a strength
+  (Light, Medium or Strong):
+  - Alliance: Dwarven, Gnomish, Kaldorei, Draenei, Gilnean.
+  - Horde: Orcish, Trollish, Forsaken, Tauren, Sin'dorei, Goblin.
+- The accent changes what you post from the RP chat window: everything you say or yell, and only the
+  words in "quotes" when you emote. *Actions*, ((OOC)), links and colour codes are left alone. Capitals
+  are kept ("You" becomes "Ye", "YOU" becomes "YE").
+- **Try it** on the Voice tab shows your own text and an emote with the accent applied.
+- The RP chat typing box shows your accent in its corner.
+
 ## [0.3.12] - 2026-11-24
 
 ### Changed

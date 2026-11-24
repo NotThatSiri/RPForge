@@ -1,0 +1,336 @@
+-- RP Forge: accents.
+--
+-- An accent changes the words you post from the RP chat box: all of Say and Yell, and only the words in
+-- "quotes" in an emote. *Actions*, ((OOC)), links and colour codes are never changed.
+-- Each profile picks one accent and a strength (Light, Medium or Strong) on the Voice tab of the
+-- profile editor: profile.persona.accent = { key = "dwarven", strength = 1..3 }.
+--
+-- An accent is a list of rules. Each rule is { strength, from, to [, where] }:
+--   strength  the lowest strength that uses it: 1 Light, 2 Medium, 3 Strong
+--   from      lower case. A word ("you"), a phrase ("thank you"), or with `where` a word ending ("end",
+--             as in "ing" -> "in'") or beginning ("start")
+--   to        what it becomes; capitals follow the original ("You" -> "Ye", "YOU" -> "YE")
+local _, RPF = ...
+
+local Accents = {}
+RPF.Accents = Accents
+
+Accents.STRENGTHS = { { 1, "Light" }, { 2, "Medium" }, { 3, "Strong" } }
+Accents.STRENGTH_NAMES = { "Light", "Medium", "Strong" }
+
+Accents.LIST = {
+    -- Alliance -----------------------------------------------------------------------------------
+    { key = "dwarven", name = "Dwarven", side = "Alliance", rules = {
+        { 1, "you", "ye" }, { 1, "your", "yer" }, { 2, "you're", "ye're" }, { 1, "yourself", "yerself" }, { 1, "yes", "aye" },
+        { 1, "little", "wee" }, { 1, "small", "wee" }, { 1, "girl", "lass" }, { 1, "boy", "lad" },
+        { 1, "girls", "lasses" }, { 1, "boys", "lads" },
+        { 2, "my", "me" }, { 2, "myself", "meself" }, { 2, "don't", "dinnae" }, { 2, "can't", "cannae" },
+        { 2, "won't", "willnae" }, { 2, "isn't", "isnae" }, { 2, "didn't", "didnae" },
+        { 2, "couldn't", "couldnae" }, { 2, "wouldn't", "wouldnae" }, { 2, "shouldn't", "shouldnae" },
+        { 2, "about", "aboot" }, { 2, "of", "o'" }, { 2, "ing", "in'", "end" },
+        { 3, "not", "nae" }, { 3, "no", "nae" }, { 3, "know", "ken" }, { 3, "to", "tae" }, { 3, "out", "oot" },
+        { 3, "old", "auld" }, { 3, "from", "fae" }, { 3, "with", "wi'" }, { 3, "and", "an'" },
+        { 3, "own", "ain" }, { 3, "child", "bairn" }, { 3, "children", "bairns" },
+    } },
+    { key = "gnomish", name = "Gnomish", side = "Alliance", rules = {
+        { 1, "wow", "fascinating" }, { 1, "good", "splendid" }, { 1, "great", "marvellous" },
+        { 1, "broken", "defective" },
+        { 2, "think", "calculate" }, { 2, "idea", "hypothesis" }, { 2, "ideas", "hypotheses" },
+        { 2, "problem", "malfunction" }, { 2, "problems", "malfunctions" }, { 2, "thing", "gizmo" },
+        { 2, "things", "gizmos" }, { 2, "maybe", "theoretically" }, { 2, "hello", "salutations" },
+        { 3, "fix", "recalibrate" }, { 3, "make", "engineer" }, { 3, "big", "gargantuan" },
+        { 3, "small", "pocket-sized" }, { 3, "yes", "affirmative" }, { 3, "no", "negative" },
+        { 3, "fast", "high-velocity" }, { 3, "quickly", "at optimal velocity" },
+    } },
+    { key = "kaldorei", name = "Kaldorei", side = "Alliance", rules = {
+        { 1, "hello", "Ishnu-alah" }, { 1, "hi", "Ishnu-alah" }, { 1, "goodbye", "Elune-adore" },
+        { 1, "bye", "Elune-adore" }, { 1, "oh my god", "by Elune" }, { 1, "my god", "by Elune" },
+        { 1, "can't", "cannot" }, { 1, "don't", "do not" }, { 1, "won't", "will not" },
+        { 2, "it's", "it is" }, { 2, "i'm", "I am" }, { 2, "you're", "you are" }, { 2, "we're", "we are" },
+        { 2, "yes", "indeed" }, { 2, "okay", "very well" }, { 2, "ok", "very well" },
+        { 2, "thank you", "my thanks" }, { 2, "thanks", "my thanks" }, { 2, "kid", "youngling" },
+        { 2, "kids", "younglings" },
+        { 3, "teacher", "shan'do" }, { 3, "old", "ancient" }, { 3, "very", "most" }, { 3, "night", "eventide" },
+        { 3, "forest", "wilds" },
+    } },
+    { key = "draenei", name = "Draenei", side = "Alliance", rules = {
+        { 1, "goodbye", "Archenon poros" }, { 1, "bye", "Archenon poros" }, { 1, "oh my god", "by the Naaru" },
+        { 1, "my god", "by the Naaru" },
+        { 1, "the", "ze" }, { 2, "this", "zis" }, { 2, "that", "zat" }, { 2, "they", "zey" },
+        { 2, "them", "zem" }, { 2, "there", "zere" }, { 2, "these", "zese" }, { 2, "those", "zose" },
+        { 3, "think", "zink" }, { 3, "with", "vith" }, { 3, "what", "vhat" }, { 3, "we", "ve" },
+        { 3, "will", "vill" }, { 3, "when", "vhen" }, { 3, "where", "vhere" }, { 3, "why", "vhy" },
+        { 3, "was", "vas" }, { 3, "want", "vant" },
+    } },
+    { key = "gilnean", name = "Gilnean", side = "Alliance", rules = {
+        { 1, "mom", "mum" }, { 1, "very", "rather" }, { 1, "great", "splendid" }, { 1, "hello", "good day" },
+        { 1, "hi", "good day" }, { 1, "trash", "rubbish" },
+        { 2, "okay", "right then" }, { 2, "ok", "right then" }, { 2, "cool", "smashing" },
+        { 2, "goodbye", "cheerio" }, { 2, "bye", "cheerio" }, { 2, "friend", "mate" }, { 2, "friends", "mates" },
+        { 2, "guy", "chap" }, { 2, "guys", "chaps" }, { 2, "crazy", "barmy" },
+        { 3, "tired", "knackered" }, { 3, "isn't it", "innit" }, { 3, "h", "'", "start" },
+        { 3, "ing", "in'", "end" },
+    } },
+    -- Horde --------------------------------------------------------------------------------------
+    { key = "orcish", name = "Orcish", side = "Horde", rules = {
+        { 1, "hello", "Throm-ka" }, { 1, "hi", "Throm-ka" }, { 1, "okay", "zug zug" }, { 1, "ok", "zug zug" },
+        { 1, "goodbye", "Lok'tar" }, { 1, "bye", "Lok'tar" },
+        { 2, "yes", "dabu" }, { 2, "weak", "puny" }, { 2, "small", "puny" }, { 2, "victory", "lok'tar" },
+        { 2, "friend", "brother" }, { 2, "friends", "brothers" },
+        { 3, "my", "me" }, { 3, "are", "be" }, { 3, "is", "be" }, { 3, "fight", "smash" },
+        { 3, "very", "much" },
+    } },
+    { key = "trollish", name = "Trollish", side = "Horde", rules = {
+        { 1, "the", "da" }, { 1, "this", "dis" }, { 1, "that", "dat" }, { 1, "man", "mon" },
+        { 1, "you", "ya" }, { 1, "your", "ya" },
+        { 2, "these", "dese" }, { 2, "those", "dose" }, { 2, "them", "dem" }, { 2, "they", "dey" },
+        { 2, "there", "dere" }, { 2, "with", "wit'" }, { 2, "think", "t'ink" }, { 2, "thing", "ting" },
+        { 2, "things", "tings" }, { 2, "my", "me" }, { 2, "brother", "bruddah" }, { 2, "ing", "in'", "end" },
+        { 3, "is", "be" }, { 3, "are", "be" }, { 3, "am", "be" }, { 3, "nothing", "nuttin'" },
+        { 3, "something", "someting" }, { 3, "gods", "loa" }, { 3, "what", "wha'" }, { 3, "little", "likkle" },
+    } },
+    { key = "forsaken", name = "Forsaken", side = "Horde", rules = {
+        { 1, "hello", "greetings" }, { 1, "goodbye", "Dark Lady watch over you" },
+        { 1, "bye", "Dark Lady watch over you" }, { 1, "oh my god", "Dark Lady" }, { 1, "my god", "Dark Lady" },
+        { 2, "yes", "indeed" }, { 2, "die", "perish" }, { 2, "friend", "ally" }, { 2, "friends", "allies" },
+        { 2, "people", "the living" }, { 2, "great", "delightful" },
+        { 3, "nice", "tolerable" }, { 3, "happy", "amused" }, { 3, "awesome", "adequate" },
+        { 3, "beautiful", "tolerable" }, { 3, "love", "tolerate" }, { 3, "humans", "breathers" },
+        { 3, "human", "breather" },
+    } },
+    { key = "tauren", name = "Tauren", side = "Horde", rules = {
+        { 1, "goodbye", "walk with the Earth Mother" }, { 1, "bye", "walk with the Earth Mother" },
+        { 1, "oh my god", "Earth Mother" }, { 1, "my god", "Earth Mother" }, { 1, "hello", "peace" }, { 1, "hi", "peace" },
+        { 2, "yes", "it is so" }, { 2, "okay", "so be it" }, { 2, "ok", "so be it" }, { 2, "kid", "calf" },
+        { 2, "kids", "calves" }, { 2, "child", "calf" }, { 2, "children", "calves" },
+        { 3, "old", "elder" }, { 3, "think", "believe" }, { 3, "hurry", "go swiftly" },
+        { 3, "very", "most" },
+    } },
+    { key = "sindorei", name = "Sin'dorei", side = "Horde", rules = {
+        { 1, "hello", "Bal'a dash" }, { 1, "hi", "Bal'a dash" }, { 1, "goodbye", "Shorel'aran" },
+        { 1, "bye", "Shorel'aran" }, { 1, "oh my god", "by the Sunwell" }, { 1, "my god", "by the Sunwell" },
+        { 2, "yes", "indeed" }, { 2, "okay", "very well" }, { 2, "ok", "very well" },
+        { 2, "great", "exquisite" }, { 2, "can't", "cannot" }, { 2, "don't", "do not" },
+        { 2, "won't", "will not" },
+        { 3, "friend", "darling" }, { 3, "stupid", "simple-minded" }, { 3, "cheap", "common" },
+        { 3, "good", "adequate" }, { 3, "nice", "elegant" }, { 3, "ugly", "crude" },
+    } },
+    { key = "goblin", name = "Goblin", side = "Horde", rules = {
+        { 1, "hello", "heya" }, { 1, "hi", "heya" }, { 1, "friend", "pal" }, { 1, "friends", "pals" },
+        { 1, "yes", "yeah" },
+        { 2, "money", "moolah" }, { 2, "want to", "wanna" },
+        { 2, "ing", "in'", "end" }, { 2, "you", "ya" }, { 2, "them", "'em" }, { 2, "sir", "boss" },
+        { 2, "ma'am", "boss" },
+        { 3, "buy", "invest in" }, { 3, "think", "figure" }, { 3, "lot", "bundle" }, { 3, "great", "profitable" },
+        { 3, "good", "profitable" },
+    } },
+}
+
+Accents.BY_KEY = {}
+for _, accent in ipairs(Accents.LIST) do Accents.BY_KEY[accent.key] = accent end
+
+Accents.SAMPLE = 'Hello, friend! I don\'t think you\'re going to like this, but my little brother is coming ' ..
+    'with us. Yes, the old one. *grins* ((brb))'
+
+-- Rules -> lookups --------------------------------------------------------------------------------------
+
+local compiled = {}
+
+-- "thank you" -> a pattern matching it in any capitals, as whole words.
+local function PhrasePattern(phrase)
+    local out = {}
+    for i = 1, #phrase do
+        local ch = phrase:sub(i, i)
+        if ch:match("%a") then
+            out[#out + 1] = "[" .. ch:lower() .. ch:upper() .. "]"
+        elseif ch:match("%p") then
+            out[#out + 1] = "%" .. ch
+        else
+            out[#out + 1] = ch
+        end
+    end
+    return "%f[%a]" .. table.concat(out) .. "%f[^%a']"
+end
+
+local function Compile(accent, strength)
+    local id = accent.key .. strength
+    if compiled[id] then return compiled[id] end
+    local c = { words = {}, phrases = {}, ends = {}, starts = {} }
+    for _, rule in ipairs(accent.rules) do
+        local level, from, to, where = rule[1], rule[2], rule[3], rule[4]
+        if level <= strength then
+            if where == "end" then
+                c.ends[#c.ends + 1] = { from, to }
+            elseif where == "start" then
+                c.starts[#c.starts + 1] = { from, to }
+            elseif from:find(" ", 1, true) then
+                c.phrases[#c.phrases + 1] = { PhrasePattern(from), to, #from }
+            else
+                c.words[from] = to
+            end
+        end
+    end
+    table.sort(c.phrases, function(a, b) return a[3] > b[3] end) -- longest first
+    compiled[id] = c
+    return c
+end
+
+-- Capitals follow the original: "You" -> "Ye", "YOU" -> "YE".
+local function MatchCase(original, replacement)
+    if replacement == "" then return "" end
+    if #original > 1 and original:upper() == original and original:lower() ~= original then
+        return replacement:upper()
+    end
+    local first = original:sub(1, 1)
+    if first:upper() == first and first:lower() ~= first then
+        return replacement:sub(1, 1):upper() .. replacement:sub(2)
+    end
+    return replacement
+end
+
+local function ChangeWord(c, word)
+    local core, tail = word:match("^(.-)('*)$")
+    local lower = core:lower()
+    local to = c.words[lower]
+    if to then return MatchCase(core, to) .. tail end
+    -- Otherwise one ending rule and one beginning rule can both apply ("having" -> "'avin'").
+    for _, rule in ipairs(c.ends) do
+        local from = rule[1]
+        if #lower > #from + 2 and lower:sub(-#from) == from then
+            local ending = rule[2]
+            if core:upper() == core then ending = ending:upper() end
+            core = core:sub(1, #core - #from) .. ending
+            break
+        end
+    end
+    lower = core:lower()
+    for _, rule in ipairs(c.starts) do
+        local from = rule[1]
+        if #lower > #from + 1 and lower:sub(1, #from) == from then
+            local rest = core:sub(#from + 1)
+            if core:sub(1, 1):match("%u") then rest = rest:sub(1, 1):upper() .. rest:sub(2) end
+            core = rule[2] .. rest
+            break
+        end
+    end
+    return core .. tail
+end
+
+-- Plain words only (nothing protected inside).
+local function ApplyPlain(c, text)
+    -- Phrases first; their results are parked so the word rules don't change them again.
+    local parked = {}
+    for _, rule in ipairs(c.phrases) do
+        text = text:gsub(rule[1], function(found)
+            parked[#parked + 1] = MatchCase(found, rule[2])
+            return "\001" .. #parked .. "\002"
+        end)
+    end
+    text = text:gsub("%a[%a']*", function(word) return ChangeWord(c, word) end)
+    return (text:gsub("\001(%d+)\002", function(i) return parked[tonumber(i)] end))
+end
+
+-- Parts never changed: ((OOC)), *actions*, links, colour codes and textures.
+local PROTECTED = {
+    "%(%(.-%)%)", "%(%(.*$", "%*.-%*", "|H.-|h.-|h", "|c%x%x%x%x%x%x%x%x", "|r", "|T.-|t", "|A.-|a",
+}
+
+local function ApplyProtected(c, text)
+    local out, pos = {}, 1
+    while pos <= #text do
+        local bestStart, bestEnd
+        for _, pattern in ipairs(PROTECTED) do
+            local s, e = text:find(pattern, pos)
+            if s and (not bestStart or s < bestStart) then bestStart, bestEnd = s, e end
+        end
+        if not bestStart then
+            out[#out + 1] = ApplyPlain(c, text:sub(pos))
+            break
+        end
+        if bestStart > pos then out[#out + 1] = ApplyPlain(c, text:sub(pos, bestStart - 1)) end
+        out[#out + 1] = text:sub(bestStart, bestEnd)
+        pos = bestEnd + 1
+    end
+    return table.concat(out)
+end
+
+-- Public -------------------------------------------------------------------------------------------------
+
+-- The active profile's accent: accent table and strength, or nil.
+function Accents.Current()
+    local Profiles = RPF.Profiles
+    local persona = Profiles and Profiles.GetActive() and Profiles.GetPersona()
+    local choice = persona and persona.accent
+    local accent = choice and Accents.BY_KEY[choice.key]
+    if not accent then return nil end
+    return accent, math.max(1, math.min(3, tonumber(choice.strength) or 1))
+end
+
+-- "Dwarven, light", or nil without an accent.
+function Accents.Describe()
+    local accent, strength = Accents.Current()
+    if not accent then return nil end
+    return accent.name .. ", " .. Accents.STRENGTH_NAMES[strength]:lower()
+end
+
+-- Choose the active profile's accent (nil = none), keeping the strength.
+function Accents.Set(key)
+    local Profiles = RPF.Profiles
+    if not Profiles.GetActive() then return end
+    local persona = Profiles.GetPersona()
+    local old = persona.accent
+    persona.accent = key and { key = key, strength = old and old.strength or 1 } or nil
+    Profiles.PersonaChanged()
+end
+
+function Accents.SetStrength(strength)
+    local Profiles = RPF.Profiles
+    local choice = Profiles.GetActive() and Profiles.GetPersona().accent
+    if not choice then return end
+    choice.strength = strength
+    Profiles.PersonaChanged()
+end
+
+-- The accent menu, used by the RP chat window and the Voice tab. withStrength adds the strengths and a
+-- link to the Voice tab.
+function Accents.ShowMenu(owner, withStrength)
+    local UI = RPF.UI
+    local current, strength = Accents.Current()
+    local items = { { "No accent", function() Accents.Set(nil) end, checked = not current } }
+    for _, side in ipairs({ "Alliance", "Horde" }) do
+        items[#items + 1] = "-"
+        items[#items + 1] = { side:upper(), nil, disabled = true }
+        for _, accent in ipairs(Accents.LIST) do
+            if accent.side == side then
+                local key = accent.key
+                items[#items + 1] = { accent.name, function() Accents.Set(key) end, checked = current == accent }
+            end
+        end
+    end
+    if withStrength then
+        items[#items + 1] = "-"
+        for _, s in ipairs(Accents.STRENGTHS) do
+            local value = s[1]
+            items[#items + 1] = { s[2], function() Accents.SetStrength(value) end,
+                checked = current ~= nil and strength == value, disabled = current == nil }
+        end
+        items[#items + 1] = "-"
+        items[#items + 1] = { "Try it on the Voice tab...", function() UI.OpenProfile("voice") end }
+    end
+    UI.ShowMenu(owner, items)
+end
+
+-- Change text with an accent. mode: "SAY", "YELL" or "EMOTE" (emotes: only "quoted" words).
+-- accent and strength default to the active profile's.
+function Accents.Apply(text, mode, accent, strength)
+    if not accent then accent, strength = Accents.Current() end
+    if not accent or not text or text == "" then return text end
+    local c = Compile(accent, strength or 1)
+    if mode == "EMOTE" then
+        text = text:gsub('(")([^"]*)(")', function(a, inner, b) return a .. ApplyProtected(c, inner) .. b end)
+        -- Curly quotes too.
+        text = text:gsub("(\226\128\156)(.-)(\226\128\157)", function(a, inner, b) return a .. ApplyProtected(c, inner) .. b end)
+        return text
+    end
+    return ApplyProtected(c, text)
+end

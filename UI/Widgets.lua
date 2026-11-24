@@ -340,9 +340,18 @@ function UI.ShowMenu(owner, items)
         end
         row:Show()
     end
-    menu:SetSize(width, -y + 4)
+    local height = -y + 4
+    menu:SetSize(width, height)
     menu:ClearAllPoints()
-    menu:SetPoint("TOPLEFT", owner, "BOTTOMLEFT", 0, -2)
+    menu:SetClampedToScreen(true)
+    -- Below the owner, or above it when there isn't room below.
+    local bottom = owner:GetBottom()
+    local scale = owner:GetEffectiveScale() / menu:GetEffectiveScale()
+    if bottom and bottom * scale - height < 8 then
+        menu:SetPoint("BOTTOMLEFT", owner, "TOPLEFT", 0, 2)
+    else
+        menu:SetPoint("TOPLEFT", owner, "BOTTOMLEFT", 0, -2)
+    end
     catcher:Show()
     menu:Show()
     menu:Raise()
