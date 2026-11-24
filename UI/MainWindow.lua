@@ -162,10 +162,18 @@ local function Build()
     local close = CreateFrame("Button", nil, title)
     close:SetSize(TITLE_HEIGHT, TITLE_HEIGHT)
     close:SetPoint("RIGHT", 0, 0)
-    close.label = UI.Text(close, "x", 15, "muted", "CENTER")
-    close.label:SetPoint("CENTER", 0, 1)
-    close:SetScript("OnEnter", function(self) UI.SetTextColor(self.label, "bad") end)
-    close:SetScript("OnLeave", function(self) UI.SetTextColor(self.label, "muted") end)
+    -- RP Forge's own X (Media\Icons\Close.tga), coloured like the cogwheel.
+    close.icon = close:CreateTexture(nil, "ARTWORK")
+    close.icon:SetTexture("Interface\\AddOns\\" .. RPF.ADDON .. "\\Media\\Icons\\Close")
+    close.icon:SetPoint("CENTER")
+    close.icon:SetSize(14, 14)
+    local function TintClose(self, key)
+        local c = UI.Color(key)
+        self.icon:SetVertexColor(c[1], c[2], c[3], 1)
+    end
+    TintClose(close, "muted")
+    close:SetScript("OnEnter", function(self) TintClose(self, "bad") end)
+    close:SetScript("OnLeave", function(self) TintClose(self, "muted") end)
     close:SetScript("OnClick", function() window:Hide() end)
 
     -- Cogwheel: opens Settings, or goes back to the previous page when Settings is open.

@@ -7,6 +7,7 @@ All notable changes to RP Forge are listed here. Versions follow [Semantic Versi
 ### Fixed
 - The cogwheel showed a game icon with a dark square behind it. It is now RP Forge's own cogwheel and
   takes the theme's colours.
+- The close button is now a matching X icon, muted until you point at it.
 
 ## [0.1.4] - 2026-11-24
 
