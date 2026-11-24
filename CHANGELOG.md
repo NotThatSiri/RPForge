@@ -2,6 +2,15 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.19] - 2026-11-24
+
+### Changed
+- **Dwarven** uses the full word list from before: "friend", "mate", "buddy" and "pal" become lad or lass
+  from your target's gender (laddie or lassie at Strong), and stay as they are without a target. Also
+  "guys" becomes "lads", "nope" becomes "nae", and Strong covers more words (hasnae, werenae, and
+  "dont" or "cant" typed without an apostrophe).
+- "Evening" is left alone.
+
 ## [0.3.18] - 2026-11-24
 
 ### Changed

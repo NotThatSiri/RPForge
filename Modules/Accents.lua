@@ -24,30 +24,28 @@ Accents.LIST = {
     -- a few markers; no Scots words (ken, aboot, bairn) that players wouldn't recognise.
     --   Light: ye, yer, me, aye, lad/lass, -in'.  Medium: fer, tae, wi', an', 'em, 'tis, wee.
     --   Strong: th', o', nae, och, cannae, dinnae, laddie/lassie.
-    { key = "dwarven", name = "Dwarven", side = "Alliance", rules = {
+    -- "friend", "mate", "buddy" and "pal" become lad or lass (laddie or lassie at Strong) from your
+    -- target's gender; with no target they stay.
+    { key = "dwarven", name = "Dwarven", side = "Alliance", ladLass = { friend = true, mate = true, buddy = true, pal = true },
+        rules = {
         { 1, "you", "ye" }, { 1, "your", "yer" }, { 1, "yours", "yers" }, { 1, "yourself", "yerself" },
         { 1, "yourselves", "yerselves" }, { 1, "you're", "ye're" }, { 1, "you've", "ye've" }, { 1, "you'll", "ye'll" },
         { 1, "my", "me" }, { 1, "myself", "meself" }, { 1, "yes", "aye" }, { 1, "yeah", "aye" }, { 1, "yep", "aye" },
-        { 1, "boy", "lad" }, { 1, "boys", "lads" }, { 1, "girl", "lass" }, { 1, "girls", "lasses" },
+        { 1, "boy", "lad" }, { 1, "boys", "lads" }, { 1, "girl", "lass" }, { 1, "girls", "lasses" }, { 1, "guys", "lads" },
         { 1, "ing", "in'", "end" },
         { 2, "for", "fer" }, { 2, "to", "tae" }, { 2, "with", "wi'" }, { 2, "and", "an'" }, { 2, "them", "'em" },
         { 2, "it's", "'tis" }, { 2, "little", "wee" }, { 2, "small", "wee" }, { 2, "tiny", "wee" },
-        { 3, "the", "th'" }, { 3, "of", "o'" }, { 3, "no", "nae" }, { 3, "not", "nae" }, { 3, "oh", "och" },
-        { 3, "can't", "cannae" }, { 3, "cannot", "cannae" }, { 3, "don't", "dinnae" }, { 3, "didn't", "didnae" },
-        { 3, "won't", "willnae" }, { 3, "wouldn't", "wouldnae" }, { 3, "couldn't", "couldnae" },
-        { 3, "shouldn't", "shouldnae" }, { 3, "isn't", "isnae" }, { 3, "wasn't", "wasnae" },
-        { 3, "doesn't", "doesnae" }, { 3, "haven't", "havenae" }, { 3, "aren't", "arenae" },
+        { 3, "the", "th'" }, { 3, "of", "o'" }, { 3, "no", "nae" }, { 3, "nope", "nae" }, { 3, "not", "nae" },
+        { 3, "oh", "och" },
+        { 3, "can't", "cannae" }, { 3, "cant", "cannae" }, { 3, "cannot", "cannae" },
+        { 3, "don't", "dinnae" }, { 3, "dont", "dinnae" }, { 3, "didn't", "didnae" }, { 3, "didnt", "didnae" },
+        { 3, "won't", "willnae" }, { 3, "wouldn't", "wouldnae" }, { 3, "wouldnt", "wouldnae" },
+        { 3, "couldn't", "couldnae" }, { 3, "couldnt", "couldnae" }, { 3, "shouldn't", "shouldnae" },
+        { 3, "shouldnt", "shouldnae" }, { 3, "isn't", "isnae" }, { 3, "isnt", "isnae" },
+        { 3, "wasn't", "wasnae" }, { 3, "wasnt", "wasnae" }, { 3, "doesn't", "doesnae" }, { 3, "doesnt", "doesnae" },
+        { 3, "haven't", "havenae" }, { 3, "havent", "havenae" }, { 3, "hasn't", "hasnae" }, { 3, "hasnt", "hasnae" },
+        { 3, "aren't", "arenae" }, { 3, "arent", "arenae" }, { 3, "weren't", "werenae" }, { 3, "werent", "werenae" },
         { 3, "boy", "laddie" }, { 3, "girl", "lassie" },
-    } },
-    { key = "gnomish", name = "Gnomish", side = "Alliance", rules = {
-        { 1, "wow", "fascinating" }, { 1, "good", "splendid" }, { 1, "great", "marvellous" },
-        { 1, "broken", "defective" },
-        { 2, "think", "calculate" }, { 2, "idea", "hypothesis" }, { 2, "ideas", "hypotheses" },
-        { 2, "problem", "malfunction" }, { 2, "problems", "malfunctions" }, { 2, "thing", "gizmo" },
-        { 2, "things", "gizmos" }, { 2, "maybe", "theoretically" }, { 2, "hello", "salutations" },
-        { 3, "fix", "recalibrate" }, { 3, "make", "engineer" }, { 3, "big", "gargantuan" },
-        { 3, "small", "pocket-sized" }, { 3, "yes", "affirmative" }, { 3, "no", "negative" },
-        { 3, "fast", "high-velocity" }, { 3, "quickly", "at optimal velocity" },
     } },
     -- Kaldorei: formal and old-fashioned rather than a sound. Night elves in the game hardly use
     -- contractions, and greet in Darnassian.
@@ -198,6 +196,8 @@ local function Compile(accent, strength)
         end
     end
     table.sort(c.phrases, function(a, b) return a[3] > b[3] end) -- longest first
+    c.ladLass = accent.ladLass
+    c.strong = strength >= 3
     compiled[id] = c
     return c
 end
@@ -219,13 +219,29 @@ end
 local KEEP_ENDING = {
     string = true, spring = true, during = true, ceiling = true, offspring = true, earring = true,
     herring = true, sibling = true, awning = true, viking = true, sterling = true, wellspring = true,
-    bowstring = true, hamstring = true, plaything = true, wingding = true,
+    bowstring = true, hamstring = true, plaything = true, wingding = true, evening = true,
 }
+
+-- "lad" or "lass" for your target (male or female), or nil without one. Hidden values count as unknown.
+local function TargetLadLass()
+    if type(UnitExists) ~= "function" or type(UnitSex) ~= "function" then return nil end
+    local function Hidden(v) return issecretvalue ~= nil and issecretvalue(v) == true end
+    local ok, exists = pcall(UnitExists, "target")
+    if not ok or Hidden(exists) or not exists then return nil end
+    local okSex, sex = pcall(UnitSex, "target")
+    if not okSex or Hidden(sex) then return nil end
+    if sex == 2 then return "lad" elseif sex == 3 then return "lass" end
+end
+
+local ladLass -- set by Accents.Apply: "lad", "lass" or nil
 
 local function ChangeWord(c, word)
     local core, tail = word:match("^(.-)('*)$")
     local lower = core:lower()
     local to = c.words[lower]
+    if not to and ladLass and c.ladLass and c.ladLass[lower] then
+        to = c.strong and (ladLass == "lad" and "laddie" or "lassie") or ladLass
+    end
     if to then return MatchCase(core, to) .. tail end
     -- Otherwise one ending rule and one beginning rule can both apply ("having" -> "'avin'").
     for _, rule in ipairs(c.ends) do
@@ -360,6 +376,7 @@ function Accents.Apply(text, mode, accent, strength)
     if not accent then accent, strength = Accents.Current() end
     if not accent or not text or text == "" then return text end
     local c = Compile(accent, strength or 1)
+    ladLass = c.ladLass and TargetLadLass() or nil
     if mode == "EMOTE" then
         -- Every other piece between straight quotes is speech (an open quote runs to the end).
         local pieces, inside = {}, false
