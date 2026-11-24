@@ -215,8 +215,10 @@ local function MatchCase(original, replacement)
     return replacement
 end
 
--- Words of six letters or more where the ending is part of the word, not "-ing".
+-- Words of five letters or more where the ending is part of the word, not "-ing".
 local KEEP_ENDING = {
+    thing = true, bring = true, sting = true, swing = true, sling = true, cling = true, fling = true,
+    wring = true,
     string = true, spring = true, during = true, ceiling = true, offspring = true, earring = true,
     herring = true, sibling = true, awning = true, viking = true, sterling = true, wellspring = true,
     bowstring = true, hamstring = true, plaything = true, wingding = true, evening = true,
@@ -246,7 +248,7 @@ local function ChangeWord(c, word)
     -- Otherwise one ending rule and one beginning rule can both apply ("having" -> "'avin'").
     for _, rule in ipairs(c.ends) do
         local from = rule[1]
-        if #lower > #from + 2 and lower:sub(-#from) == from and not KEEP_ENDING[lower] then
+        if #lower >= #from + 2 and lower:sub(-#from) == from and not KEEP_ENDING[lower] then
             local ending = rule[2]
             if core:upper() == core then ending = ending:upper() end
             core = core:sub(1, #core - #from) .. ending
@@ -372,11 +374,12 @@ end
 
 -- Change text with an accent. mode: "SAY", "YELL" or "EMOTE" (emotes: only "quoted" words).
 -- accent and strength default to the active profile's.
-function Accents.Apply(text, mode, accent, strength)
+-- who ("lad" or "lass") stands in for your target's gender, for trying the accent out.
+function Accents.Apply(text, mode, accent, strength, who)
     if not accent then accent, strength = Accents.Current() end
     if not accent or not text or text == "" then return text end
     local c = Compile(accent, strength or 1)
-    ladLass = c.ladLass and TargetLadLass() or nil
+    ladLass = c.ladLass and (who or TargetLadLass()) or nil
     if mode == "EMOTE" then
         -- Every other piece between straight quotes is speech (an open quote runs to the end).
         local pieces, inside = {}, false
@@ -395,7 +398,7 @@ end
 -- While typing: once a word is finished (the character before the cursor is not part of a word), change
 -- the text before the cursor. Returns the new text and cursor (a byte position), or nil if nothing
 -- changed. Applying an accent again never changes its own words, so sending can apply it once more.
-function Accents.ApplyTyping(text, cursor, mode, accent, strength)
+function Accents.ApplyTyping(text, cursor, mode, accent, strength, who)
     if not accent then accent, strength = Accents.Current() end
     if not accent or not text or not cursor or cursor < 1 then return nil end
     local before = text:sub(1, cursor)
@@ -417,7 +420,7 @@ function Accents.ApplyTyping(text, cursor, mode, accent, strength)
         end
     end
     local head = before:sub(1, cut - 1)
-    local changed = Accents.Apply(head, mode, accent, strength)
+    local changed = Accents.Apply(head, mode, accent, strength, who)
     if changed == head then return nil end
     return changed .. text:sub(cut), cursor + #changed - #head
 end

@@ -495,16 +495,20 @@ local function FillVoice()
     page.accentButton.label:SetText(accent and accent.name or "No accent")
     page.strength:SetValue(accent and (choice.strength or 1) or 0)
     for _, b in ipairs(page.strength.buttons) do b:SetEnabled(accent ~= nil) end
-    -- A different accent or strength starts the try-it box again from the sample, in that accent.
-    local voice = accent and (accent.key .. (choice.strength or 1)) or "none"
+    -- "Talking to" only matters for accents that call people lad or lass.
+    page.talkingTo:SetShown(accent ~= nil and accent.ladLass ~= nil)
+    page.talkingTo:SetValue(page.tryWho or "target")
+    local who = page.tryWho ~= "target" and page.tryWho or nil
+    -- A different accent, strength or "talking to" starts the try-it box again from the sample.
+    local voice = accent and (accent.key .. (choice.strength or 1) .. (page.tryWho or "")) or "none"
     if page.tryVoice ~= voice then
         page.tryVoice = voice
-        page.trySay:SetText(accent and Accents.Apply(Accents.SAMPLE, "SAY") or Accents.SAMPLE)
+        page.trySay:SetText(accent and Accents.Apply(Accents.SAMPLE, "SAY", nil, nil, who) or Accents.SAMPLE)
         page.trySay:SetCursorPosition(0)
     end
     local sample = page.trySay:GetText() or ""
-    local say = accent and Accents.Apply(sample, "SAY") or sample
-    local emote = accent and Accents.Apply(EMOTE_SAMPLE, "EMOTE") or EMOTE_SAMPLE
+    local say = accent and Accents.Apply(sample, "SAY", nil, nil, who) or sample
+    local emote = accent and Accents.Apply(EMOTE_SAMPLE, "EMOTE", nil, nil, who) or EMOTE_SAMPLE
     page.saidText:SetText(UI.ColorCode("muted") .. "Say:|r  " .. say)
     page.emoteText:SetText(UI.ColorCode("muted") .. "Emote:|r  " .. UnitName("player") .. " " .. emote)
 end
@@ -536,10 +540,21 @@ local function BuildVoice(frame, width)
     page.trySay:SetMaxLetters(255)
     page.trySay:SetText(Accents.SAMPLE)
     page.trySay:SetCursorPosition(0)
+    -- Who you're talking to in Try it: your real target, or a man or woman ("friend" becomes lad or lass).
+    page.tryWho = "lad"
+    page.talkingTo = UI.Segmented(frame, { { "target", "Your target" }, { "lad", "A man" }, { "lass", "A woman" } }, 96,
+        function(value)
+            page.tryWho = value
+            FillVoice()
+        end)
+    page.talkingTo:SetPoint("BOTTOMRIGHT", page.trySay, "TOPRIGHT", 0, 4)
+    page.talkingTo.label = UI.Text(page.talkingTo, "TALKING TO", 10, "muted", "RIGHT")
+    page.talkingTo.label:SetPoint("RIGHT", page.talkingTo, "LEFT", -10, 0)
     page.trySay:HookScript("OnTextChanged", function(self, userInput)
         -- The accent shows as you type, like in the RP chat window.
         if userInput then
-            local changed, cursor = Accents.ApplyTyping(self:GetText() or "", self:GetCursorPosition(), "SAY")
+            local who = page.tryWho ~= "target" and page.tryWho or nil
+            local changed, cursor = Accents.ApplyTyping(self:GetText() or "", self:GetCursorPosition(), "SAY", nil, nil, who)
             if changed then
                 self:SetText(changed)
                 self:SetCursorPosition(cursor)

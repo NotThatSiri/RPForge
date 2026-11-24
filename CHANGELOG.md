@@ -2,6 +2,16 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.20] - 2026-11-24
+
+### Added
+- **Talking to** next to Try it on the Voice tab (for Dwarven): your target, a man or a woman, so you can
+  see "friend" become lad or lass without targeting anyone.
+
+### Fixed
+- Five-letter "-ing" words change too: "going" becomes "goin'", "doing" becomes "doin'". Short words
+  where "ing" is part of the word stay ("thing", "bring", "swing").
+
 ## [0.3.19] - 2026-11-24
 
 ### Changed
