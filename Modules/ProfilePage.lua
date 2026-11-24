@@ -495,6 +495,13 @@ local function FillVoice()
     page.accentButton.label:SetText(accent and accent.name or "No accent")
     page.strength:SetValue(accent and (choice.strength or 1) or 0)
     for _, b in ipairs(page.strength.buttons) do b:SetEnabled(accent ~= nil) end
+    -- A different accent or strength starts the try-it box again from the sample, in that accent.
+    local voice = accent and (accent.key .. (choice.strength or 1)) or "none"
+    if page.tryVoice ~= voice then
+        page.tryVoice = voice
+        page.trySay:SetText(accent and Accents.Apply(Accents.SAMPLE, "SAY") or Accents.SAMPLE)
+        page.trySay:SetCursorPosition(0)
+    end
     local sample = page.trySay:GetText() or ""
     local say = accent and Accents.Apply(sample, "SAY") or sample
     local emote = accent and Accents.Apply(EMOTE_SAMPLE, "EMOTE") or EMOTE_SAMPLE
@@ -529,7 +536,18 @@ local function BuildVoice(frame, width)
     page.trySay:SetMaxLetters(255)
     page.trySay:SetText(Accents.SAMPLE)
     page.trySay:SetCursorPosition(0)
-    page.trySay:HookScript("OnTextChanged", function() FillVoice() end)
+    page.trySay:HookScript("OnTextChanged", function(self, userInput)
+        -- The accent shows as you type, like in the RP chat window.
+        if userInput then
+            local changed, cursor = Accents.ApplyTyping(self:GetText() or "", self:GetCursorPosition(), "SAY")
+            if changed then
+                self:SetText(changed)
+                self:SetCursorPosition(cursor)
+                return
+            end
+        end
+        FillVoice()
+    end)
     page.saidText = UI.Text(frame, "", 12, "text")
     page.saidText:SetPoint("TOPLEFT", page.trySay, "BOTTOMLEFT", 2, -14)
     page.saidText:SetWidth(width - 4)

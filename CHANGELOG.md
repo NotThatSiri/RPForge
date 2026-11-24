@@ -2,6 +2,12 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.18] - 2026-11-24
+
+### Changed
+- The **Try it** box on the Voice tab changes as you type too, like the RP chat window. Choosing another
+  accent or strength starts it again from the sample text in that accent.
+
 ## [0.3.17] - 2026-11-24
 
 ### Changed
