@@ -87,6 +87,15 @@ UI.RegisterSettingsPage({
         local hint = UI.Text(page, "Drag the anvil around the minimap to move it. /rpf minimap also shows or hides it.", 11, "muted")
         hint:SetPoint("LEFT", page.minimap, "RIGHT", 14, 0)
 
+        local shapeLabel = UI.Text(page, "PORTRAIT SHAPE  (your portrait on Home)", 10, "muted")
+        shapeLabel:SetPoint("TOPLEFT", 0, -352)
+        page.portraitShape = UI.Segmented(page, { { "circle", "Circle" }, { "square", "Square" } }, 130, function(value)
+            RPF.db.settings.portraitShape = value
+        end)
+        page.portraitShape:SetPoint("TOPLEFT", shapeLabel, "BOTTOMLEFT", 0, -8)
+        local shapeHint = UI.Text(page, "Circle: a round portrait in a ring.   Square: a close-up of your character.", 11, "muted")
+        shapeHint:SetPoint("LEFT", page.portraitShape, "RIGHT", 14, 0)
+
         local chatLabel = UI.Text(page, "RP CHAT LAYOUT", 10, "muted")
         chatLabel:SetPoint("TOPLEFT", 0, -282)
         page.chatStyle = UI.Segmented(page, { { "game", "Game style" }, { "story", "Story style" } }, 130, function(value)
@@ -99,6 +108,7 @@ UI.RegisterSettingsPage({
     end,
     onShow = function(page)
         page.chatStyle:SetValue(RPF.db.settings.chatStyle == "story" and "story" or "game")
+        page.portraitShape:SetValue(RPF.db.settings.portraitShape == "square" and "square" or "circle")
         page.minimap.label:SetText(RPF.db.settings.minimap.shown and "Shown (click to hide)" or "Hidden (click to show)")
     end,
 })

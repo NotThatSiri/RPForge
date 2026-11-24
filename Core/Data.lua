@@ -14,6 +14,7 @@ local ACCOUNT_DEFAULTS = {
         theme = "parchment", -- parchment, forge or arcane (UI\Theme.lua)
         minimap = { shown = true, angle = 210 },
         chatStyle = "game", -- RP chat layout: "game" or "story"
+        portraitShape = "circle", -- Home portrait: "circle" or "square"
         chatOpen = false,   -- RP chat window open (reopens after a reload)
     },
     profiles = {}, -- roleplay profiles, shared by all characters (Modules\Profiles.lua)

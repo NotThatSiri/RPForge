@@ -2,6 +2,16 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.2] - 2026-11-24
+
+### Added
+- **Settings > Appearance > Portrait shape** for your portrait on Home:
+  - **Circle** (the default): a round portrait in a ring of the theme's colour.
+  - **Square**: a close-up of your character that fills the whole square.
+
+### Fixed
+- The Home portrait was round inside a square frame.
+
 ## [0.3.1] - 2026-11-24
 
 ### Fixed

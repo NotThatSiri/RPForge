@@ -75,7 +75,17 @@ local function RefreshHome()
     local guild = GetGuildInfo("player")
     home.guild:SetText(guild and ("<" .. guild .. ">") or "")
 
-    SetPortraitTexture(home.portrait, "player")
+    -- Portrait shape (Settings > Appearance): a round portrait in a theme-coloured ring, or a square
+    -- head-and-shoulders view of your character (the game's 3D model, zoomed on the face).
+    local square = RPF.db.settings.portraitShape == "square"
+    home.circle:SetShown(not square)
+    home.square:SetShown(square)
+    if square then
+        home.model:SetUnit("player")
+        if home.model.SetPortraitZoom then home.model:SetPortraitZoom(1) end
+    else
+        SetPortraitTexture(home.portrait, "player")
+    end
     if not Backgrounds.Apply(home.art, ChosenBackground(profile)) then
         Backgrounds.Apply(home.art, Backgrounds.PlayerRace())
     end
@@ -132,13 +142,31 @@ UI.RegisterPage({
         overlay:SetBackdropBorderColor(b[1], b[2], b[3], 1)
 
         -- Portrait in a square frame with a thin border in the theme's accent colour.
-        local portraitFrame = CreateFrame("Frame", nil, overlay, UI.BACKDROP_TEMPLATE)
+        local portraitFrame = CreateFrame("Frame", nil, overlay)
         portraitFrame:SetSize(104, 104)
         portraitFrame:SetPoint("LEFT", 26, 0)
-        UI.Backdrop(portraitFrame, "window", "accent")
-        home.portrait = portraitFrame:CreateTexture(nil, "ARTWORK")
-        home.portrait:SetPoint("TOPLEFT", 2, -2)
-        home.portrait:SetPoint("BOTTOMRIGHT", -2, 2)
+        local a = UI.Color("accent")
+
+        -- Circle: a flat accent-coloured disc cut round by the game's portrait mask, with the round
+        -- portrait on top, leaving a thin ring.
+        home.circle = CreateFrame("Frame", nil, portraitFrame)
+        home.circle:SetAllPoints()
+        local disc = home.circle:CreateTexture(nil, "BACKGROUND")
+        disc:SetTexture(UI.WHITE)
+        disc:SetAllPoints()
+        disc:SetVertexColor(a[1], a[2], a[3], 1)
+        if disc.SetMask then disc:SetMask("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask") end
+        home.portrait = home.circle:CreateTexture(nil, "ARTWORK")
+        home.portrait:SetPoint("TOPLEFT", 4, -4)
+        home.portrait:SetPoint("BOTTOMRIGHT", -4, 4)
+
+        -- Square: the character's 3D model zoomed on the face, in a thin accent border.
+        home.square = CreateFrame("Frame", nil, portraitFrame, UI.BACKDROP_TEMPLATE)
+        home.square:SetAllPoints()
+        UI.Backdrop(home.square, "window", "accent")
+        home.model = CreateFrame("PlayerModel", nil, home.square)
+        home.model:SetPoint("TOPLEFT", 2, -2)
+        home.model:SetPoint("BOTTOMRIGHT", -2, 2)
 
         home.name = BannerText(overlay, 24, BANNER_NAME)
         home.name:SetPoint("TOPLEFT", portraitFrame, "TOPRIGHT", 20, -14)
