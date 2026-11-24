@@ -11,6 +11,10 @@ Chomp
     Copyright Justin Snelgrove. Licence: see Chomp/LICENSE.txt (permission to use, copy, modify and
     distribute, provided the copyright and permission notice appear in all copies).
 
+LibRPMedia
+    Names of the game's icons and music, used to search icons by name. Only its core and its WoW Forever
+    data file are included. Released into the public domain (the Unlicense), see LibRPMedia/LICENSE.
+
 ChatThrottleLib
     Keeps addon messages under the game's limits. By Mikk. Published as a fully embeddable library.
 

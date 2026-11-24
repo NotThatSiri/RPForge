@@ -2,7 +2,7 @@
 ## Title: RP Forge
 ## Notes: Roleplay tools for WoW Forever: character sheet, chat, places, items, quests and more. Works with Total RP 3.
 ## Author: NotThatSiri
-## Version: 0.2.6
+## Version: 0.2.7
 ## X-License: Apache-2.0
 ## SavedVariables: RPForgeDB
 ## SavedVariablesPerCharacter: RPForgeCharDB
@@ -12,6 +12,9 @@ Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
 Libs\ChatThrottleLib\ChatThrottleLib.xml
 Libs\Chomp\Chomp.xml
 Libs\LibMSP\LibMSP.xml
+Libs\LibRPMedia\LibRPMedia-1.2.lua
+Libs\LibRPMedia\LibRPMediaData_Forever.lua
+Libs\LibRPMedia\LibRPMediaData_Default.lua
 
 Core\Init.lua
 Core\Log.lua

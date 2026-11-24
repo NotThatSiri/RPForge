@@ -2,6 +2,16 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.2.7] - 2026-11-24
+
+### Added
+- **Search** in the icon picker: type part of a name (for example sword, fire or book) to find icons
+  among all of the game's icons. Point at an icon to see its name.
+
+### Notes
+- Icon names come from LibRPMedia, a shared roleplay library (public domain), included with its WoW
+  Forever data. RP Forge is larger because of it (about 1.8 MB).
+
 ## [0.2.6] - 2026-11-24
 
 Persona: how your character comes across.
