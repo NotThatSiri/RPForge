@@ -83,6 +83,7 @@ local function FillFields()
         control:SetValue(Profiles.GetField(key, profile))
     end
     page.statusRow:SetValue(Profiles.GetField("status", profile) or "ooc")
+    if page.FillPersona then page.FillPersona() end
 end
 
 local function ShowTab(key)
@@ -174,6 +175,232 @@ local function BuildAbout(frame)
     page.controls.history = history
 end
 
+-- Persona and Traits tabs ----------------------------------------------------------------
+
+local TRAIT_PAIRS = {
+    { "Brave", "Cautious" }, { "Kind", "Cruel" }, { "Honest", "Deceitful" }, { "Calm", "Hot-headed" },
+    { "Humble", "Proud" }, { "Generous", "Greedy" }, { "Loyal", "Fickle" }, { "Serious", "Playful" },
+    { "Lawful", "Chaotic" }, { "Forgiving", "Vindictive" }, { "Optimistic", "Pessimistic" },
+    { "Reserved", "Outgoing" }, { "Pious", "Irreverent" }, { "Trusting", "Suspicious" },
+}
+
+local function HexToRGB(hex)
+    if type(hex) ~= "string" or #hex ~= 6 then return nil end
+    return tonumber(hex:sub(1, 2), 16) / 255, tonumber(hex:sub(3, 4), 16) / 255, tonumber(hex:sub(5, 6), 16) / 255
+end
+
+local function PickColor(hex, onChange)
+    local r, g, b = HexToRGB(hex)
+    r, g, b = r or 1, g or 0.86, b or 0.56
+    local function Apply()
+        local nr, ng, nb = ColorPickerFrame:GetColorRGB()
+        onChange(string.format("%02x%02x%02x", nr * 255, ng * 255, nb * 255))
+    end
+    local function Cancel() onChange(hex) end
+    if ColorPickerFrame.SetupColorPickerAndShow then
+        ColorPickerFrame:SetupColorPickerAndShow({ r = r, g = g, b = b, hasOpacity = false, swatchFunc = Apply, cancelFunc = Cancel })
+    else
+        ColorPickerFrame.func, ColorPickerFrame.cancelFunc, ColorPickerFrame.hasOpacity = Apply, Cancel, false
+        ColorPickerFrame.previousValues = { r, g, b }
+        ColorPickerFrame:SetColorRGB(r, g, b)
+        ShowUIPanel(ColorPickerFrame)
+    end
+end
+
+local function SetImpression(slot, key, value)
+    local persona = Profiles.GetPersona()
+    local impression = persona.impressions[slot] or {}
+    impression[key] = value
+    if (impression.title or "") == "" and (impression.text or "") == "" and impression.icon == nil then
+        impression = nil
+    end
+    persona.impressions[slot] = impression
+    Profiles.PersonaChanged()
+end
+
+local function FillPersona()
+    local persona = Profiles.GetPersona()
+    page.iconButton:SetIcon(persona.icon)
+    local r, g, b = HexToRGB(persona.nameColor)
+    page.colorSwatch.fill:SetVertexColor(r or 1, g or 0.86, b or 0.56, 1)
+    page.colorState:SetText(persona.nameColor and ("#" .. persona.nameColor) or "Default")
+    for slot, row in ipairs(page.impressionRows) do
+        local impression = persona.impressions[slot] or {}
+        row.icon:SetIcon(impression.icon)
+        row.title:SetText(impression.title or "")
+        row.text:SetText(impression.text or "")
+        row.title:SetCursorPosition(0)
+        row.text:SetCursorPosition(0)
+    end
+end
+
+local function RenderTraits()
+    local traits = Profiles.GetPersona().traits
+    for i, row in ipairs(page.traitRows) do
+        local trait = traits[i]
+        row:SetShown(trait ~= nil)
+        if trait then
+            if not row.left:HasFocus() then row.left:SetText(trait.left or "") end
+            if not row.right:HasFocus() then row.right:SetText(trait.right or "") end
+            row.slider:SetQuietly(trait.value or Profiles.TRAIT_MAX / 2)
+        end
+    end
+    page.noTraits:SetShown(#traits == 0)
+    page.addTrait:SetEnabled(#traits < Profiles.MAX_TRAITS)
+    page.addPair:SetEnabled(#traits < Profiles.MAX_TRAITS)
+end
+
+local function AddTrait(left, right)
+    local traits = Profiles.GetPersona().traits
+    if #traits >= Profiles.MAX_TRAITS then return end
+    traits[#traits + 1] = { left = left or "", right = right or "", value = Profiles.TRAIT_MAX / 2 }
+    Profiles.PersonaChanged()
+    RenderTraits()
+end
+
+local function BuildPersona(frame, width)
+    page.FillPersona = function() FillPersona(); RenderTraits() end
+    local look = UI.Text(frame, "LOOK", 10, "muted")
+    look:SetPoint("TOPLEFT", 0, 0)
+
+    page.iconButton = UI.IconButton(frame, 44, function(self)
+        UI.PickIcon(Profiles.GetPersona().icon, function(icon)
+            Profiles.GetPersona().icon = icon
+            Profiles.PersonaChanged()
+            self:SetIcon(icon)
+        end)
+    end)
+    page.iconButton:SetPoint("TOPLEFT", look, "BOTTOMLEFT", 0, -8)
+    local iconLabel = UI.Text(frame, "Profile icon", 12, "text")
+    iconLabel:SetPoint("TOPLEFT", page.iconButton, "TOPRIGHT", 12, -6)
+    local iconHint = UI.Text(frame, "Click to choose. Shown with your name in roleplay addons.", 10, "muted")
+    iconHint:SetPoint("TOPLEFT", iconLabel, "BOTTOMLEFT", 0, -4)
+
+    page.colorSwatch = CreateFrame("Button", nil, frame, UI.BACKDROP_TEMPLATE)
+    page.colorSwatch:SetSize(44, 44)
+    page.colorSwatch:SetPoint("TOPLEFT", look, "BOTTOMLEFT", math.floor(width / 2), -8)
+    UI.Backdrop(page.colorSwatch, "panelAlt", "border")
+    page.colorSwatch.fill = page.colorSwatch:CreateTexture(nil, "ARTWORK")
+    page.colorSwatch.fill:SetTexture(UI.WHITE)
+    page.colorSwatch.fill:SetPoint("TOPLEFT", 4, -4)
+    page.colorSwatch.fill:SetPoint("BOTTOMRIGHT", -4, 4)
+    page.colorSwatch:SetScript("OnClick", function()
+        PickColor(Profiles.GetPersona().nameColor, function(hex)
+            Profiles.GetPersona().nameColor = hex
+            Profiles.PersonaChanged()
+            FillPersona()
+        end)
+    end)
+    local colorLabel = UI.Text(frame, "Name colour", 12, "text")
+    colorLabel:SetPoint("TOPLEFT", page.colorSwatch, "TOPRIGHT", 12, -6)
+    page.colorState = UI.Text(frame, "", 10, "muted")
+    page.colorState:SetPoint("TOPLEFT", colorLabel, "BOTTOMLEFT", 0, -4)
+    local reset = UI.Button(frame, "Default", 80, 22)
+    reset:SetPoint("LEFT", colorLabel, "RIGHT", 14, -8)
+    reset:SetScript("OnClick", function()
+        Profiles.GetPersona().nameColor = nil
+        Profiles.PersonaChanged()
+        FillPersona()
+    end)
+
+    local impressionsLabel = UI.Text(frame, "FIRST IMPRESSIONS  (what people notice at first sight, up to 5)", 10, "muted")
+    impressionsLabel:SetPoint("TOPLEFT", 0, -82)
+    local titleHead = UI.Text(frame, "TITLE", 9, "muted")
+    titleHead:SetPoint("TOPLEFT", 48, -100)
+    local textHead = UI.Text(frame, "WHAT THEY NOTICE", 9, "muted")
+    textHead:SetPoint("TOPLEFT", 264, -100)
+
+    page.impressionRows = {}
+    for slot = 1, Profiles.MAX_IMPRESSIONS do
+        local y = -114 - (slot - 1) * 44
+        local row = {}
+        row.icon = UI.IconButton(frame, 36, function(self)
+            UI.PickIcon(self.value, function(icon)
+                self:SetIcon(icon)
+                SetImpression(slot, "icon", icon)
+            end)
+        end)
+        row.icon:SetPoint("TOPLEFT", 0, y)
+        row.title = UI.EditBox(frame, 208, 30)
+        row.title:SetMaxLetters(60)
+        row.title:SetPoint("TOPLEFT", 48, y - 3)
+        row.title:SetScript("OnTextChanged", function(self, userInput)
+            if userInput then SetImpression(slot, "title", self:GetText()) end
+        end)
+        row.text = UI.EditBox(frame, 200, 30)
+        row.text:SetMaxLetters(300)
+        row.text:SetPoint("TOPLEFT", 264, y - 3)
+        row.text:SetPoint("RIGHT", frame, "RIGHT", 0, 0)
+        row.text:SetScript("OnTextChanged", function(self, userInput)
+            if userInput then SetImpression(slot, "text", self:GetText()) end
+        end)
+        page.impressionRows[slot] = row
+    end
+    local hint = UI.Text(frame, "For example: a scar across the cheek, the smell of pipe smoke, a holy symbol worn openly.", 10, "muted")
+    hint:SetPoint("TOPLEFT", 0, -114 - Profiles.MAX_IMPRESSIONS * 44 - 2)
+end
+
+local function BuildTraits(frame, width)
+    local label = UI.Text(frame, "TRAITS  (up to 10)  Slide towards the side that fits your character.", 10, "muted")
+    label:SetPoint("TOPLEFT", 0, 0)
+
+    page.traitRows = {}
+    local nameWidth = 150
+    for i = 1, Profiles.MAX_TRAITS do
+        local row = CreateFrame("Frame", nil, frame)
+        row:SetPoint("TOPLEFT", 0, -22 - (i - 1) * 36)
+        row:SetPoint("RIGHT", frame, "RIGHT", 0, 0)
+        row:SetHeight(30)
+        row.left = UI.EditBox(row, nameWidth, 26)
+        row.left:SetMaxLetters(30)
+        row.left:SetPoint("LEFT", 0, 0)
+        row.left:SetScript("OnTextChanged", function(self, userInput)
+            local trait = Profiles.GetPersona().traits[i]
+            if userInput and trait then trait.left = self:GetText(); Profiles.PersonaChanged() end
+        end)
+        row.remove = UI.Button(row, "x", 26, 26)
+        row.remove:SetPoint("RIGHT", 0, 0)
+        UI.Tooltip(row.remove, "Remove this trait")
+        row.remove:SetScript("OnClick", function()
+            table.remove(Profiles.GetPersona().traits, i)
+            Profiles.PersonaChanged()
+            RenderTraits()
+        end)
+        row.right = UI.EditBox(row, nameWidth, 26)
+        row.right:SetMaxLetters(30)
+        row.right:SetPoint("RIGHT", row.remove, "LEFT", -8, 0)
+        row.right:SetJustifyH("RIGHT")
+        row.right:SetScript("OnTextChanged", function(self, userInput)
+            local trait = Profiles.GetPersona().traits[i]
+            if userInput and trait then trait.right = self:GetText(); Profiles.PersonaChanged() end
+        end)
+        row.slider = UI.Slider(row, 0, Profiles.TRAIT_MAX, function(value)
+            local trait = Profiles.GetPersona().traits[i]
+            if trait then trait.value = value; Profiles.PersonaChanged() end
+        end)
+        row.slider:SetPoint("LEFT", row.left, "RIGHT", 14, 0)
+        row.slider:SetPoint("RIGHT", row.right, "LEFT", -14, 0)
+        page.traitRows[i] = row
+    end
+
+    page.noTraits = UI.Text(frame, "No traits yet. Add your own pair, or pick a common one.", 11, "muted")
+    page.noTraits:SetPoint("TOPLEFT", 0, -30)
+
+    page.addTrait = UI.Button(frame, "+ Add trait", 130, 26, "primary")
+    page.addTrait:SetPoint("BOTTOMLEFT", 0, 0)
+    page.addTrait:SetScript("OnClick", function() AddTrait("", "") end)
+    page.addPair = UI.Button(frame, "Add a common pair", 160, 26)
+    page.addPair:SetPoint("LEFT", page.addTrait, "RIGHT", 8, 0)
+    page.addPair:SetScript("OnClick", function(self)
+        local items = {}
+        for _, pair in ipairs(TRAIT_PAIRS) do
+            local left, right = pair[1], pair[2]
+            items[#items + 1] = { left .. "  /  " .. right, function() AddTrait(left, right) end }
+        end
+        UI.ShowMenu(self, items)
+    end)
+end
+
 local MARGIN = 28
 
 UI.RegisterPage({
@@ -215,7 +442,7 @@ UI.RegisterPage({
 
         page.tabButtons, page.tabs = {}, {}
         local tabX = MARGIN
-        for _, spec in ipairs({ { "identity", "Identity" }, { "status", "Status" }, { "about", "About" } }) do
+        for _, spec in ipairs({ { "identity", "Identity" }, { "status", "Status" }, { "about", "About" }, { "persona", "Persona" }, { "traits", "Traits" } }) do
             local b = UI.Button(frame, spec[2], 120, 26)
             b.tabKey = spec[1]
             b:SetPoint("TOPLEFT", tabX, -80)
@@ -233,6 +460,8 @@ UI.RegisterPage({
         BuildIdentity(page.tabs.identity, width)
         BuildStatus(page.tabs.status)
         BuildAbout(page.tabs.about)
+        BuildPersona(page.tabs.persona, width)
+        BuildTraits(page.tabs.traits, width)
         ShowTab("identity")
     end,
     onShow = function()

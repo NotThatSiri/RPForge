@@ -2,6 +2,23 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.2.6] - 2026-11-24
+
+Persona: how your character comes across.
+
+### Added
+- A **Persona** tab in the profile editor:
+  - **Profile icon**, chosen from the game's own icons.
+  - **Name colour** for your roleplay name.
+  - Up to five **first impressions**: an icon, a title and what people notice.
+- A **Traits** tab: up to ten trait sliders (for example Brave or Cautious), your own or from a list of
+  common pairs.
+- Home shows your first impressions as icons under the banner (hover to read them) and your name in your
+  name colour.
+- Total RP 3 users see your icon, name colour, first impressions (as glances) and traits.
+- With **Keep Total RP 3**, Home shows your Total RP 3 glances and name colour. **Move my profiles to
+  RP Forge** now also copies glances, custom traits, name colour and icon.
+
 ## [0.2.5] - 2026-11-24
 
 Choosing between Total RP 3 and RP Forge.

@@ -92,8 +92,37 @@ function Profiles.Create(name, copyFromID)
         for key, value in pairs(source.look) do look[key] = value end
     end
     local profile = { id = id, name = UniqueName(name), createdAt = time(), fields = fields, look = look }
+    if source and source.persona then profile.persona = CopyTable(source.persona) end
     Store()[id] = profile
     return profile
+end
+
+-- Persona: how your character comes across.
+--   icon         profile icon (an icon file ID or an icon name)
+--   nameColor    "rrggbb", or nil for the default colour
+--   impressions  up to 5 first impressions: { icon, title, text }
+--   traits       up to 10 trait sliders: { left, right, value = 0..20 } (10 is the middle)
+Profiles.MAX_IMPRESSIONS = 5
+Profiles.MAX_TRAITS = 10
+Profiles.TRAIT_MAX = 20
+
+function Profiles.GetPersona(profile)
+    profile = profile or Profiles.GetActive()
+    if not profile then return { impressions = {}, traits = {} } end
+    local persona = profile.persona or {}
+    persona.impressions = persona.impressions or {}
+    persona.traits = persona.traits or {}
+    profile.persona = persona
+    return persona
+end
+
+-- Call after changing the active profile's persona.
+function Profiles.PersonaChanged()
+    local profile = Profiles.GetActive()
+    if profile then
+        profile.updatedAt = time()
+        Changed(profile.id)
+    end
 end
 
 function Profiles.Rename(id, name)

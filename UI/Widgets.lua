@@ -352,6 +352,87 @@ function UI.HideMenu()
     if menu then menu:Hide() end
 end
 
+-- Icons are stored as the game's icon file ID (a number) or an icon name ("INV_Misc_Book_09").
+-- These turn either form into something a texture or a text icon can show.
+UI.DEFAULT_ICON = 134400 -- the question mark
+function UI.IconTexture(icon)
+    if type(icon) == "number" then return icon end
+    if type(icon) == "string" and icon ~= "" then
+        if tonumber(icon) then return tonumber(icon) end
+        if icon:find("[\\/]") then return icon end
+        return "Interface\\Icons\\" .. icon
+    end
+    return UI.DEFAULT_ICON
+end
+
+function UI.IconMarkup(icon, size)
+    size = size or 32
+    local tex = UI.IconTexture(icon)
+    return string.format("|T%s:%d:%d|t", tostring(tex), size, size)
+end
+
+-- A square button showing an icon, with a thin border.
+function UI.IconButton(parent, size, onClick)
+    local b = CreateFrame("Button", nil, parent, UI.BACKDROP_TEMPLATE)
+    b:SetSize(size, size)
+    UI.Backdrop(b, "panelAlt", "border")
+    b.icon = b:CreateTexture(nil, "ARTWORK")
+    b.icon:SetPoint("TOPLEFT", 2, -2)
+    b.icon:SetPoint("BOTTOMRIGHT", -2, 2)
+    b.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+    function b:SetIcon(icon)
+        self.value = icon
+        self.icon:SetTexture(UI.IconTexture(icon))
+    end
+    b:SetScript("OnEnter", function(self) UI.Backdrop(self, "panelAlt", "accent") end)
+    b:SetScript("OnLeave", function(self) UI.Backdrop(self, "panelAlt", "border") end)
+    if onClick then b:SetScript("OnClick", onClick) end
+    b:SetIcon(nil)
+    return b
+end
+
+-- A thin slider in the theme's colours. onChange(value) runs as it moves (whole numbers).
+function UI.Slider(parent, minValue, maxValue, onChange)
+    local s = CreateFrame("Slider", nil, parent, UI.BACKDROP_TEMPLATE)
+    s:SetOrientation("HORIZONTAL")
+    s:SetHeight(16)
+    s:SetMinMaxValues(minValue, maxValue)
+    s:SetValueStep(1)
+    if s.SetObeyStepOnDrag then s:SetObeyStepOnDrag(true) end
+    s:EnableMouse(true)
+    local track = s:CreateTexture(nil, "BACKGROUND")
+    track:SetTexture(UI.WHITE)
+    track:SetHeight(4)
+    track:SetPoint("LEFT", 0, 0)
+    track:SetPoint("RIGHT", 0, 0)
+    local b = UI.Color("border")
+    track:SetVertexColor(b[1], b[2], b[3], 1)
+    local mid = s:CreateTexture(nil, "BORDER")
+    mid:SetTexture(UI.WHITE)
+    mid:SetSize(1, 10)
+    mid:SetPoint("CENTER")
+    local m = UI.Color("muted")
+    mid:SetVertexColor(m[1], m[2], m[3], 0.8)
+    local thumb = s:CreateTexture(nil, "ARTWORK")
+    thumb:SetTexture(UI.WHITE)
+    thumb:SetSize(10, 16)
+    local a = UI.Color("accent")
+    thumb:SetVertexColor(a[1], a[2], a[3], 1)
+    s:SetThumbTexture(thumb)
+    s.quiet = false
+    s:SetScript("OnValueChanged", function(self, value)
+        value = math.floor(value + 0.5)
+        if not self.quiet and onChange then RPF.SafeCall("slider", onChange, value) end
+    end)
+    -- Set a value without calling onChange.
+    function s:SetQuietly(value)
+        self.quiet = true
+        self:SetValue(value)
+        self.quiet = false
+    end
+    return s
+end
+
 -- A simple tooltip for any frame.
 function UI.Tooltip(frame, title, body)
     frame:HookScript("OnEnter", function(self)

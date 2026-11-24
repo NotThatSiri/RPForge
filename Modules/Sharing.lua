@@ -68,6 +68,30 @@ local function Publish()
         my[theirs] = (value and value ~= "") and value or nil
     end
     my.FC = STATUS_TO_FC[f.status] or "1"
+
+    -- Persona, in the forms Total RP 3 reads: name colour inside the name, the icon as a file ID,
+    -- first impressions as glances (PE) and traits as [trait ...] lines (PS).
+    local persona = Profiles.GetPersona(profile)
+    if persona.nameColor then my.NA = "|cff" .. persona.nameColor .. my.NA .. "|r" end
+    my.IC = persona.icon and tostring(UI.IconTexture(persona.icon)) or nil
+    local glances = {}
+    for slot = 1, Profiles.MAX_IMPRESSIONS do
+        local impression = persona.impressions[slot]
+        if impression and ((impression.title or "") ~= "" or (impression.text or "") ~= "") then
+            glances[#glances + 1] = UI.IconMarkup(impression.icon) .. "\n#" .. (impression.title or "") .. "\n\n" .. (impression.text or "")
+        end
+    end
+    my.PE = #glances > 0 and table.concat(glances, "\n\n---\n\n") or nil
+    local traits = {}
+    for _, trait in ipairs(persona.traits) do
+        local left, right = strtrim(trait.left or ""), strtrim(trait.right or "")
+        if left ~= "" and right ~= "" then
+            traits[#traits + 1] = string.format('[trait value="%.2f" left-name=%q left-icon="%d" left-color="d9a441" right-name=%q right-icon="%d" right-color="6fa8dc"]',
+                (trait.value or Profiles.TRAIT_MAX / 2) / Profiles.TRAIT_MAX,
+                left:gsub('[%]="]', ""), UI.DEFAULT_ICON, right:gsub('[%]="]', ""), UI.DEFAULT_ICON)
+        end
+    end
+    my.PS = #traits > 0 and table.concat(traits, "\n") or nil
     RPF.SafeCall("msp update", msp.Update, msp)
 end
 
