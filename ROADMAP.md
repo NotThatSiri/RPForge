@@ -8,10 +8,10 @@ players in game, not hard-coded into the addon. It is built for Horde and Allian
 
 RP Forge uses [Semantic Versioning](https://semver.org): `MAJOR.MINOR.PATCH`.
 
-- **Before 1.0 (`0.x`):** each minor version is one milestone below. Inside a milestone, work is done in
-  bundles (for example "the window and its look"). Small changes don't change the version; when a bundle
-  is finished, it becomes one version and the patch number goes up once: `0.1.0`, `0.1.1`, `0.1.2` and so
-  on. Starting the next milestone resets it: `0.2.0`.
+- **Before 1.0 (`0.x`):** each minor version is one milestone below. Every build handed over to try in
+  game gets the next patch number and a tag, so the number in game always says exactly which build it
+  is: `0.2.0`, `0.2.1`, `0.2.2` and so on. Several small changes made together go into one build.
+  Starting the next milestone resets it: `0.3.0`.
 - **Release candidates:** `1.0.0-rc.1`, `1.0.0-rc.2` before the 1.0 release.
 - **From 1.0:** major for changes that break saved data or compatibility between players, minor for new
   features, patch for fixes.
@@ -45,13 +45,17 @@ Total RP 3 for the profile (RP Forge reads it and adds its own parts) or to move
 RP Forge (Total RP 3 is then turned off; its saved data is kept). First impressions and traits are shared
 with Total RP 3's glances and traits rather than kept twice.
 
-| Version | Bundle | Contents |
+| Order | Part | Contents |
 |---|---|---|
-| 0.2.0 | Your profile | Profile page: identity, status, about; several profiles to switch between |
-| 0.2.1 | Sharing | Send and receive profiles in the shared format; names and status in tooltips; remember people met |
-| 0.2.2 | The Total RP 3 link | One-time choice; read Total RP 3 profiles; move Total RP 3 profiles into RP Forge |
-| 0.2.3 | Persona | First impressions, trait sliders, name colour, profile icon, theme tune |
-| 0.2.4 | Viewing profiles | Open anyone's profile; a People page of everyone met |
+| 1 | Your profile | Profile page: identity, status, about; several profiles to switch between |
+| 2 | Home | Your character's banner: portrait, name, full title, race, class, guild; changeable background; status |
+| 3 | Sharing | Send and receive profiles in the shared format; names and status in tooltips; remember people met |
+| 4 | The Total RP 3 link | One-time choice; read Total RP 3 profiles; move Total RP 3 profiles into RP Forge |
+| 5 | Persona | First impressions, trait sliders, name colour, profile icon, theme tune |
+| 6 | Viewing profiles | Open anyone's profile; a People page of everyone met |
+
+Home grows with each milestone: cards for people met, sessions, health, quests and progress appear as
+those parts arrive.
 
 ## Principles
 

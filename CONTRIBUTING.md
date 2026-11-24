@@ -41,10 +41,10 @@ referenced by their in-game path are fine.
 
 ### Versions
 
-RP Forge uses [Semantic Versioning](https://semver.org). Work is done in bundles (for example "the
-window and its look"). Small changes don't change the version. When a bundle is finished, it becomes one
-version: the number goes up once in `RPForge.toc`, it gets one entry in `CHANGELOG.md`, and `main` is
-tagged (`v0.1.2`). Leave the version number to the maintainer unless asked.
+RP Forge uses [Semantic Versioning](https://semver.org). Every build handed over to try in game gets the
+next patch number in `RPForge.toc`, its own entry in `CHANGELOG.md` and a git tag (`v0.2.1`), so the
+number in game always says exactly which build it is. Leave the version number to the maintainer unless
+asked.
 
 ### Code style
 

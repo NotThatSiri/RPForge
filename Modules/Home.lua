@@ -4,6 +4,70 @@ local UI = RPF.UI
 
 local GITHUB_URL = "https://github.com/NotThatSiri/RPForge"
 
+-- Home: your character's banner, your status, and RP Forge's own card. More cards arrive with later updates.
+local Profiles = RPF.Profiles
+local Backgrounds = UI.Backgrounds
+local home -- the built Home page
+
+-- Text on the banner sits on a dark picture, so it uses light colours in every theme.
+local BANNER_TEXT = { 0.96, 0.93, 0.86 }
+local BANNER_MUTED = { 0.80, 0.76, 0.68 }
+local BANNER_NAME = { 1.00, 0.86, 0.56 }
+
+local function BannerText(parent, size, color)
+    local fs = UI.Text(parent, "", size, "text")
+    fs:SetTextColor(color[1], color[2], color[3], 1)
+    fs:SetShadowColor(0, 0, 0, 0.95)
+    fs:SetShadowOffset(1, -1)
+    fs:SetWordWrap(false)
+    return fs
+end
+
+local function Shade(texture)
+    texture:SetTexture(UI.WHITE)
+    local done = false
+    if texture.SetGradient and CreateColor then
+        done = pcall(texture.SetGradient, texture, "HORIZONTAL", CreateColor(0, 0, 0, 0.85), CreateColor(0, 0, 0, 0.15))
+    end
+    if not done and texture.SetGradientAlpha then
+        done = pcall(texture.SetGradientAlpha, texture, "HORIZONTAL", 0, 0, 0, 0.85, 0, 0, 0, 0.15)
+    end
+    if not done then texture:SetVertexColor(0, 0, 0, 0.5) end
+end
+
+local function ChosenBackground(profile)
+    return Profiles.GetLook("background", profile) or Backgrounds.PlayerRace()
+end
+
+local function RefreshHome()
+    if not home then return end
+    local profile = Profiles.GetActive()
+    local f = profile and profile.fields or {}
+
+    home.name:SetText(Profiles.FullName(profile))
+    home.fullTitle:SetText((f.fullTitle and f.fullTitle ~= "") and ("< " .. f.fullTitle .. " >") or "")
+    local race = (f.race and f.race ~= "") and f.race or UnitRace("player")
+    local class = (f.class and f.class ~= "") and f.class or UnitClass("player")
+    home.raceClass:SetText(strtrim((race or "") .. " " .. (class or "")))
+    local guild = GetGuildInfo("player")
+    home.guild:SetText(guild and ("<" .. guild .. ">") or "")
+
+    SetPortraitTexture(home.portrait, "player")
+    if not Backgrounds.Apply(home.art, ChosenBackground(profile)) then
+        Backgrounds.Apply(home.art, Backgrounds.PlayerRace())
+    end
+    Backgrounds.Fit(home.art, home.banner)
+
+    home.statusRow:SetValue(f.status or "ooc")
+    if f.currently and f.currently ~= "" then
+        home.currently:SetText((f.currently:gsub("\n", " ")))
+        UI.SetTextColor(home.currently, "text")
+    else
+        home.currently:SetText("Say what your character is doing right now...")
+        UI.SetTextColor(home.currently, "muted")
+    end
+end
+
 local function CountPlayers()
     local peers = RPF.GetModule("VersionCheck") and RPF.GetModule("VersionCheck").peers or {}
     local count = 0
@@ -20,33 +84,97 @@ UI.RegisterPage({
     sectionOrder = 1,
     order = 1,
     build = function(page)
-        local heading = UI.Text(page, "Welcome to RP Forge", 20, "accent")
-        heading:SetPoint("TOPLEFT", 28, -26)
+        home = page
 
-        local intro = UI.Text(page,
-            "Roleplay tools for WoW Forever. RP Forge is in early development: this window is the start, and each update adds a new part. " ..
-            "Everything you make in RP Forge will be made in game by players, for Horde and Alliance alike.", 12, "text")
-        intro:SetPoint("TOPLEFT", heading, "BOTTOMLEFT", 0, -14)
-        intro:SetPoint("RIGHT", page, "RIGHT", -28, 0)
-        intro:SetSpacing(3)
+        -- Banner ---------------------------------------------------------------------------
+        local banner = CreateFrame("Frame", nil, page, UI.BACKDROP_TEMPLATE)
+        banner:SetPoint("TOPLEFT", 20, -20)
+        banner:SetPoint("TOPRIGHT", -20, -20)
+        banner:SetHeight(170)
+        UI.Backdrop(banner, "panelAlt", "panelAlt")
+        if banner.SetClipsChildren then banner:SetClipsChildren(true) end
+        home.banner = banner
 
+        home.art = Backgrounds.CreateArt(banner)
+        banner:SetScript("OnSizeChanged", function() Backgrounds.Fit(home.art, banner) end)
+
+        local overlay = CreateFrame("Frame", nil, banner, UI.BACKDROP_TEMPLATE)
+        overlay:SetAllPoints()
+        overlay:SetFrameLevel(home.art:GetFrameLevel() + 2)
+        local shade = overlay:CreateTexture(nil, "BACKGROUND")
+        shade:SetAllPoints()
+        Shade(shade)
+        overlay:SetBackdrop({ edgeFile = UI.WHITE, edgeSize = 1 })
+        local b = UI.Color("border")
+        overlay:SetBackdropBorderColor(b[1], b[2], b[3], 1)
+
+        local portraitFrame = CreateFrame("Frame", nil, overlay)
+        portraitFrame:SetSize(112, 112)
+        portraitFrame:SetPoint("LEFT", 26, 0)
+        home.portrait = portraitFrame:CreateTexture(nil, "ARTWORK")
+        home.portrait:SetSize(96, 96)
+        home.portrait:SetPoint("CENTER")
+        local ring = portraitFrame:CreateTexture(nil, "OVERLAY")
+        ring:SetTexture("Interface\\AddOns\\" .. RPF.ADDON .. "\\Media\\Icons\\Ring")
+        ring:SetAllPoints()
+        local a = UI.Color("accent")
+        ring:SetVertexColor(a[1], a[2], a[3], 1)
+
+        home.name = BannerText(overlay, 24, BANNER_NAME)
+        home.name:SetPoint("TOPLEFT", portraitFrame, "TOPRIGHT", 20, -14)
+        home.fullTitle = BannerText(overlay, 13, BANNER_MUTED)
+        home.fullTitle:SetPoint("TOPLEFT", home.name, "BOTTOMLEFT", 0, -6)
+        home.raceClass = BannerText(overlay, 13, BANNER_TEXT)
+        home.raceClass:SetPoint("TOPLEFT", home.fullTitle, "BOTTOMLEFT", 0, -10)
+        home.guild = BannerText(overlay, 12, BANNER_MUTED)
+        home.guild:SetPoint("TOPLEFT", home.raceClass, "BOTTOMLEFT", 0, -6)
+        for _, fs in ipairs({ home.name, home.fullTitle, home.raceClass, home.guild }) do
+            fs:SetPoint("RIGHT", overlay, "RIGHT", -170, 0)
+        end
+
+        local edit = UI.Button(overlay, "Edit profile", 140, 26, "primary")
+        edit:SetPoint("TOPRIGHT", -14, -14)
+        edit:SetScript("OnClick", function() UI.OpenProfile() end)
+        local background = UI.Button(overlay, "Change background", 140, 26)
+        background:SetPoint("TOPRIGHT", edit, "BOTTOMRIGHT", 0, -6)
+        background:SetScript("OnClick", function() UI.ShowPage("backgrounds") end)
+        UI.Tooltip(background, "Banner background", "Pick one of the game's pictures for this profile's banner.")
+
+        -- Status ----------------------------------------------------------------------------
+        local statusLabel = UI.Text(page, "STATUS", 10, "muted")
+        statusLabel:SetPoint("TOPLEFT", banner, "BOTTOMLEFT", 0, -16)
+        home.statusRow = UI.Segmented(page, Profiles.STATUS, 140, function(value)
+            Profiles.SetField("status", value)
+        end)
+        home.statusRow:SetPoint("TOPLEFT", statusLabel, "BOTTOMLEFT", 0, -6)
+
+        local currentlyLabel = UI.Text(page, "CURRENTLY", 10, "muted")
+        currentlyLabel:SetPoint("TOPLEFT", home.statusRow, "BOTTOMLEFT", 0, -14)
+        local currentlyButton = CreateFrame("Button", nil, page)
+        currentlyButton:SetPoint("TOPLEFT", currentlyLabel, "BOTTOMLEFT", 0, -4)
+        currentlyButton:SetPoint("RIGHT", page, "RIGHT", -20, 0)
+        currentlyButton:SetHeight(20)
+        home.currently = UI.Text(currentlyButton, "", 12, "text")
+        home.currently:SetAllPoints()
+        home.currently:SetWordWrap(false)
+        currentlyButton:SetScript("OnClick", function() UI.OpenProfile("status") end)
+        UI.Tooltip(currentlyButton, "Currently", "Click to change it on your profile.")
+
+        -- RP Forge card ------------------------------------------------------------------------
         local card = UI.Panel(page, "panel", "border")
-        card:SetPoint("TOPLEFT", intro, "BOTTOMLEFT", 0, -22)
-        card:SetPoint("RIGHT", page, "RIGHT", -28, 0)
-        card:SetHeight(96)
-
-        local versionLabel = UI.Text(card, "VERSION", 10, "muted")
+        card:SetPoint("TOPLEFT", currentlyButton, "BOTTOMLEFT", 0, -20)
+        card:SetPoint("RIGHT", page, "RIGHT", -20, 0)
+        card:SetHeight(86)
+        local versionLabel = UI.Text(card, "RP FORGE", 10, "muted")
         versionLabel:SetPoint("TOPLEFT", 16, -14)
         page.version = UI.Text(card, "", 15, "text")
         page.version:SetPoint("TOPLEFT", versionLabel, "BOTTOMLEFT", 0, -6)
-
         local playersLabel = UI.Text(card, "RP FORGE PLAYERS HEARD", 10, "muted")
         playersLabel:SetPoint("TOPLEFT", 260, -14)
         page.players = UI.Text(card, "", 15, "text")
         page.players:SetPoint("TOPLEFT", playersLabel, "BOTTOMLEFT", 0, -6)
-
-        local who = UI.Button(card, "Who's around?", 130, 26, "primary")
-        who:SetPoint("BOTTOMRIGHT", -14, 14)
+        local who = UI.Button(card, "Who's around?", 130, 26)
+        who:SetPoint("RIGHT", -14, 0)
         UI.Tooltip(who, "Who's around?", "Asks your guild, your group and the RP Forge channel who uses RP Forge. The answers also appear in chat.")
         who:SetScript("OnClick", function()
             SlashCmdList.RPFORGE("who")
@@ -54,11 +182,9 @@ UI.RegisterPage({
                 if page:IsVisible() then page.players:SetText(tostring(CountPlayers())) end
             end)
         end)
-
-        local comingNext = UI.Text(page, "Coming next: your profile, and its link with Total RP 3.", 11, "muted")
-        comingNext:SetPoint("TOPLEFT", card, "BOTTOMLEFT", 0, -18)
     end,
     onShow = function(page)
+        RefreshHome()
         local newer = RPF.db.newestSeen
         if newer and RPF.IsNewerVersion(newer.version, RPF.VERSION) then
             page.version:SetText(RPF.VERSION .. UI.ColorCode("warn") .. "   (" .. newer.version .. " is out)|r")
@@ -68,6 +194,15 @@ UI.RegisterPage({
         page.players:SetText(tostring(CountPlayers()))
     end,
 })
+
+local function RefreshIfShown()
+    if home and home:IsVisible() then RefreshHome() end
+end
+RPF.Listen("PROFILE_CHANGED", RefreshIfShown)
+RPF.OnEvent("PLAYER_GUILD_UPDATE", RefreshIfShown)
+RPF.OnEvent("UNIT_PORTRAIT_UPDATE", function(unit)
+    if unit == "player" then RefreshIfShown() end
+end)
 
 UI.RegisterPage({
     key = "about",

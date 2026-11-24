@@ -14,4 +14,4 @@
 - [ ] `/rpf errors` shows no new errors
 - [ ] Only our own code and art (see CONTRIBUTING.md), or anything borrowed is licensed and credited
 - [ ] `CHANGELOG.md` updated for player-facing changes
-- [ ] Version left alone, unless this finishes a bundle
+- [ ] Version raised once for the build handed over to try (maintainer)

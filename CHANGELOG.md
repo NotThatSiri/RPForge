@@ -2,6 +2,36 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.2.3] - 2026-11-24
+
+### Fixed
+- The background page listed races that only NPCs have (such as the Broken, Fel Orcs and Forest Trolls),
+  which have no picture. It now only lists playable races.
+
+## [0.2.2] - 2026-11-24
+
+### Changed
+- **Change background** opens a page of previews instead of a long list: a scrolling grid with a strip of
+  each picture and its name. Click one to use it; **Done** goes back to Home.
+
+## [0.2.1] - 2026-11-24
+
+A new Home: your character's banner.
+
+### Added
+- **Banner** at the top of Home: your character's portrait in a ring, your RP name, your full title in
+  < >, your race and class, and your guild.
+- **Banner background** from the game's own pictures: it starts with your race's dressing-room background.
+  **Change background** picks another race's. The choice is saved with each profile.
+- **Status** buttons under the banner (In character, Looking for RP, Out of character) and your
+  "currently" line. Click the line to change it.
+- `/rpf profile` opens the profile editor.
+
+### Changed
+- The profile editor opens from **Edit profile** on Home instead of the side menu. **Done** goes back to
+  Home.
+- The RP Forge card (version, players heard, "Who's around?") sits under the status.
+
 ## [0.2.0] - 2026-11-24
 
 Your roleplay profile.
