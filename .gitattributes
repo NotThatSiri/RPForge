@@ -1,0 +1,12 @@
+* text=auto eol=crlf
+*.png binary
+*.tga binary
+*.blp binary
+*.ogg binary
+*.ttf binary
+
+# Not shipped in release zips
+.gitattributes export-ignore
+.gitignore export-ignore
+ROADMAP.md export-ignore
+tools/ export-ignore
