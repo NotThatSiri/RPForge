@@ -502,45 +502,17 @@ local function FillVoice()
     page.emoteText:SetText(UI.ColorCode("muted") .. "Emote:|r  " .. UnitName("player") .. " " .. emote)
 end
 
-local function SetAccent(key)
-    local persona = Profiles.GetPersona()
-    local old = persona.accent
-    persona.accent = key and { key = key, strength = old and old.strength or 1 } or nil
-    Profiles.PersonaChanged()
-    FillVoice()
-end
-
 local function BuildVoice(frame, width)
     page.FillVoice = FillVoice
     local label = UI.Text(frame, "ACCENT", 10, "muted")
     label:SetPoint("TOPLEFT", 0, 0)
     page.accentButton = UI.Button(frame, "No accent", 200, 26)
     page.accentButton:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -8)
-    page.accentButton:SetScript("OnClick", function(self)
-        local current = Profiles.GetPersona().accent
-        local items = { { "No accent", function() SetAccent(nil) end, checked = not current } }
-        for _, side in ipairs({ "Alliance", "Horde" }) do
-            items[#items + 1] = "-"
-            items[#items + 1] = { side:upper(), nil, disabled = true }
-            for _, accent in ipairs(Accents.LIST) do
-                if accent.side == side then
-                    local key = accent.key
-                    items[#items + 1] = { accent.name, function() SetAccent(key) end, checked = current and current.key == key }
-                end
-            end
-        end
-        UI.ShowMenu(self, items)
-    end)
+    page.accentButton:SetScript("OnClick", function(self) Accents.ShowMenu(self) end)
 
     local strengthLabel = UI.Text(frame, "STRENGTH", 10, "muted")
     strengthLabel:SetPoint("TOPLEFT", 230, 0)
-    page.strength = UI.Segmented(frame, Accents.STRENGTHS, 90, function(value)
-        local choice = Profiles.GetPersona().accent
-        if not choice then return end
-        choice.strength = value
-        Profiles.PersonaChanged()
-        FillVoice()
-    end)
+    page.strength = UI.Segmented(frame, Accents.STRENGTHS, 90, function(value) Accents.SetStrength(value) end)
     page.strength:SetPoint("TOPLEFT", strengthLabel, "BOTTOMLEFT", 0, -8)
 
     local hint = UI.Text(frame, "Your accent changes what you post from the RP chat window: everything you say or yell, "
@@ -663,5 +635,6 @@ RPF.Listen("PROFILE_CHANGED", function()
     if not page or not page:IsVisible() then return end
     RefreshHeader()
     if page.loadedProfile ~= RPF.char.activeProfile then FillFields() end
+    if page.FillVoice then page.FillVoice() end
 end)
 -- (A new theme rebuilds the window; build() then replaces `page` with the new frame.)

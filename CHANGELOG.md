@@ -2,6 +2,15 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.15] - 2026-11-24
+
+### Added
+- The RP chat window shows your accent above the typing box ("Accent: Dwarven, medium"). Click it to
+  choose an accent and strength without leaving the chat, or to open the Voice tab and try it out.
+
+### Fixed
+- Pop-up menus open upwards when there is no room below them, and always stay on screen.
+
 ## [0.3.14] - 2026-11-24
 
 ### Fixed

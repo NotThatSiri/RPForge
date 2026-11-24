@@ -273,6 +273,53 @@ function Accents.Describe()
     return accent.name .. ", " .. Accents.STRENGTH_NAMES[strength]:lower()
 end
 
+-- Choose the active profile's accent (nil = none), keeping the strength.
+function Accents.Set(key)
+    local Profiles = RPF.Profiles
+    if not Profiles.GetActive() then return end
+    local persona = Profiles.GetPersona()
+    local old = persona.accent
+    persona.accent = key and { key = key, strength = old and old.strength or 1 } or nil
+    Profiles.PersonaChanged()
+end
+
+function Accents.SetStrength(strength)
+    local Profiles = RPF.Profiles
+    local choice = Profiles.GetActive() and Profiles.GetPersona().accent
+    if not choice then return end
+    choice.strength = strength
+    Profiles.PersonaChanged()
+end
+
+-- The accent menu, used by the RP chat window and the Voice tab. withStrength adds the strengths and a
+-- link to the Voice tab.
+function Accents.ShowMenu(owner, withStrength)
+    local UI = RPF.UI
+    local current, strength = Accents.Current()
+    local items = { { "No accent", function() Accents.Set(nil) end, checked = not current } }
+    for _, side in ipairs({ "Alliance", "Horde" }) do
+        items[#items + 1] = "-"
+        items[#items + 1] = { side:upper(), nil, disabled = true }
+        for _, accent in ipairs(Accents.LIST) do
+            if accent.side == side then
+                local key = accent.key
+                items[#items + 1] = { accent.name, function() Accents.Set(key) end, checked = current == accent }
+            end
+        end
+    end
+    if withStrength then
+        items[#items + 1] = "-"
+        for _, s in ipairs(Accents.STRENGTHS) do
+            local value = s[1]
+            items[#items + 1] = { s[2], function() Accents.SetStrength(value) end,
+                checked = current ~= nil and strength == value, disabled = current == nil }
+        end
+        items[#items + 1] = "-"
+        items[#items + 1] = { "Try it on the Voice tab...", function() UI.OpenProfile("voice") end }
+    end
+    UI.ShowMenu(owner, items)
+end
+
 -- Change text with an accent. mode: "SAY", "YELL" or "EMOTE" (emotes: only "quoted" words).
 -- accent and strength default to the active profile's.
 function Accents.Apply(text, mode, accent, strength)
