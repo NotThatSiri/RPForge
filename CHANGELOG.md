@@ -16,6 +16,10 @@ Your roleplay profile.
   - Everything saves as you type. Your name shows at the top as others will see it.
 - Several profiles: make new ones, copy, rename, delete and switch between them. Profiles are shared by
   all your characters; each character remembers which one it uses.
+- The page uses the full width. A **Profile** button next to your name opens a menu to switch profiles
+  or make, copy, rename and delete them.
+- Thin scrollbars in the theme's colours, shown only when there is something to scroll.
+- The window background is fully solid, so nothing behind it shows through.
 - New profiles start Out of character, so nobody is shown as IC until they choose it. Copies keep the
   status of the profile they were copied from.
 

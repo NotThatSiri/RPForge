@@ -175,6 +175,7 @@ function UI.TextArea(parent, label, height, maxLetters, onChange)
     if maxLetters then edit:SetMaxLetters(maxLetters) end
     edit:SetWidth(200)
     scroll:SetScrollChild(edit)
+    UI.SkinScrollBar(scroll)
     scroll:SetScript("OnSizeChanged", function(_, w) edit:SetWidth(math.max(50, w)) end)
     -- Clicking anywhere in the box starts typing.
     box:EnableMouse(true)
@@ -228,6 +229,127 @@ function UI.Segmented(parent, choices, width, onPick)
         end
     end
     return row
+end
+
+-- Restyle a UIPanelScrollFrameTemplate scrollbar: a thin bar in the theme's colours, no arrow buttons,
+-- and hidden while there is nothing to scroll.
+function UI.SkinScrollBar(scroll)
+    local bar = scroll.ScrollBar or (scroll:GetName() and _G[scroll:GetName() .. "ScrollBar"])
+    if not bar then return end
+    for _, child in ipairs({ bar:GetChildren() }) do
+        if child:IsObjectType("Button") then
+            child:Hide()
+            child:SetAlpha(0)
+            child:EnableMouse(false)
+        end
+    end
+    for _, region in ipairs({ bar:GetRegions() }) do
+        if region:IsObjectType("Texture") and region ~= bar:GetThumbTexture() then region:SetAlpha(0) end
+    end
+    bar:ClearAllPoints()
+    bar:SetPoint("TOPRIGHT", scroll, "TOPRIGHT", 18, 0)
+    bar:SetPoint("BOTTOMRIGHT", scroll, "BOTTOMRIGHT", 18, 0)
+    bar:SetWidth(6)
+
+    local track = bar:CreateTexture(nil, "BACKGROUND")
+    track:SetTexture(UI.WHITE)
+    track:SetAllPoints()
+    local b = UI.Color("border")
+    track:SetVertexColor(b[1], b[2], b[3], 0.35)
+
+    local thumb = bar:GetThumbTexture()
+    if thumb then
+        thumb:SetTexture(UI.WHITE)
+        thumb:SetSize(6, 36)
+        local m = UI.Color("muted")
+        thumb:SetVertexColor(m[1], m[2], m[3], 0.9)
+    end
+
+    local function UpdateShown()
+        local range = scroll:GetVerticalScrollRange() or 0
+        bar:SetShown(range > 1)
+    end
+    scroll:HookScript("OnScrollRangeChanged", UpdateShown)
+    UpdateShown()
+end
+
+-- A small pop-up menu under `owner`. items = { { text, onClick, disabled = bool, checked = bool }, "-" (a line), ... }
+-- Closes when an item is picked, when clicking anywhere else, or with Escape.
+local menu, catcher
+function UI.ShowMenu(owner, items)
+    if not menu then
+        catcher = CreateFrame("Button", nil, UIParent)
+        catcher:SetAllPoints(UIParent)
+        catcher:SetFrameStrata("FULLSCREEN_DIALOG")
+        catcher:RegisterForClicks("AnyUp")
+        catcher:SetScript("OnClick", function() UI.HideMenu() end)
+        catcher:Hide()
+        menu = CreateFrame("Frame", "RPForgeMenu", UIParent, UI.BACKDROP_TEMPLATE)
+        menu:SetFrameStrata("FULLSCREEN_DIALOG")
+        menu:SetFrameLevel(catcher:GetFrameLevel() + 10)
+        menu:EnableMouse(true)
+        menu.rows = {}
+        menu:Hide()
+        tinsert(UISpecialFrames, "RPForgeMenu")
+        menu:SetScript("OnHide", function() catcher:Hide() end)
+    end
+    UI.Backdrop(menu, "panel", "border")
+    for _, row in ipairs(menu.rows) do row:Hide() end
+
+    local y, width = -4, math.max(owner:GetWidth(), 180)
+    for i, item in ipairs(items) do
+        local row = menu.rows[i]
+        if not row then
+            row = CreateFrame("Button", nil, menu, UI.BACKDROP_TEMPLATE)
+            row.label = UI.Text(row, "", 12, "text")
+            row.label:SetPoint("LEFT", 12, 0)
+            row.line = row:CreateTexture(nil, "ARTWORK")
+            row.line:SetTexture(UI.WHITE)
+            row.line:SetHeight(1)
+            row.line:SetPoint("LEFT", 8, 0)
+            row.line:SetPoint("RIGHT", -8, 0)
+            row:SetScript("OnEnter", function(self) if self.item and not self.item.disabled then UI.Backdrop(self, "panelAlt", "panelAlt") end end)
+            row:SetScript("OnLeave", function(self) self:SetBackdrop(nil) end)
+            row:SetScript("OnClick", function(self)
+                local picked = self.item
+                if not picked or picked.disabled then return end
+                UI.HideMenu()
+                if picked[2] then RPF.SafeCall("menu " .. tostring(picked[1]), picked[2]) end
+            end)
+            menu.rows[i] = row
+        end
+        row:SetBackdrop(nil)
+        row:ClearAllPoints()
+        row:SetPoint("TOPLEFT", 1, y)
+        row:SetPoint("TOPRIGHT", -1, y)
+        if item == "-" then
+            row.item = nil
+            row:SetHeight(9)
+            row.label:SetText("")
+            local c = UI.Color("border")
+            row.line:SetVertexColor(c[1], c[2], c[3], 1)
+            row.line:Show()
+            y = y - 9
+        else
+            row.item = item
+            row:SetHeight(24)
+            row.line:Hide()
+            row.label:SetText((item.checked and "> " or "") .. item[1])
+            UI.SetTextColor(row.label, item.disabled and "muted" or (item.checked and "accent" or "text"))
+            y = y - 24
+        end
+        row:Show()
+    end
+    menu:SetSize(width, -y + 4)
+    menu:ClearAllPoints()
+    menu:SetPoint("TOPLEFT", owner, "BOTTOMLEFT", 0, -2)
+    catcher:Show()
+    menu:Show()
+    menu:Raise()
+end
+
+function UI.HideMenu()
+    if menu then menu:Hide() end
 end
 
 -- A simple tooltip for any frame.

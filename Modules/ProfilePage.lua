@@ -1,10 +1,7 @@
--- RP Forge: the Profile page. Your profiles on the left; the chosen one's details on the right.
+-- RP Forge: the Profile page. Your name and a profile switcher at the top; the details in three tabs.
 local _, RPF = ...
 local UI = RPF.UI
 local Profiles = RPF.Profiles
-
-local LIST_WIDTH = 190
-local MAX_ROWS = 12
 
 -- Popups ---------------------------------------------------------------------------------
 
@@ -59,7 +56,7 @@ end
 local page -- the built page frame, so PROFILE_CHANGED can update it
 
 local IDENTITY_LEFT = {
-    { "firstName", "FIRST NAME" }, { "lastName", "LAST NAME" },
+    { "firstName", "FIRST NAME  (empty = your character's name)" }, { "lastName", "LAST NAME" },
     { "title", "TITLE  (before the name, e.g. Lady)" }, { "epithet", "EPITHET  (after the name, e.g. the Wanderer)" },
     { "nickname", "NICKNAME" }, { "pronouns", "PRONOUNS" },
 }
@@ -68,30 +65,12 @@ local IDENTITY_RIGHT = {
     { "eyes", "EYES" }, { "birthplace", "BIRTHPLACE" }, { "home", "HOME" }, { "house", "HOUSE" },
 }
 
-local function RefreshList()
-    local active = RPF.char.activeProfile
-    local list = Profiles.List()
-    for i, row in ipairs(page.rows) do
-        local profile = list[i]
-        if profile and i <= MAX_ROWS then
-            row.profileID = profile.id
-            row.label:SetText(profile.name)
-            row.selected = profile.id == active
-            row:Refresh()
-            row:Show()
-        else
-            row:Hide()
-        end
-    end
-    page.delete:SetEnabled(#list > 1)
-end
-
 local function RefreshHeader()
     local profile = Profiles.GetActive()
     local name = Profiles.FullName(profile)
     local epithet = Profiles.GetField("epithet", profile)
     page.fullName:SetText(name .. ((epithet and epithet ~= "") and (", " .. epithet) or ""))
-    page.using:SetText("Profile: " .. (profile and profile.name or "?"))
+    page.switcher.label:SetText("Profile: " .. (profile and profile.name or "?"))
 end
 
 -- Put the active profile's values into every box. Only when the profile changes, never while typing.
@@ -119,72 +98,81 @@ local function Setter(key)
     end
 end
 
+-- The menu behind the "Profile: ..." button: switch profiles, or make, copy, rename and delete them.
+local function ShowProfileMenu(owner)
+    local active = Profiles.GetActive()
+    local list = Profiles.List()
+    local items = {}
+    for _, profile in ipairs(list) do
+        local id = profile.id
+        items[#items + 1] = { profile.name, function() Profiles.SetActive(id) end, checked = id == active.id }
+    end
+    items[#items + 1] = "-"
+    items[#items + 1] = { "New profile...", function()
+        AskName("Name the new profile:", "", function(name) Profiles.SetActive(Profiles.Create(name).id) end)
+    end }
+    items[#items + 1] = { "Copy this profile...", function()
+        AskName("Name the copy:", active.name .. " copy", function(name)
+            Profiles.SetActive(Profiles.Create(name, active.id).id)
+        end)
+    end }
+    items[#items + 1] = { "Rename this profile...", function()
+        AskName("Rename the profile:", active.name, function(name) Profiles.Rename(active.id, name) end)
+    end }
+    items[#items + 1] = { "Delete this profile...", function()
+        StaticPopup_Show("RPFORGE_PROFILE_DELETE", active.name, nil, { callback = function() Profiles.Delete(active.id) end })
+    end, disabled = #list <= 1 }
+    UI.ShowMenu(owner, items)
+end
+
 local function BuildIdentity(frame, width)
-    local colWidth = math.floor((width - 16) / 2)
+    local colWidth = math.floor((width - 24) / 2)
     for column, fields in ipairs({ IDENTITY_LEFT, IDENTITY_RIGHT }) do
         for i, spec in ipairs(fields) do
             local field = UI.Field(frame, spec[2], colWidth, Profiles.FIELDS[spec[1]], Setter(spec[1]))
-            field:SetPoint("TOPLEFT", (column - 1) * (colWidth + 16), -(i - 1) * 50)
+            field:SetPoint("TOPLEFT", (column - 1) * (colWidth + 24), -(i - 1) * 50)
             page.controls[spec[1]] = field
         end
     end
-    local hint = UI.Text(frame, "Leave the name empty to use your character's name.", 10, "muted")
-    hint:SetPoint("TOPLEFT", 0, -(#IDENTITY_LEFT * 50 + 4))
 end
 
 local function BuildStatus(frame)
     local label = UI.Text(frame, "STATUS", 10, "muted")
     label:SetPoint("TOPLEFT", 0, 0)
-    page.statusRow = UI.Segmented(frame, Profiles.STATUS, 140, function(value)
+    page.statusRow = UI.Segmented(frame, Profiles.STATUS, 150, function(value)
         Profiles.SetField("status", value)
     end)
     page.statusRow:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -6)
 
-    local currently = UI.TextArea(frame, "CURRENTLY  (what your character is doing right now)", 64, Profiles.FIELDS.currently, Setter("currently"))
+    local currently = UI.TextArea(frame, "CURRENTLY  (what your character is doing right now)", 72, Profiles.FIELDS.currently, Setter("currently"))
     currently:SetPoint("TOPLEFT", 0, -62)
     currently:SetPoint("RIGHT", frame, "RIGHT", 0, 0)
     page.controls.currently = currently
 
-    local ooc = UI.TextArea(frame, "OOC NOTE  (anything other players should know, out of character)", 64, Profiles.FIELDS.oocNote, Setter("oocNote"))
-    ooc:SetPoint("TOPLEFT", currently, "BOTTOMLEFT", 0, -14)
+    local ooc = UI.TextArea(frame, "OOC NOTE  (anything other players should know, out of character)", 72, Profiles.FIELDS.oocNote, Setter("oocNote"))
+    ooc:SetPoint("TOPLEFT", currently, "BOTTOMLEFT", 0, -16)
     ooc:SetPoint("RIGHT", frame, "RIGHT", 0, 0)
     page.controls.oocNote = ooc
 
     local motto = UI.Field(frame, "MOTTO", 300, Profiles.FIELDS.motto, Setter("motto"))
-    motto:SetPoint("TOPLEFT", ooc, "BOTTOMLEFT", 0, -14)
+    motto:SetPoint("TOPLEFT", ooc, "BOTTOMLEFT", 0, -16)
     motto:SetPoint("RIGHT", frame, "RIGHT", 0, 0)
     page.controls.motto = motto
 end
 
 local function BuildAbout(frame)
-    local appearance = UI.TextArea(frame, "APPEARANCE  (what others see when they look at your character)", 170, Profiles.FIELDS.appearance, Setter("appearance"))
+    local appearance = UI.TextArea(frame, "APPEARANCE  (what others see when they look at your character)", 180, Profiles.FIELDS.appearance, Setter("appearance"))
     appearance:SetPoint("TOPLEFT", 0, 0)
     appearance:SetPoint("RIGHT", frame, "RIGHT", 0, 0)
     page.controls.appearance = appearance
 
-    local history = UI.TextArea(frame, "HISTORY  (your character's story so far)", 170, Profiles.FIELDS.history, Setter("history"))
-    history:SetPoint("TOPLEFT", appearance, "BOTTOMLEFT", 0, -14)
+    local history = UI.TextArea(frame, "HISTORY  (your character's story so far)", 180, Profiles.FIELDS.history, Setter("history"))
+    history:SetPoint("TOPLEFT", appearance, "BOTTOMLEFT", 0, -16)
     history:SetPoint("RIGHT", frame, "RIGHT", 0, 0)
     page.controls.history = history
 end
 
-local function ListRow(parent)
-    local row = CreateFrame("Button", nil, parent, UI.BACKDROP_TEMPLATE)
-    row:SetHeight(26)
-    row.label = UI.Text(row, "", 12, "text")
-    row.label:SetPoint("LEFT", 10, 0)
-    row.label:SetPoint("RIGHT", -8, 0)
-    row.label:SetWordWrap(false)
-    function row:Refresh()
-        local hover = self:IsMouseOver()
-        UI.Backdrop(self, self.selected and "selected" or (hover and "panelAlt" or "panel"), self.selected and "accent" or (hover and "border" or "panel"))
-        UI.SetTextColor(self.label, self.selected and "accent" or "text")
-    end
-    row:SetScript("OnEnter", function(self) self:Refresh() end)
-    row:SetScript("OnLeave", function(self) self:Refresh() end)
-    row:SetScript("OnClick", function(self) Profiles.SetActive(self.profileID) end)
-    return row
-end
+local MARGIN = 28
 
 UI.RegisterPage({
     key = "profile",
@@ -196,95 +184,56 @@ UI.RegisterPage({
         page = frame
         page.controls = {}
 
-        -- Left: the list of profiles.
-        local listLabel = UI.Text(frame, "YOUR PROFILES", 10, "muted")
-        listLabel:SetPoint("TOPLEFT", 20, -24)
-        page.rows = {}
-        for i = 1, MAX_ROWS do
-            local row = ListRow(frame)
-            row:SetPoint("TOPLEFT", 20, -44 - (i - 1) * 28)
-            row:SetWidth(LIST_WIDTH)
-            page.rows[i] = row
-        end
+        -- Header: your name as others see it, and the profile switcher.
+        page.switcher = UI.Button(frame, "", 210, 26)
+        page.switcher:SetPoint("TOPRIGHT", -MARGIN, -24)
+        page.switcher.label:ClearAllPoints()
+        page.switcher.label:SetPoint("LEFT", 10, 0)
+        page.switcher.label:SetPoint("RIGHT", -24, 0)
+        page.switcher.label:SetJustifyH("LEFT")
+        page.switcher.label:SetWordWrap(false)
+        local arrow = UI.Text(page.switcher, "v", 11, "muted", "CENTER")
+        arrow:SetPoint("RIGHT", -10, 0)
+        page.switcher:SetScript("OnClick", function(self) ShowProfileMenu(self) end)
+        UI.Tooltip(page.switcher, "Your profiles", "Switch to another profile, or make, copy, rename or delete one.")
 
-        local buttonWidth = math.floor((LIST_WIDTH - 6) / 2)
-        local function ListButton(label, column, line, onClick)
-            local b = UI.Button(frame, label, buttonWidth, 24)
-            b:SetPoint("BOTTOMLEFT", 20 + (column - 1) * (buttonWidth + 6), 20 + (2 - line) * 30)
-            b:SetScript("OnClick", onClick)
-            return b
-        end
-        ListButton("New", 1, 1, function()
-            AskName("Name the new profile:", "", function(name)
-                Profiles.SetActive(Profiles.Create(name).id)
-            end)
-        end)
-        ListButton("Copy", 2, 1, function()
-            local active = Profiles.GetActive()
-            AskName("Name the copy:", active.name .. " copy", function(name)
-                Profiles.SetActive(Profiles.Create(name, active.id).id)
-            end)
-        end)
-        ListButton("Rename", 1, 2, function()
-            local active = Profiles.GetActive()
-            AskName("Rename the profile:", active.name, function(name) Profiles.Rename(active.id, name) end)
-        end)
-        page.delete = ListButton("Delete", 2, 2, function()
-            local active = Profiles.GetActive()
-            StaticPopup_Show("RPFORGE_PROFILE_DELETE", active.name, nil, { callback = function() Profiles.Delete(active.id) end })
-        end)
-        UI.Tooltip(page.delete, "Delete", "Deletes the profile you're using. You always keep at least one.")
-
-        local line = frame:CreateTexture(nil, "ARTWORK")
-        line:SetTexture(UI.WHITE)
-        local c = UI.Color("border")
-        line:SetVertexColor(c[1], c[2], c[3], 1)
-        line:SetWidth(1)
-        line:SetPoint("TOPLEFT", LIST_WIDTH + 36, -20)
-        line:SetPoint("BOTTOMLEFT", LIST_WIDTH + 36, 20)
-
-        -- Right: the chosen profile.
-        local left = LIST_WIDTH + 56
         page.fullName = UI.Text(frame, "", 20, "accent")
-        page.fullName:SetPoint("TOPLEFT", left, -20)
-        page.fullName:SetPoint("RIGHT", frame, "RIGHT", -24, 0)
+        page.fullName:SetPoint("TOPLEFT", MARGIN, -24)
+        page.fullName:SetPoint("RIGHT", page.switcher, "LEFT", -16, 0)
         page.fullName:SetWordWrap(false)
-        page.using = UI.Text(frame, "", 11, "muted")
-        page.using:SetPoint("TOPLEFT", page.fullName, "BOTTOMLEFT", 0, -4)
 
         page.tabButtons, page.tabs = {}, {}
-        local tabX = left
+        local tabX = MARGIN
         for _, spec in ipairs({ { "identity", "Identity" }, { "status", "Status" }, { "about", "About" } }) do
-            local b = UI.Button(frame, spec[2], 110, 26)
+            local b = UI.Button(frame, spec[2], 120, 26)
             b.tabKey = spec[1]
-            b:SetPoint("TOPLEFT", tabX, -74)
+            b:SetPoint("TOPLEFT", tabX, -66)
             b:SetScript("OnClick", function() ShowTab(spec[1]) end)
             page.tabButtons[#page.tabButtons + 1] = b
-            tabX = tabX + 116
+            tabX = tabX + 126
 
             local tab = CreateFrame("Frame", nil, frame)
-            tab:SetPoint("TOPLEFT", left, -116)
-            tab:SetPoint("BOTTOMRIGHT", -24, 20)
+            tab:SetPoint("TOPLEFT", MARGIN, -112)
+            tab:SetPoint("BOTTOMRIGHT", -MARGIN, 20)
             page.tabs[spec[1]] = tab
         end
-        local width = (frame:GetWidth() > 0 and frame:GetWidth() or 788) - left - 24
+        UI.Divider(frame, -100, MARGIN)
+        local width = (frame:GetWidth() > 0 and frame:GetWidth() or 788) - MARGIN * 2
         BuildIdentity(page.tabs.identity, width)
         BuildStatus(page.tabs.status)
         BuildAbout(page.tabs.about)
         ShowTab("identity")
     end,
     onShow = function()
-        RefreshList()
         RefreshHeader()
         FillFields()
     end,
 })
 
--- Keep the page up to date: the list and name always; the boxes only when another profile is chosen,
+-- Keep the page up to date: the header always; the boxes only when another profile is chosen,
 -- so typing is never interrupted.
 RPF.Listen("PROFILE_CHANGED", function()
     if not page or not page:IsVisible() then return end
-    RefreshList()
     RefreshHeader()
     if page.loadedProfile ~= RPF.char.activeProfile then FillFields() end
 end)
