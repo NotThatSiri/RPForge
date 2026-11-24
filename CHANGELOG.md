@@ -2,6 +2,12 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.6] - 2026-11-24
+
+### Fixed
+- The round Home portrait had blocky orange corners instead of a frame. It now sits in the game's gold
+  round border, the same one the RP chat uses.
+
 ## [0.3.5] - 2026-11-24
 
 ### Added

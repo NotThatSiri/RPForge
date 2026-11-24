@@ -147,18 +147,19 @@ UI.RegisterPage({
         portraitFrame:SetPoint("LEFT", 26, 0)
         local a = UI.Color("accent")
 
-        -- Circle: a flat accent-coloured disc cut round by the game's portrait mask, with the round
-        -- portrait on top, leaving a thin ring.
+        -- Circle: the game's round portrait inside the game's own round border (the minimap button
+        -- ring), the same frame the RP chat uses. The ring's art sits in the top-left of its texture,
+        -- so it is sized and offset from the portrait by fixed ratios.
         home.circle = CreateFrame("Frame", nil, portraitFrame)
         home.circle:SetAllPoints()
-        local disc = home.circle:CreateTexture(nil, "BACKGROUND")
-        disc:SetTexture(UI.WHITE)
-        disc:SetAllPoints()
-        disc:SetVertexColor(a[1], a[2], a[3], 1)
-        if disc.SetMask then disc:SetMask("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask") end
+        local size = 84
         home.portrait = home.circle:CreateTexture(nil, "ARTWORK")
-        home.portrait:SetPoint("TOPLEFT", 4, -4)
-        home.portrait:SetPoint("BOTTOMRIGHT", -4, 4)
+        home.portrait:SetSize(size, size)
+        home.portrait:SetPoint("CENTER", 0, 0)
+        local ring = home.circle:CreateTexture(nil, "OVERLAY")
+        ring:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
+        ring:SetSize(size * 2.622, size * 2.622)
+        ring:SetPoint("TOPLEFT", home.portrait, "TOPLEFT", -size / 3, size * 0.233)
 
         -- Square: the character's 3D model zoomed on the face, in a thin accent border.
         home.square = CreateFrame("Frame", nil, portraitFrame, UI.BACKDROP_TEMPLATE)
