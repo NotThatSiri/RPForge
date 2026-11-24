@@ -2,6 +2,18 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.5] - 2026-11-24
+
+### Added
+- RP chat shows **whom a message was aimed at**: "Kiri Stormcrest -> Sigoblanc Fireheart says:", using
+  roleplay names when known. For other players this works when the game can see them (target, mouseover,
+  group or nameplates).
+
+### Changed
+- Messages in a row from the same person now stay together under one name and portrait until someone
+  else speaks, they switch between Say, Emote and Yell, change target, or pause for more than 15 minutes
+  (it was 2 minutes, too short for RP). Point at a grouped message to see its time.
+
 ## [0.3.4] - 2026-11-24
 
 ### Added

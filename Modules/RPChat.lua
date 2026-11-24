@@ -13,7 +13,9 @@ local Chat = RPF.NewModule("RPChat")
 RPF.RPChat = Chat
 
 local MAX_MESSAGES = 200
-local GROUP_SECONDS = 120 -- messages from the same person within this time share one header
+-- Messages in a row from the same person share one header (until someone else speaks, they switch
+-- between Say/Emote/Yell, change target, or pause longer than this).
+local GROUP_SECONDS = 15 * 60
 local PORTRAIT = 46        -- the round portrait area at the left of a message
 local EVENTS = {
     CHAT_MSG_SAY = "SAY", CHAT_MSG_YELL = "YELL", CHAT_MSG_EMOTE = "EMOTE", CHAT_MSG_TEXT_EMOTE = "TEXT_EMOTE",
@@ -104,8 +106,21 @@ local function SpeakerName(msg)
     return c and (Hex(Readable(c.r, c.g, c.b)) .. plain .. "|r") or plain, fields
 end
 
+-- Who the speaker had targeted: their roleplay name if known, otherwise their name in class colour.
+local function TargetName(msg)
+    if not msg.target then return nil end
+    local fields = Sharing.GetProfile(msg.target) or Sharing.GetProfile(ShortName(msg.target))
+    if fields and fields.NA and fields.NA ~= "" then return fields.NA end
+    local class = ClassOf(msg.targetGuid)
+    local c = class and RAID_CLASS_COLORS and RAID_CLASS_COLORS[class]
+    local plain = ShortName(msg.target)
+    return c and (Hex(Readable(c.r, c.g, c.b)) .. plain .. "|r") or plain
+end
+
 local function Header(msg)
     local name = SpeakerName(msg)
+    local target = TargetName(msg)
+    if target then name = name .. UI.ColorCode("muted") .. "  ->  |r" .. target end
     local r, g, b = TypeColor(msg.kind)
     local tail = ""
     if Style() == "game" then
@@ -206,6 +221,15 @@ local function NewRow(msg, grouped)
         row.time:SetPoint("TOPRIGHT", -4, -5)
         row.header:SetPoint("RIGHT", row.time, "LEFT", -8, 0)
     end
+    if grouped then
+        row:EnableMouse(true)
+        row:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
+            GameTooltip:AddLine(date("%H:%M", self.msg.at), 0.9, 0.9, 0.9)
+            GameTooltip:Show()
+        end)
+        row:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    end
     row.body = UI.Text(row, "", 12, "text")
     row.body:SetSpacing(2)
     row.body:SetPoint("TOPLEFT", PORTRAIT + 6, grouped and 0 or -22)
@@ -253,8 +277,8 @@ local function Layout(keepBottom)
 end
 
 local function GroupsWith(previous, msg)
-    return previous and previous.guid == msg.guid and previous.kind ~= "TEXT_EMOTE" and msg.kind ~= "TEXT_EMOTE"
-        and (msg.at - previous.at) <= GROUP_SECONDS
+    return previous and previous.guid == msg.guid and previous.kind == msg.kind and msg.kind ~= "TEXT_EMOTE"
+        and previous.target == msg.target and (msg.at - previous.at) <= GROUP_SECONDS
 end
 
 local function AddRow(msg, previous)
@@ -510,6 +534,14 @@ local lastAsked = {}
 local function OnChat(event, text, sender, language, _, _, _, _, _, _, _, _, guid)
     if not RPF.char then return end
     local msg = { at = time(), kind = EVENTS[event], sender = sender, guid = guid, text = text, language = language }
+    -- Whom were they speaking to? Only known when the game can see the speaker (you, your target,
+    -- mouseover, group or nameplates): then their target is "<unit>target".
+    local unit = FindUnit(guid)
+    local targetUnit = unit and (unit == "player" and "target" or (unit .. "target"))
+    if targetUnit and UnitExists(targetUnit) and UnitGUID(targetUnit) ~= guid then
+        msg.target = Sharing.MergedName(targetUnit) or UnitName(targetUnit)
+        msg.targetGuid = UnitGUID(targetUnit)
+    end
     local previous = messages[#messages]
     messages[#messages + 1] = msg
     while #messages > MAX_MESSAGES do table.remove(messages, 1) end
