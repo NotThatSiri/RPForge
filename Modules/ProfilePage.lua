@@ -83,6 +83,7 @@ local function FillFields()
         control:SetValue(Profiles.GetField(key, profile))
     end
     page.statusRow:SetValue(Profiles.GetField("status", profile) or "ooc")
+    if page.FillPersona then page.FillPersona() end
 end
 
 local function ShowTab(key)
@@ -102,6 +103,7 @@ end
 
 -- The menu behind the "Profile: ..." button: switch profiles, or make, copy, rename and delete them.
 local function ShowProfileMenu(owner)
+    if not Profiles.GetActive() then return end
     local active = Profiles.GetActive()
     local list = Profiles.List()
     local items = {}
@@ -126,6 +128,8 @@ local function ShowProfileMenu(owner)
     end, disabled = #list <= 1 }
     UI.ShowMenu(owner, items)
 end
+
+UI.ShowProfileMenu = ShowProfileMenu
 
 local function BuildIdentity(frame, width)
     local colWidth = math.floor((width - 24) / 2)
@@ -174,6 +178,310 @@ local function BuildAbout(frame)
     page.controls.history = history
 end
 
+-- Persona and Traits tabs ----------------------------------------------------------------
+
+local TRAIT_PAIRS = {
+    { "Brave", "Cautious" }, { "Kind", "Cruel" }, { "Honest", "Deceitful" }, { "Calm", "Hot-headed" },
+    { "Humble", "Proud" }, { "Generous", "Greedy" }, { "Loyal", "Fickle" }, { "Serious", "Playful" },
+    { "Lawful", "Chaotic" }, { "Forgiving", "Vindictive" }, { "Optimistic", "Pessimistic" },
+    { "Reserved", "Outgoing" }, { "Pious", "Irreverent" }, { "Trusting", "Suspicious" },
+}
+
+local function HexToRGB(hex)
+    if type(hex) ~= "string" or #hex ~= 6 then return nil end
+    return tonumber(hex:sub(1, 2), 16) / 255, tonumber(hex:sub(3, 4), 16) / 255, tonumber(hex:sub(5, 6), 16) / 255
+end
+
+local function PickColor(hex, onChange)
+    local r, g, b = HexToRGB(hex)
+    r, g, b = r or 1, g or 0.86, b or 0.56
+    local function Apply()
+        local nr, ng, nb = ColorPickerFrame:GetColorRGB()
+        onChange(string.format("%02x%02x%02x", nr * 255, ng * 255, nb * 255))
+    end
+    local function Cancel() onChange(hex) end
+    if ColorPickerFrame.SetupColorPickerAndShow then
+        ColorPickerFrame:SetupColorPickerAndShow({ r = r, g = g, b = b, hasOpacity = false, swatchFunc = Apply, cancelFunc = Cancel })
+    else
+        ColorPickerFrame.func, ColorPickerFrame.cancelFunc, ColorPickerFrame.hasOpacity = Apply, Cancel, false
+        ColorPickerFrame.previousValues = { r, g, b }
+        ColorPickerFrame:SetColorRGB(r, g, b)
+        ShowUIPanel(ColorPickerFrame)
+    end
+end
+
+local function SetImpression(slot, key, value)
+    local persona = Profiles.GetPersona()
+    local impression = persona.impressions[slot] or {}
+    impression[key] = value
+    if (impression.title or "") == "" and (impression.text or "") == "" and impression.icon == nil then
+        impression = nil
+    end
+    persona.impressions[slot] = impression
+    Profiles.PersonaChanged()
+end
+
+local function FillPersona()
+    local persona = Profiles.GetPersona()
+    page.iconButton:SetIcon(persona.icon)
+    local r, g, b = HexToRGB(persona.nameColor)
+    page.colorSwatch.fill:SetVertexColor(r or 1, g or 0.86, b or 0.56, 1)
+    page.colorState:SetText(persona.nameColor and ("#" .. persona.nameColor) or "Default")
+    if page.tuneName then
+        page.tuneName:SetText(persona.music and UI.MusicName(persona.music) or "None chosen")
+        page.tunePlay:SetEnabled(persona.music ~= nil)
+        page.tunePlay.label:SetText(UI.IsTunePlaying(persona.music) and "Stop" or "Play")
+    end
+    for slot, row in ipairs(page.impressionRows) do
+        local impression = persona.impressions[slot] or {}
+        row.icon:SetIcon(impression.icon)
+        row.title:SetText(impression.title or "")
+        row.text:SetText(impression.text or "")
+        row.title:SetCursorPosition(0)
+        row.text:SetCursorPosition(0)
+    end
+end
+
+local function RenderTraits()
+    local traits = Profiles.GetPersona().traits
+    for i, row in ipairs(page.traitRows) do
+        local trait = traits[i]
+        row:SetShown(trait ~= nil)
+        if trait then
+            if not row.left:HasFocus() then row.left:SetText(trait.left or "") end
+            if not row.right:HasFocus() then row.right:SetText(trait.right or "") end
+            row.dots:SetValue(trait.value or Profiles.TRAIT_MAX / 2)
+        end
+    end
+    page.noTraits:SetShown(#traits == 0)
+    page.addTrait:SetEnabled(#traits < Profiles.MAX_TRAITS)
+    page.addPair:SetEnabled(#traits < Profiles.MAX_TRAITS)
+end
+
+local function AddTrait(left, right)
+    local traits = Profiles.GetPersona().traits
+    if #traits >= Profiles.MAX_TRAITS then return end
+    traits[#traits + 1] = { left = left or "", right = right or "", value = Profiles.TRAIT_MAX / 2 }
+    Profiles.PersonaChanged()
+    RenderTraits()
+end
+
+local function BuildPersona(frame, width)
+    page.FillPersona = function() FillPersona(); RenderTraits() end
+    local look = UI.Text(frame, "LOOK", 10, "muted")
+    look:SetPoint("TOPLEFT", 0, 0)
+
+    page.iconButton = UI.IconButton(frame, 44, function(self)
+        UI.PickIcon(Profiles.GetPersona().icon, function(icon)
+            Profiles.GetPersona().icon = icon
+            Profiles.PersonaChanged()
+            self:SetIcon(icon)
+        end)
+    end)
+    page.iconButton:SetPoint("TOPLEFT", look, "BOTTOMLEFT", 0, -8)
+    local iconLabel = UI.Text(frame, "Profile icon", 12, "text")
+    iconLabel:SetPoint("TOPLEFT", page.iconButton, "TOPRIGHT", 12, -6)
+    local iconHint = UI.Text(frame, "Click to choose. Shown with your name in roleplay addons.", 10, "muted")
+    iconHint:SetPoint("TOPLEFT", iconLabel, "BOTTOMLEFT", 0, -4)
+
+    page.colorSwatch = CreateFrame("Button", nil, frame, UI.BACKDROP_TEMPLATE)
+    page.colorSwatch:SetSize(44, 44)
+    page.colorSwatch:SetPoint("TOPLEFT", look, "BOTTOMLEFT", math.floor(width / 2), -8)
+    UI.Backdrop(page.colorSwatch, "panelAlt", "border")
+    page.colorSwatch.fill = page.colorSwatch:CreateTexture(nil, "ARTWORK")
+    page.colorSwatch.fill:SetTexture(UI.WHITE)
+    page.colorSwatch.fill:SetPoint("TOPLEFT", 4, -4)
+    page.colorSwatch.fill:SetPoint("BOTTOMRIGHT", -4, 4)
+    page.colorSwatch:SetScript("OnClick", function()
+        PickColor(Profiles.GetPersona().nameColor, function(hex)
+            Profiles.GetPersona().nameColor = hex
+            Profiles.PersonaChanged()
+            FillPersona()
+        end)
+    end)
+    local colorLabel = UI.Text(frame, "Name colour", 12, "text")
+    colorLabel:SetPoint("TOPLEFT", page.colorSwatch, "TOPRIGHT", 12, -6)
+    page.colorState = UI.Text(frame, "", 10, "muted")
+    page.colorState:SetPoint("TOPLEFT", colorLabel, "BOTTOMLEFT", 0, -4)
+    local reset = UI.Button(frame, "Default", 80, 22)
+    reset:SetPoint("LEFT", colorLabel, "RIGHT", 14, -8)
+    reset:SetScript("OnClick", function()
+        Profiles.GetPersona().nameColor = nil
+        Profiles.PersonaChanged()
+        FillPersona()
+    end)
+
+    -- Class colour presets: your own class first, then every class this client knows.
+    local classes = {}
+    local _, ownClass = UnitClass("player")
+    if RAID_CLASS_COLORS then
+        for token in pairs(RAID_CLASS_COLORS) do
+            if token ~= ownClass then classes[#classes + 1] = token end
+        end
+        table.sort(classes)
+        if ownClass and RAID_CLASS_COLORS[ownClass] then table.insert(classes, 1, ownClass) end
+    end
+    local presetX = 0
+    for _, token in ipairs(classes) do
+        local c = RAID_CLASS_COLORS[token]
+        local hex = string.format("%02x%02x%02x", c.r * 255, c.g * 255, c.b * 255)
+        local swatch = CreateFrame("Button", nil, frame, UI.BACKDROP_TEMPLATE)
+        swatch:SetSize(16, 16)
+        swatch:SetPoint("TOPLEFT", page.colorState, "BOTTOMLEFT", presetX, -6)
+        UI.Backdrop(swatch, "panelAlt", "border")
+        local fill = swatch:CreateTexture(nil, "ARTWORK")
+        fill:SetTexture(UI.WHITE)
+        fill:SetPoint("TOPLEFT", 2, -2)
+        fill:SetPoint("BOTTOMRIGHT", -2, 2)
+        fill:SetVertexColor(c.r, c.g, c.b, 1)
+        local className = (LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[token]) or token
+        swatch:SetScript("OnEnter", function(self)
+            UI.Backdrop(self, "panelAlt", "accent")
+            GameTooltip:SetOwner(self, "ANCHOR_TOP")
+            GameTooltip:AddLine(className .. (token == ownClass and "  (your class)" or ""), c.r, c.g, c.b)
+            GameTooltip:Show()
+        end)
+        swatch:SetScript("OnLeave", function(self)
+            UI.Backdrop(self, "panelAlt", "border")
+            GameTooltip:Hide()
+        end)
+        swatch:SetScript("OnClick", function()
+            Profiles.GetPersona().nameColor = hex
+            Profiles.PersonaChanged()
+            FillPersona()
+        end)
+        presetX = presetX + (token == ownClass and 26 or 20) -- a little gap after your own class
+    end
+
+    local impressionsLabel = UI.Text(frame, "FIRST IMPRESSIONS  (what people notice at first sight, up to 5)", 10, "muted")
+    impressionsLabel:SetPoint("TOPLEFT", 0, -92)
+    local titleHead = UI.Text(frame, "TITLE", 9, "muted")
+    titleHead:SetPoint("TOPLEFT", 48, -110)
+    local textHead = UI.Text(frame, "WHAT THEY NOTICE", 9, "muted")
+    textHead:SetPoint("TOPLEFT", 264, -110)
+
+    page.impressionRows = {}
+    for slot = 1, Profiles.MAX_IMPRESSIONS do
+        local y = -124 - (slot - 1) * 44
+        local row = {}
+        row.icon = UI.IconButton(frame, 36, function(self)
+            UI.PickIcon(self.value, function(icon)
+                self:SetIcon(icon)
+                SetImpression(slot, "icon", icon)
+            end)
+        end)
+        row.icon:SetPoint("TOPLEFT", 0, y)
+        row.title = UI.EditBox(frame, 208, 30)
+        row.title:SetMaxLetters(60)
+        row.title:SetPoint("TOPLEFT", 48, y - 3)
+        row.title:SetScript("OnTextChanged", function(self, userInput)
+            if userInput then SetImpression(slot, "title", self:GetText()) end
+        end)
+        row.text = UI.EditBox(frame, 200, 30)
+        row.text:SetMaxLetters(300)
+        row.text:SetPoint("TOPLEFT", 264, y - 3)
+        row.text:SetPoint("RIGHT", frame, "RIGHT", 0, 0)
+        row.text:SetScript("OnTextChanged", function(self, userInput)
+            if userInput then SetImpression(slot, "text", self:GetText()) end
+        end)
+        page.impressionRows[slot] = row
+    end
+    local hint = UI.Text(frame, "For example: a scar across the cheek, the smell of pipe smoke, a holy symbol worn openly.", 10, "muted")
+    hint:SetPoint("TOPLEFT", 0, -124 - Profiles.MAX_IMPRESSIONS * 44 - 2)
+
+    local tuneLabel = UI.Text(frame, "THEME TUNE  (other players can play it from your profile)", 10, "muted")
+    tuneLabel:SetPoint("TOPLEFT", 0, -124 - Profiles.MAX_IMPRESSIONS * 44 - 30)
+    page.tuneName = UI.Text(frame, "", 12, "text")
+    page.tuneName:SetPoint("TOPLEFT", tuneLabel, "BOTTOMLEFT", 0, -12)
+    page.tuneName:SetWidth(320)
+    page.tuneName:SetWordWrap(false)
+    local choose = UI.Button(frame, "Choose...", 100, 26)
+    choose:SetPoint("LEFT", page.tuneName, "RIGHT", 10, 0)
+    choose:SetScript("OnClick", function()
+        UI.PickMusic(Profiles.GetPersona().music, function(file)
+            Profiles.GetPersona().music = file
+            Profiles.PersonaChanged()
+            FillPersona()
+        end)
+    end)
+    page.tunePlay = UI.Button(frame, "Play", 70, 26)
+    page.tunePlay:SetPoint("LEFT", choose, "RIGHT", 6, 0)
+    page.tunePlay:SetScript("OnClick", function()
+        local file = Profiles.GetPersona().music
+        if UI.IsTunePlaying(file) then UI.StopTune() else UI.PlayTune(file) end
+        FillPersona()
+    end)
+    local clear = UI.Button(frame, "Clear", 70, 26)
+    clear:SetPoint("LEFT", page.tunePlay, "RIGHT", 6, 0)
+    clear:SetScript("OnClick", function()
+        if UI.IsTunePlaying(Profiles.GetPersona().music) then UI.StopTune() end
+        Profiles.GetPersona().music = nil
+        Profiles.PersonaChanged()
+        FillPersona()
+    end)
+end
+
+local function BuildTraits(frame, width)
+    local label = UI.Text(frame, "TRAITS  (up to 10)  Click the dots towards the side that fits your character; click again to go back to balanced.", 10, "muted")
+    label:SetPoint("TOPLEFT", 0, 0)
+
+    page.traitRows = {}
+    local nameWidth = 150
+    for i = 1, Profiles.MAX_TRAITS do
+        local row = CreateFrame("Frame", nil, frame)
+        row:SetPoint("TOPLEFT", 0, -22 - (i - 1) * 36)
+        row:SetPoint("RIGHT", frame, "RIGHT", 0, 0)
+        row:SetHeight(30)
+        row.left = UI.EditBox(row, nameWidth, 26)
+        row.left:SetMaxLetters(30)
+        row.left:SetPoint("LEFT", 0, 0)
+        row.left:SetScript("OnTextChanged", function(self, userInput)
+            local trait = Profiles.GetPersona().traits[i]
+            if userInput and trait then trait.left = self:GetText(); Profiles.PersonaChanged() end
+        end)
+        row.remove = UI.Button(row, "x", 26, 26)
+        row.remove:SetPoint("RIGHT", 0, 0)
+        UI.Tooltip(row.remove, "Remove this trait")
+        row.remove:SetScript("OnClick", function()
+            table.remove(Profiles.GetPersona().traits, i)
+            Profiles.PersonaChanged()
+            RenderTraits()
+        end)
+        row.right = UI.EditBox(row, nameWidth, 26)
+        row.right:SetMaxLetters(30)
+        row.right:SetPoint("RIGHT", row.remove, "LEFT", -8, 0)
+        row.right:SetJustifyH("RIGHT")
+        row.right:SetScript("OnTextChanged", function(self, userInput)
+            local trait = Profiles.GetPersona().traits[i]
+            if userInput and trait then trait.right = self:GetText(); Profiles.PersonaChanged() end
+        end)
+        row.dots = UI.TraitDots(row, function(value)
+            local trait = Profiles.GetPersona().traits[i]
+            if trait then trait.value = value; Profiles.PersonaChanged() end
+        end)
+        -- In the middle between the two names.
+        row.dots:SetPoint("CENTER", row, "CENTER", -17, 0)
+        page.traitRows[i] = row
+    end
+
+    page.noTraits = UI.Text(frame, "No traits yet. Add your own pair, or pick a common one.", 11, "muted")
+    page.noTraits:SetPoint("TOPLEFT", 0, -30)
+
+    page.addTrait = UI.Button(frame, "+ Add trait", 130, 26, "primary")
+    page.addTrait:SetPoint("BOTTOMLEFT", 0, 0)
+    page.addTrait:SetScript("OnClick", function() AddTrait("", "") end)
+    page.addPair = UI.Button(frame, "Add a common pair", 160, 26)
+    page.addPair:SetPoint("LEFT", page.addTrait, "RIGHT", 8, 0)
+    page.addPair:SetScript("OnClick", function(self)
+        local items = {}
+        for _, pair in ipairs(TRAIT_PAIRS) do
+            local left, right = pair[1], pair[2]
+            items[#items + 1] = { left .. "  /  " .. right, function() AddTrait(left, right) end }
+        end
+        UI.ShowMenu(self, items)
+    end)
+end
+
 local MARGIN = 28
 
 UI.RegisterPage({
@@ -200,8 +508,8 @@ UI.RegisterPage({
 
         local done = UI.Button(frame, "Done", 90, 26, "primary")
         done:SetPoint("RIGHT", page.switcher, "LEFT", -8, 0)
-        done:SetScript("OnClick", function() UI.ShowPage("home") end)
-        UI.Tooltip(done, "Done", "Back to Home. Your changes are already saved.")
+        done:SetScript("OnClick", function() UI.ShowPage("myprofile") end)
+        UI.Tooltip(done, "Done", "Back to your profile. Your changes are already saved.")
         page.done = done
 
         page.fullName = UI.Text(frame, "", 20, "accent")
@@ -215,7 +523,7 @@ UI.RegisterPage({
 
         page.tabButtons, page.tabs = {}, {}
         local tabX = MARGIN
-        for _, spec in ipairs({ { "identity", "Identity" }, { "status", "Status" }, { "about", "About" } }) do
+        for _, spec in ipairs({ { "identity", "Identity" }, { "status", "Status" }, { "about", "About" }, { "persona", "Persona" }, { "traits", "Traits" } }) do
             local b = UI.Button(frame, spec[2], 120, 26)
             b.tabKey = spec[1]
             b:SetPoint("TOPLEFT", tabX, -80)
@@ -233,6 +541,8 @@ UI.RegisterPage({
         BuildIdentity(page.tabs.identity, width)
         BuildStatus(page.tabs.status)
         BuildAbout(page.tabs.about)
+        BuildPersona(page.tabs.persona, width)
+        BuildTraits(page.tabs.traits, width)
         ShowTab("identity")
     end,
     onShow = function()

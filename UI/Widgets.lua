@@ -352,6 +352,170 @@ function UI.HideMenu()
     if menu then menu:Hide() end
 end
 
+-- Icons are stored as the game's icon file ID (a number) or an icon name ("INV_Misc_Book_09").
+-- These turn either form into something a texture or a text icon can show.
+UI.DEFAULT_ICON = 134400 -- the question mark
+
+-- Other addons can send icons as LibRPMedia "icon IDs": numbers with extra bits on top that say whether
+-- it's a file or an atlas, too large to give the game directly. LibRPMedia decodes those.
+local function Media()
+    return LibStub and LibStub:GetLibrary("LibRPMedia-1.2", true)
+end
+
+-- Turn any icon value into (source, isAtlas): a file ID or path for SetTexture, or an atlas name.
+function UI.ResolveIcon(icon)
+    if type(icon) == "string" and tonumber(icon) then icon = tonumber(icon) end
+    if icon == nil or icon == "" then return UI.DEFAULT_ICON, false end
+    local media = Media()
+    if media and media.ResolveIcon then
+        local ok, source, kind = pcall(media.ResolveIcon, media, icon)
+        if ok and source and not (source == UI.DEFAULT_ICON and type(icon) == "string" and icon:find("[\\/]")) then
+            return source, kind == media.IconType.Atlas
+        end
+    end
+    if type(icon) == "number" then
+        -- Without LibRPMedia: keep only the file part of the number, so it always fits.
+        return (icon >= 0 and icon <= 0x03ffffff) and icon or UI.DEFAULT_ICON, false
+    end
+    if icon:find("[\\/]") then return icon, false end
+    return "Interface\\Icons\\" .. icon, false
+end
+
+-- A file icon (for SetTexture). Atlas icons fall back to the question mark here; use UI.SetIcon instead.
+function UI.IconTexture(icon)
+    local source, isAtlas = UI.ResolveIcon(icon)
+    return isAtlas and UI.DEFAULT_ICON or source
+end
+
+-- Show an icon on a texture, file or atlas.
+function UI.SetIcon(texture, icon)
+    local source, isAtlas = UI.ResolveIcon(icon)
+    if isAtlas then texture:SetAtlas(source) else texture:SetTexture(source) end
+end
+
+function UI.IconMarkup(icon, size)
+    size = size or 32
+    local source, isAtlas = UI.ResolveIcon(icon)
+    if isAtlas then return string.format("|A:%s:%d:%d|a", source, size, size) end
+    return string.format("|T%s:%d:%d|t", tostring(source), size, size)
+end
+
+-- A square button showing an icon, with a thin border.
+function UI.IconButton(parent, size, onClick)
+    local b = CreateFrame("Button", nil, parent, UI.BACKDROP_TEMPLATE)
+    b:SetSize(size, size)
+    UI.Backdrop(b, "panelAlt", "border")
+    b.icon = b:CreateTexture(nil, "ARTWORK")
+    b.icon:SetPoint("TOPLEFT", 2, -2)
+    b.icon:SetPoint("BOTTOMRIGHT", -2, 2)
+    b.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+    function b:SetIcon(icon)
+        self.value = icon
+        UI.SetIcon(self.icon, icon)
+    end
+    b:SetScript("OnEnter", function(self) UI.Backdrop(self, "panelAlt", "accent") end)
+    b:SetScript("OnLeave", function(self) UI.Backdrop(self, "panelAlt", "border") end)
+    if onClick then b:SetScript("OnClick", onClick) end
+    b:SetIcon(nil)
+    return b
+end
+
+-- A thin slider in the theme's colours. onChange(value) runs as it moves (whole numbers).
+function UI.Slider(parent, minValue, maxValue, onChange)
+    local s = CreateFrame("Slider", nil, parent, UI.BACKDROP_TEMPLATE)
+    s:SetOrientation("HORIZONTAL")
+    s:SetHeight(16)
+    s:SetMinMaxValues(minValue, maxValue)
+    s:SetValueStep(1)
+    if s.SetObeyStepOnDrag then s:SetObeyStepOnDrag(true) end
+    s:EnableMouse(true)
+    local track = s:CreateTexture(nil, "BACKGROUND")
+    track:SetTexture(UI.WHITE)
+    track:SetHeight(4)
+    track:SetPoint("LEFT", 0, 0)
+    track:SetPoint("RIGHT", 0, 0)
+    local b = UI.Color("border")
+    track:SetVertexColor(b[1], b[2], b[3], 1)
+    local mid = s:CreateTexture(nil, "BORDER")
+    mid:SetTexture(UI.WHITE)
+    mid:SetSize(1, 10)
+    mid:SetPoint("CENTER")
+    local m = UI.Color("muted")
+    mid:SetVertexColor(m[1], m[2], m[3], 0.8)
+    local thumb = s:CreateTexture(nil, "ARTWORK")
+    thumb:SetTexture(UI.WHITE)
+    thumb:SetSize(10, 16)
+    local a = UI.Color("accent")
+    thumb:SetVertexColor(a[1], a[2], a[3], 1)
+    s:SetThumbTexture(thumb)
+    s.quiet = false
+    s:SetScript("OnValueChanged", function(self, value)
+        value = math.floor(value + 0.5)
+        if not self.quiet and onChange then RPF.SafeCall("slider", onChange, value) end
+    end)
+    -- Set a value without calling onChange.
+    function s:SetQuietly(value)
+        self.quiet = true
+        self:SetValue(value)
+        self.quiet = false
+    end
+    return s
+end
+
+-- Trait pips, like a tabletop sheet: five flat pips on each side of the middle, filled from the middle towards the
+-- side the character leans to. value runs 0..20 (0 = fully left, 10 = balanced, 20 = fully right);
+-- each dot is 2 steps. With onPick, the dots can be clicked: clicking the outermost filled dot again
+-- goes back to balanced. dots:SetValue(value) shows a value.
+UI.TRAIT_DOT_SIZE, UI.TRAIT_DOT_GAP, UI.TRAIT_DOT_MIDDLE = 14, 4, 16
+UI.TRAIT_DOTS_WIDTH = 10 * (UI.TRAIT_DOT_SIZE + UI.TRAIT_DOT_GAP) - UI.TRAIT_DOT_GAP + UI.TRAIT_DOT_MIDDLE
+
+function UI.TraitDots(parent, onPick)
+    local SIZE, GAP, MIDDLE = UI.TRAIT_DOT_SIZE, UI.TRAIT_DOT_GAP, UI.TRAIT_DOT_MIDDLE
+    local frame = CreateFrame("Frame", nil, parent)
+    frame:SetSize(UI.TRAIT_DOTS_WIDTH, SIZE + 4)
+    frame.dots = {}
+    local center = UI.TRAIT_DOTS_WIDTH / 2
+    for _, side in ipairs({ -1, 1 }) do
+        for i = 1, 5 do -- i counts outwards from the middle
+            local dot = CreateFrame("Button", nil, frame)
+            dot:SetSize(SIZE + GAP, SIZE + 4)
+            dot:SetPoint("CENTER", frame, "LEFT", center + side * (MIDDLE / 2 + (i - 1) * (SIZE + GAP) + SIZE / 2), 0)
+            dot.tex = dot:CreateTexture(nil, "ARTWORK")
+            dot.tex:SetTexture(UI.WHITE) -- a flat pip, tinted in SetValue
+            dot.tex:SetSize(SIZE, 5)
+            dot.tex:SetPoint("CENTER")
+            dot.side, dot.strength = side, i
+            if onPick then
+                dot:SetScript("OnClick", function(self)
+                    local target = 10 + self.side * self.strength * 2
+                    if frame.value == target then target = 10 end
+                    frame:SetValue(target)
+                    RPF.SafeCall("trait dots", onPick, target)
+                end)
+                dot:SetScript("OnEnter", function(self) self.tex:SetAlpha(1) end)
+                dot:SetScript("OnLeave", function() frame:SetValue(frame.value) end)
+            else
+                dot:EnableMouse(false)
+            end
+            frame.dots[#frame.dots + 1] = dot
+        end
+    end
+    function frame:SetValue(value)
+        self.value = math.max(0, math.min(20, math.floor((tonumber(value) or 10) + 0.5)))
+        local lean = (self.value - 10) / 2 -- negative leans left, positive right
+        local strength = math.min(5, math.floor(math.abs(lean) + 0.5))
+        local filledSide = lean < 0 and -1 or 1
+        local a = UI.Color("accent")
+        for _, dot in ipairs(self.dots) do
+            local filled = strength >= dot.strength and dot.side == filledSide
+            dot.tex:SetVertexColor(a[1], a[2], a[3], 1)
+            dot.tex:SetAlpha(filled and 1 or 0.18)
+        end
+    end
+    frame:SetValue(10)
+    return frame
+end
+
 -- A simple tooltip for any frame.
 function UI.Tooltip(frame, title, body)
     frame:HookScript("OnEnter", function(self)

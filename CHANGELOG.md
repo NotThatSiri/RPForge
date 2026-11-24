@@ -2,6 +2,112 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.2.15] - 2026-11-24
+
+### Changed
+- The **Settings** button in the title bar is a cogwheel again, coloured by the theme. The cogwheel
+  image comes from an icon pack (see `NOTICE`).
+
+## [0.2.14] - 2026-11-24
+
+### Changed
+- RP Forge no longer uses image files of its own; everything is drawn with simple shapes and text, or
+  uses the game's own art.
+  - The title bar has a **Settings** text button (highlighted while Settings is open) and a text **X**.
+    The bug report window has the same X.
+  - Your portrait on Home sits in a square frame with a thin border in the theme's colour.
+  - Traits show as flat **pips** instead of round dots: faint when empty, full colour when filled.
+
+## [0.2.13] - 2026-11-24
+
+### Changed
+- The Traits tab in the profile editor uses the same **dots** instead of sliders: click a dot towards the
+  side that fits your character; click the same dot again to go back to balanced.
+
+## [0.2.12] - 2026-11-24
+
+### Changed
+- Traits on profiles show as **dots**, like a tabletop character sheet: five on each side, filled from the
+  middle towards the side the character leans to. One dot is a slight lean, five is completely; no
+  filled dots means balanced. The side they lean to is highlighted.
+
+## [0.2.11] - 2026-11-24
+
+### Added
+- A **Profile** page in the side menu, under Character: your own profile shown the way other players
+  see it, with **Edit profile** and your profile switcher at the top. With Keep Total RP 3, it shows
+  your Total RP 3 profile and **Edit in Total RP 3**.
+
+### Changed
+- **Edit profile** moved from the Home banner to the Profile page. **Done** in the editor goes back to it.
+- `/rpf view` without a player targeted opens your Profile page.
+
+### Fixed
+- The People page could fail to open with "integer overflow" when someone's icon came from Total RP 3 in
+  its packed form. Icons from other addons (including atlas icons) now show correctly everywhere.
+
+## [0.2.10] - 2026-11-24
+
+Viewing profiles, finishing the Profile & Persona milestone.
+
+### Added
+- A **People** page (side menu, under Character): everyone whose roleplay profile RP Forge has heard,
+  most recent first, with their icon, roleplay name, title, race and class, status and when you last saw
+  them. Search by name, title or race. Click someone to open their profile.
+- A **profile viewer**: icon, name and full title, status, what they're doing, their OOC note, details
+  (nickname, pronouns, age, height, eyes, birthplace, home, house, motto), first impressions, traits,
+  appearance and history, and **Play theme** for their theme tune. It works for profiles from RP Forge,
+  Total RP 3, MyRolePlay and XRP.
+- `/rpf view` opens your target's profile, or your own when you have no player targeted.
+- RP Forge keeps the profiles it hears (up to 500 people), so they can be read later, even offline. It
+  does this also when Total RP 3 shares your profile.
+
+## [0.2.9] - 2026-11-24
+
+### Added
+- **Theme tune** on the Persona tab: choose a song from the game's music. **Choose...** opens a
+  searchable list of every track with its length; **Play** previews a track, clicking a row picks it.
+  Play, stop or clear your tune from the Persona tab.
+- Total RP 3 users can play your theme tune from your profile. **Move my profiles to RP Forge** also
+  copies Total RP 3 theme tunes.
+
+## [0.2.8] - 2026-11-24
+
+### Added
+- **Class colour presets** for your name colour: a row of swatches under Name colour, your own class first.
+  Point at one to see the class; click to use it.
+
+## [0.2.7] - 2026-11-24
+
+### Added
+- **Search** in the icon picker: type part of a name (for example sword, fire or book) to find icons
+  among all of the game's icons. Point at an icon to see its name.
+
+### Notes
+- Icon names come from LibRPMedia, a shared roleplay library (public domain), included with its WoW
+  Forever data. RP Forge is larger because of it (about 1.8 MB).
+
+## [0.2.6] - 2026-11-24
+
+Persona: how your character comes across.
+
+### Added
+- A **Persona** tab in the profile editor:
+  - **Profile icon**, chosen from the game's own icons.
+  - **Name colour** for your roleplay name.
+  - Up to five **first impressions**: an icon, a title and what people notice.
+- A **Traits** tab: up to ten trait sliders (for example Brave or Cautious), your own or from a list of
+  common pairs.
+- Home shows your first impressions as icons under the banner (hover to read them) and your name in your
+  name colour.
+- Total RP 3 users see your icon, name colour, first impressions (as glances) and traits.
+- With **Keep Total RP 3**, Home shows your Total RP 3 glances and name colour. **Move my profiles to
+  RP Forge** now also copies glances, custom traits, name colour and icon.
+
+### Fixed
+- An error ("Chomp.NameMergedRealm: expected a full name") could appear while standing near other
+  players, when the game hadn't loaded someone's full name yet. ([#7](https://github.com/NotThatSiri/RPForge/issues/7))
+
 ## [0.2.5] - 2026-11-24
 
 Choosing between Total RP 3 and RP Forge.

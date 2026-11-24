@@ -47,7 +47,26 @@ local function RefreshHome()
     local f = (usingTRP3 and RPF.TRP3Link.CurrentTRP3Fields()) or (profile and profile.fields) or {}
 
     home.name:SetText(Profiles.FullName({ fields = f }))
-    home.edit.label:SetText(usingTRP3 and "Edit in Total RP 3" or "Edit profile")
+    local persona = (usingTRP3 and RPF.TRP3Link.CurrentTRP3Persona()) or Profiles.GetPersona(profile)
+    local color = persona.nameColor
+    if type(color) == "string" and #color == 6 then
+        home.name:SetTextColor(tonumber(color:sub(1, 2), 16) / 255, tonumber(color:sub(3, 4), 16) / 255, tonumber(color:sub(5, 6), 16) / 255, 1)
+    else
+        home.name:SetTextColor(BANNER_NAME[1], BANNER_NAME[2], BANNER_NAME[3], 1)
+    end
+    local shown = 0
+    for slot = 1, Profiles.MAX_IMPRESSIONS do
+        local impression = persona.impressions[slot]
+        if impression and ((impression.title or "") ~= "" or (impression.text or "") ~= "") then
+            shown = shown + 1
+            local b = home.impressions[shown]
+            b:SetIcon(impression.icon)
+            b.impression = impression
+            b:Show()
+        end
+    end
+    for i = shown + 1, #home.impressions do home.impressions[i]:Hide() end
+    home.impressionsLabel:SetShown(shown > 0)
     for _, b in ipairs(home.statusRow.buttons) do b:SetEnabled(not usingTRP3) end
     home.fullTitle:SetText((f.fullTitle and f.fullTitle ~= "") and ("< " .. f.fullTitle .. " >") or "")
     local race = (f.race and f.race ~= "") and f.race or UnitRace("player")
@@ -112,17 +131,14 @@ UI.RegisterPage({
         local b = UI.Color("border")
         overlay:SetBackdropBorderColor(b[1], b[2], b[3], 1)
 
-        local portraitFrame = CreateFrame("Frame", nil, overlay)
-        portraitFrame:SetSize(112, 112)
+        -- Portrait in a square frame with a thin border in the theme's accent colour.
+        local portraitFrame = CreateFrame("Frame", nil, overlay, UI.BACKDROP_TEMPLATE)
+        portraitFrame:SetSize(104, 104)
         portraitFrame:SetPoint("LEFT", 26, 0)
+        UI.Backdrop(portraitFrame, "window", "accent")
         home.portrait = portraitFrame:CreateTexture(nil, "ARTWORK")
-        home.portrait:SetSize(96, 96)
-        home.portrait:SetPoint("CENTER")
-        local ring = portraitFrame:CreateTexture(nil, "OVERLAY")
-        ring:SetTexture("Interface\\AddOns\\" .. RPF.ADDON .. "\\Media\\Icons\\Ring")
-        ring:SetAllPoints()
-        local a = UI.Color("accent")
-        ring:SetVertexColor(a[1], a[2], a[3], 1)
+        home.portrait:SetPoint("TOPLEFT", 2, -2)
+        home.portrait:SetPoint("BOTTOMRIGHT", -2, 2)
 
         home.name = BannerText(overlay, 24, BANNER_NAME)
         home.name:SetPoint("TOPLEFT", portraitFrame, "TOPRIGHT", 20, -14)
@@ -136,14 +152,8 @@ UI.RegisterPage({
             fs:SetPoint("RIGHT", overlay, "RIGHT", -170, 0)
         end
 
-        local edit = UI.Button(overlay, "Edit profile", 140, 26, "primary")
-        edit:SetPoint("TOPRIGHT", -14, -14)
-        edit:SetScript("OnClick", function()
-            if RPF.TRP3Link and RPF.TRP3Link.UsingTRP3() then RPF.TRP3Link.OpenTRP3() else UI.OpenProfile() end
-        end)
-        home.edit = edit
         local background = UI.Button(overlay, "Change background", 140, 26)
-        background:SetPoint("TOPRIGHT", edit, "BOTTOMRIGHT", 0, -6)
+        background:SetPoint("TOPRIGHT", -14, -14)
         background:SetScript("OnClick", function() UI.ShowPage("backgrounds") end)
         UI.Tooltip(background, "Banner background", "Pick one of the game's pictures for this profile's banner.")
 
@@ -154,6 +164,36 @@ UI.RegisterPage({
             Profiles.SetField("status", value)
         end)
         home.statusRow:SetPoint("TOPLEFT", statusLabel, "BOTTOMLEFT", 0, -6)
+
+        -- First impressions: icons on the right; hover one to read it.
+        home.impressions = {}
+        for i = Profiles.MAX_IMPRESSIONS, 1, -1 do
+            local b = UI.IconButton(page, 34)
+            if i == Profiles.MAX_IMPRESSIONS then
+                b:SetPoint("TOPRIGHT", banner, "BOTTOMRIGHT", 0, -31)
+            else
+                b:SetPoint("RIGHT", home.impressions[i + 1], "LEFT", -6, 0)
+            end
+            b:SetScript("OnEnter", function(self)
+                UI.Backdrop(self, "panelAlt", "accent")
+                local impression = self.impression
+                if not impression then return end
+                GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
+                GameTooltip:AddLine(impression.title ~= "" and impression.title or "First impression", 1, 0.82, 0.45)
+                if impression.text and impression.text ~= "" then GameTooltip:AddLine(impression.text, 0.9, 0.9, 0.9, true) end
+                GameTooltip:Show()
+            end)
+            b:SetScript("OnLeave", function(self)
+                UI.Backdrop(self, "panelAlt", "border")
+                GameTooltip:Hide()
+            end)
+            b:SetScript("OnClick", function()
+                if RPF.TRP3Link and RPF.TRP3Link.UsingTRP3() then RPF.TRP3Link.OpenTRP3() else UI.OpenProfile("persona") end
+            end)
+            home.impressions[i] = b
+        end
+        home.impressionsLabel = UI.Text(page, "FIRST IMPRESSIONS", 10, "muted")
+        home.impressionsLabel:SetPoint("TOPRIGHT", banner, "BOTTOMRIGHT", 0, -16)
 
         local currentlyLabel = UI.Text(page, "CURRENTLY", 10, "muted")
         currentlyLabel:SetPoint("TOPLEFT", home.statusRow, "BOTTOMLEFT", 0, -14)

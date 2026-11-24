@@ -4,6 +4,10 @@ Copyright 2026 NotThatSiri
 Licensed under the Apache License, Version 2.0 (see LICENSE).
 
 This product includes unmodified third-party libraries in the Libs folder:
-LibMSP (CC0), Chomp (Justin Snelgrove, permissive licence), ChatThrottleLib (Mikk),
+LibMSP (CC0), LibRPMedia (public domain), Chomp (Justin Snelgrove, permissive licence), ChatThrottleLib (Mikk),
 CallbackHandler-1.0 (Ace3 Development Team) and LibStub (public domain).
 See Libs/README.txt and the licence files in each library folder.
+
+Media/Settings.tga (the cogwheel) is NOT covered by the Apache License. It comes from "Game Icon Pack v1.4"
+and was taken from the ODYN addon, which bundled it without a licence file of its own. The terms of
+the original icon pack apply to it.

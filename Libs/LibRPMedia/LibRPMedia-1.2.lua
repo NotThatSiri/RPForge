@@ -1,0 +1,659 @@
+-- This is free and unencumbered software released into the public domain.
+--
+-- Anyone is free to copy, modify, publish, use, compile, sell, or
+-- distribute this software, either in source code form or as a compiled
+-- binary, for any purpose, commercial or non-commercial, and by any
+-- means.
+--
+-- In jurisdictions that recognize copyright laws, the author or authors
+-- of this software dedicate any and all copyright interest in the
+-- software to the public domain. We make this dedication for the benefit
+-- of the public at large and to the detriment of our heirs and
+-- successors. We intend this dedication to be an overt act of
+-- relinquishment in perpetuity of all present and future rights to this
+-- software under copyright law.
+--
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+-- EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+-- MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+-- IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+-- OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+-- ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+-- OTHER DEALINGS IN THE SOFTWARE.
+--
+-- For more information, please refer to <https://unlicense.org>
+
+assert(LibStub, "Missing dependency: LibStub");
+
+local MINOR_VERSION = 54;
+
+local LRPM12 = LibStub:NewLibrary("LibRPMedia-1.2", MINOR_VERSION);
+
+if not LRPM12 then
+    return;
+end
+
+local ICON_ID_TYPE_MASK = 0xfc000000;
+local ICON_ID_DATA_MASK = 0x03ffffff;
+local INV_MISC_QUESTIONMARK = 134400;
+
+local AlwaysTrue;
+local BinarySearch;
+local CreateIndexedIterator;
+local CreateSearchPredicate;
+local EnumerateMusicNames;
+local GetIconIndexByID;
+local GetIconIndexByName;
+local GetIconInfoByIndex;
+local GetIconType;
+local GetMusicIndexByFile;
+local GetMusicIndexByID;
+local GetMusicIndexByName;
+local GetMusicInfoByIndex;
+local GetMusicNameIndexRange;
+local GetMusicNamesByIndex;
+local IsIconFileName;
+
+local musicIndexByName = {};
+local iconIndexByName = {};
+local iconIndexByID = {};
+
+--
+-- Enums
+--
+
+LRPM12.IconType = { File = 1, Atlas = 2 };
+
+--
+-- Music API
+--
+
+function LRPM12:GetNumMusic()
+    return self.db.music.size;
+end
+
+function LRPM12:GetAllMusic()
+    local music = table.create(self:GetNumMusic());
+
+    for musicIndex, musicInfo in self:EnumerateMusic() do
+        music[musicIndex] = musicInfo;
+    end
+
+    return music;
+end
+
+function LRPM12:GetMusicInfoByFile(musicFile)
+    return GetMusicInfoByIndex(self.db.music, GetMusicIndexByFile(self.db.music, musicFile));
+end
+
+function LRPM12:GetMusicInfoByID(musicID)
+    return GetMusicInfoByIndex(self.db.music, GetMusicIndexByID(self.db.music, musicID));
+end
+
+function LRPM12:GetMusicInfoByIndex(musicIndex)
+    return GetMusicInfoByIndex(self.db.music, musicIndex);
+end
+
+function LRPM12:GetMusicInfoByName(musicName)
+    return GetMusicInfoByIndex(self.db.music, GetMusicIndexByName(self.db.music, musicName));
+end
+
+function LRPM12:EnumerateMusic(options)
+    return CreateIndexedIterator(self.db.music, GetMusicInfoByIndex, options and options.reuseTable or nil);
+end
+
+function LRPM12:FindMusic(predicate, options)
+    predicate = CreateSearchPredicate(predicate, options);
+
+    local musicDB = self.db.music;
+    local musicIndex = 1;
+    local musicCount = musicDB.size;
+
+    local function NextMatchingMusic()
+        for i = musicIndex, musicCount do
+            for _, name in EnumerateMusicNames(musicDB, i, i) do
+                if predicate(name) then
+                    musicIndex = i + 1;
+
+                    local musicInfo = GetMusicInfoByIndex(musicDB, i, options and options.reuseTable or nil);
+                    musicInfo.matchingName = name;
+                    return musicInfo;
+                end
+            end
+        end
+    end
+
+    return NextMatchingMusic;
+end
+
+--
+-- Icons API
+--
+
+function LRPM12:GetNumIcons()
+    return self.db.icons.size;
+end
+
+function LRPM12:GetAllIcons()
+    local icons = table.create(self:GetNumIcons());
+
+    for iconIndex, iconInfo in self:EnumerateIcons() do
+        icons[iconIndex] = iconInfo;
+    end
+
+    return icons;
+end
+
+function LRPM12:GetIconInfoByID(iconID)
+    return GetIconInfoByIndex(self.db.icons, GetIconIndexByID(self.db.icons, iconID));
+end
+
+function LRPM12:GetIconInfoByIndex(iconIndex)
+    return GetIconInfoByIndex(self.db.icons, iconIndex);
+end
+
+function LRPM12:GetIconInfoByName(iconName)
+    return GetIconInfoByIndex(self.db.icons, GetIconIndexByName(self.db.icons, iconName));
+end
+
+function LRPM12:GetIconIndexByID(iconID)
+    return GetIconIndexByID(self.db.icons, iconID);
+end
+
+function LRPM12:GetIconIndexByName(iconName)
+    return GetIconIndexByName(self.db.icons, iconName);
+end
+
+function LRPM12:GetIconIDByName(iconName)
+    return self:GetIconIDByIndex(GetIconIndexByName(self.db.icons, iconName));
+end
+
+function LRPM12:GetIconIDByIndex(iconIndex)
+    return self.db.icons.id[iconIndex];
+end
+
+function LRPM12:GetIconNameByID(iconID)
+    return self:GetIconNameByIndex(GetIconIndexByID(self.db.icons, iconID));
+end
+
+function LRPM12:GetIconNameByIndex(iconIndex)
+    return self.db.icons.name[iconIndex];
+end
+
+function LRPM12:EnumerateIcons(options)
+    return CreateIndexedIterator(self.db.icons, GetIconInfoByIndex, options and options.reuseTable or nil);
+end
+
+function LRPM12:FindIcons(predicate, options)
+    predicate = CreateSearchPredicate(predicate, options);
+
+    local iconsDB = self.db.icons;
+    local iconIndex = 1;
+    local iconCount = iconsDB.size;
+
+    local function NextMatchingIcon()
+        for i = iconIndex, iconCount do
+            local name = iconsDB.name[i];
+
+            if predicate(name) then
+                iconIndex = i + 1;
+
+                local iconInfo = GetIconInfoByIndex(iconsDB, i, options and options.reuseTable or nil);
+                iconInfo.matchingName = name;
+                return iconInfo;
+            end
+        end
+    end
+
+    return NextMatchingIcon;
+end
+
+function LRPM12:GenerateIconCategoryPredicate(categories)
+    -- The exporter generates packed 'n' bitfields (32 bits in width) based
+    -- on the number of icon categories. These bitfields are stored
+    -- sequentially in the 'tags' table spaced with each icon having
+    -- its own category bits spaced 'FIELD_STRIDE' places apart.
+
+    local FLAG_COUNT = LRPM12.IconCategoryMeta.NumValues;
+    local FIELD_WIDTH = 32;
+    local FIELD_STRIDE = math.ceil(FLAG_COUNT / FIELD_WIDTH);
+
+    local fields = {};
+
+    for index = 1, FIELD_STRIDE do
+        fields[index] = 0;
+    end
+
+    for _, category in ipairs(categories) do
+        local index = math.ceil((category + 1) / FIELD_WIDTH);
+        local flag = bit.lshift(1, category % FIELD_WIDTH);
+
+        fields[index] = bit.bor(fields[index], flag);
+    end
+
+    local tags = self.db.icons.tags;
+
+    local function IsInAnyCategory(iconIndex)
+        for index = 1, FIELD_STRIDE do
+            local offset = ((iconIndex - 1) * FIELD_STRIDE) + index;
+            local bits = tags[offset] or 0;
+
+            if bit.band(bits, fields[index]) ~= 0 then
+                return true;
+            end
+        end
+
+        return false;
+
+    end
+
+    return IsInAnyCategory;
+end
+
+--
+-- Auxiliary API
+--
+
+function LRPM12:PlayMusic(musicID, ...)
+    local musicInfo = self:GetMusicInfoByID(musicID);
+
+    if musicInfo then
+        return true, PlayMusic(musicInfo.file, ...);
+    else
+        return false;
+    end
+end
+
+function LRPM12:PlayMusicSoundFile(musicID, ...)
+    local musicInfo = self:GetMusicInfoByID(musicID);
+
+    if musicInfo then
+        return true, PlaySoundFile(musicInfo.file, ...);
+    else
+        return false;
+    end
+end
+
+function LRPM12:SetTextureToIcon(texture, icon)
+    local iconSource, iconType = self:ResolveIcon(icon);
+
+    if iconType == LRPM12.IconType.Atlas then
+        texture:SetAtlas(iconSource);
+    else
+        texture:SetTexture(iconSource);
+    end
+end
+
+function LRPM12:SetPortraitToIcon(texture, icon)
+    if not texture.LRPM12_TextureMask then
+        local mask = [[Interface\CHARACTERFRAME\TempPortraitAlphaMask]];
+        local wrapMode = "CLAMPTOBLACKADDITIVE";
+
+        texture.LRPM12_TextureMask = texture:GetParent():CreateMaskTexture();
+        texture.LRPM12_TextureMask:SetAllPoints(texture);
+        texture.LRPM12_TextureMask:SetTexture(mask, wrapMode, wrapMode);
+        texture:AddMaskTexture(texture.LRPM12_TextureMask);
+    end
+
+    return self:SetTextureToIcon(texture, icon);
+end
+
+function LRPM12:GenerateIconMarkup(icon, width, height, offsetX, offsetY)
+    local iconSource, iconType = self:ResolveIcon(icon);
+    local markupBase;
+
+    if iconType == LRPM12.IconType.Atlas then
+        markupBase = "|A:%1$s:%3$d:%2$d:%4$d:%5$d|a";
+    else
+        markupBase = "|T%1$s:%3$d:%2$d:%4$d:%5$d:%2$d:%3$d|t";
+    end
+
+    return string.format(markupBase, iconSource, width, height, offsetX or 0, offsetY or 0);
+end
+
+---@param icon string|integer An icon ID, icon name, or atlas name.
+function LRPM12:ResolveIconID(icon)
+    local iconID = tonumber(icon);
+
+    if iconID then
+        if GetIconIndexByID(self.db.icons, iconID) then
+            return iconID;
+        end
+
+        return nil;
+    end
+
+    if type(icon) == "string" then
+        return self:GetIconIDByName(icon);
+    end
+
+    return nil;
+end
+
+---@param icon string|integer An icon ID, icon name, or atlas name.
+function LRPM12:ResolveIcon(icon)
+    local iconID = self:ResolveIconID(icon);
+
+    if iconID then
+        local iconType = GetIconType(iconID);
+
+        if iconType == LRPM12.IconType.Atlas then
+            return self:GetIconNameByID(iconID), iconType;
+        else
+            -- File icon IDs are raw file IDs.
+            return bit.band(iconID, ICON_ID_DATA_MASK), iconType;
+        end
+    end
+
+    return INV_MISC_QUESTIONMARK, LRPM12.IconType.File;
+end
+
+--
+-- Internal Functions
+--
+
+LRPM12.db = nil;
+
+function LRPM12:CompactIcons(iconsDB)
+    local TAG_STRIDE = math.ceil(self.IconCategoryMeta.NumValues / 32);
+
+    local ids = iconsDB.id;
+    local names = iconsDB.name;
+    local tags = iconsDB.tags;
+    local size = iconsDB.size;
+    local count = 0;
+
+    local band = bit.band;
+    local IsKnownFile = C_UIFileAsset.IsKnownFile;
+    local GetAtlasExists = C_Texture.GetAtlasExists;
+
+    for index = 1, size do
+        local id = ids[index];
+        local valid;
+
+        if band(id, ICON_ID_TYPE_MASK) ~= 0 then
+            valid = GetAtlasExists(names[index]);
+        else
+            local fileID = band(id, ICON_ID_DATA_MASK);
+            valid = IsKnownFile(fileID);
+        end
+
+        if valid then
+            count = count + 1;
+
+            if count ~= index then
+                ids[count] = id;
+                names[count] = names[index];
+
+                local source = (index - 1) * TAG_STRIDE;
+                local target = (count - 1) * TAG_STRIDE;
+
+                for field = 1, TAG_STRIDE do
+                    tags[target + field] = tags[source + field];
+                end
+            end
+        end
+    end
+
+    for index = count + 1, size do
+        ids[index] = nil;
+        names[index] = nil;
+    end
+
+    for index = count * TAG_STRIDE + 1, size * TAG_STRIDE do
+        tags[index] = nil;
+    end
+
+    iconsDB.size = count;
+    return iconsDB;
+end
+
+function LRPM12:CompactMusic(musicDB)
+    local files = musicDB.file;
+    local names = musicDB.name;
+    local keys = musicDB.nkey;
+    local times = musicDB.time;
+    local size = musicDB.size;
+    local nameSize = #names;
+    local count = 0;
+    local nameCount = 0;
+
+    local band = bit.band;
+    local rshift = bit.rshift;
+    local lshift = bit.lshift;
+    local bor = bit.bor;
+    local IsKnownFile = C_UIFileAsset.IsKnownFile;
+
+    for index = 1, size do
+        local file = files[index];
+
+        if IsKnownFile(file) then
+            local key = keys[index];
+            local first = rshift(key, 5) + 1;
+            local last = first + band(key, 0x1f);
+
+            -- Rebase the packed name offset while retaining this file's name count.
+            count = count + 1;
+            files[count] = file;
+            times[count] = times[index];
+            keys[count] = bor(lshift(nameCount, 5), last - first);
+
+            for nameIndex = first, last do
+                nameCount = nameCount + 1;
+                names[nameCount] = names[nameIndex];
+            end
+        end
+    end
+
+    for index = count + 1, size do
+        files[index] = nil;
+        times[index] = nil;
+        keys[index] = nil;
+    end
+
+    for index = nameCount + 1, nameSize do
+        names[index] = nil;
+    end
+
+    musicDB.size = count;
+    return musicDB;
+end
+
+function AlwaysTrue()
+    return true;
+end
+
+function BinarySearch(t, v, i, j)
+    local floor = math.floor;
+
+    local l = i or 1;
+    local r = j or #t;
+
+    while l <= r do
+        local m = floor((l + r) / 2);
+        if t[m] < v then
+            l = m + 1;
+        elseif t[m] > v then
+            r = m - 1;
+        else
+            return m;
+        end
+    end
+
+    return nil;
+end
+
+function CreateIndexedIterator(source, accessor, ...)
+    local index = 0;
+    local args = { n = select("#", ...), ... };
+
+    local function NextItem()
+        local item = accessor(source, index + 1, unpack(args, 1, args.n));
+
+        if item then
+            index = index + 1;
+            return index, item;
+        end
+    end
+
+    return NextItem;
+end
+
+function CreateSearchPredicate(predicate, options)
+    if predicate == nil or predicate == "" then
+        -- Predicate is nil or empty, so default to always passing.
+        return AlwaysTrue;
+    elseif type(predicate) == "string" then
+        -- Predicate is a string, so it's a text-based search.
+        local method = options and options.method or "substring";
+        local search = string.lower(predicate);
+        local plain  = (method ~= "pattern");
+
+        return function(text)
+            local index = string.find(text, search, 1, plain);
+            return (method ~= "prefix" and index) or (method == "prefix" and index == 1);
+        end
+    else
+        -- Predicate is assumed to be callable.
+        return predicate;
+    end
+end
+
+function EnumerateMusicNames(musicDB, i, j)
+    local mi, mj = i or 1, j or musicDB.size;
+    local ni, nj = GetMusicNameIndexRange(musicDB, mi);
+
+    local function NextMusicName()
+        while mi <= mj do
+            if ni <= nj then
+                local name = musicDB.name[ni];
+                ni = ni + 1;
+                return mi, name;
+            else
+                mi = mi + 1;
+                ni, nj = GetMusicNameIndexRange(musicDB, mi);
+            end
+        end
+    end
+
+    return NextMusicName;
+end
+
+function GetIconIndexByID(iconsDB, iconID)
+    if not next(iconIndexByID) then
+        for index = 1, iconsDB.size do
+            local id = iconsDB.id[index];
+            iconIndexByID[id] = iconIndexByID[id] or index;
+        end
+    end
+
+    return iconIndexByID[iconID];
+end
+
+function GetIconIndexByName(iconsDB, iconName)
+    if not next(iconIndexByName) then
+        for index = 1, iconsDB.size do
+            local name = iconsDB.name[index];
+            iconIndexByName[name] = iconIndexByName[name] or index;
+        end
+    end
+
+    return iconIndexByName[string.lower(iconName)];
+end
+
+function GetIconInfoByIndex(iconsDB, iconIndex, infoTable)
+    if not iconIndex or iconIndex < 1 or iconIndex > iconsDB.size then
+        return nil;
+    end
+
+    local id = iconsDB.id[iconIndex];
+    local name = iconsDB.name[iconIndex];
+    local type = GetIconType(id);
+    local file = (type == LRPM12.IconType.File) and bit.band(id, ICON_ID_DATA_MASK) or nil;
+    local atlas = (type == LRPM12.IconType.Atlas) and name or nil;
+    local key = (type == LRPM12.IconType.Atlas or IsIconFileName(name)) and name or file;
+
+    local iconInfo = infoTable or table.create(0, 8);
+    iconInfo.index = iconIndex;
+    iconInfo.id = id;
+    iconInfo.key = key;
+    iconInfo.name = name;
+    iconInfo.type = type;
+    iconInfo.file = file;
+    iconInfo.atlas = atlas;
+
+    return iconInfo;
+end
+
+function GetIconType(iconID)
+    if type(iconID) ~= "number" then
+        return nil;
+    elseif bit.band(iconID, ICON_ID_TYPE_MASK) ~= 0 then
+        return LRPM12.IconType.Atlas;
+    else
+        return LRPM12.IconType.File;
+    end
+end
+
+function GetMusicIndexByFile(musicDB, musicFile)
+    return BinarySearch(musicDB.file, musicFile, 1, musicDB.size);
+end
+
+function GetMusicIndexByID(musicDB, musicID)
+    return GetMusicIndexByFile(musicDB, musicID);
+end
+
+function GetMusicIndexByName(musicDB, musicName)
+    if not next(musicIndexByName) then
+        for index, name in EnumerateMusicNames(musicDB) do
+            musicIndexByName[name] = musicIndexByName[name] or index;
+        end
+    end
+
+    return musicIndexByName[string.lower(musicName or "")];
+end
+
+function GetMusicInfoByIndex(musicDB, musicIndex, infoTable)
+    if not musicIndex or musicIndex < 1 or musicIndex > musicDB.size then
+        return nil;
+    end
+
+    local file = musicDB.file[musicIndex];
+    local duration = musicDB.time[musicIndex];
+
+    local musicInfo = infoTable or table.create(0, 8);
+    musicInfo.index = musicIndex;
+    musicInfo.id = file;
+    musicInfo.duration = duration;
+    musicInfo.names = GetMusicNamesByIndex(musicDB, musicIndex, musicInfo.names);
+    musicInfo.file = file;
+
+    return musicInfo;
+end
+
+function GetMusicNameIndexRange(musicDB, musicIndex)
+    local nkey = musicDB.nkey[musicIndex] or math.huge;
+    local nstart = bit.rshift(nkey, 5) + 1;
+    local ncount = bit.band(nkey, 0x1f);
+
+    return nstart, nstart + ncount;
+end
+
+function GetMusicNamesByIndex(musicDB, musicIndex, namesTable)
+    local first, last = GetMusicNameIndexRange(musicDB, musicIndex);
+    local names = namesTable or table.create(last - first + 1);
+
+    table.wipe(names);
+
+    for i = first, last do
+        table.insert(names, musicDB.name[i]);
+    end
+
+    return names;
+end
+
+function IsIconFileName(iconName)
+    return C_UIFileAsset.IsKnownFile([[Interface\ICONS\]] .. iconName);
+end
+
+--@end-do-not-package@

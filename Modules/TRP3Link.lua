@@ -96,6 +96,38 @@ function Link.ConvertProfile(trp)
     return clean
 end
 
+-- A Total RP 3 profile's look as an RP Forge persona: icon, name colour, glances and custom traits.
+-- (Total RP 3's built-in traits only have names inside Total RP 3, so only custom ones come across.)
+function Link.ConvertPersona(trp)
+    local player = type(trp) == "table" and trp.player or {}
+    local ch = player.characteristics or {}
+    local misc = player.misc or {}
+    local persona = { impressions = {}, traits = {} }
+    if type(ch.IC) == "string" and ch.IC ~= "" then persona.icon = ch.IC end
+    if type(ch.CH) == "string" and #ch.CH == 6 then persona.nameColor = ch.CH:lower() end
+    local about = player.about or {}
+    if tonumber(about.MU) then persona.music = tonumber(about.MU) end
+    for slot = 1, Profiles.MAX_IMPRESSIONS do
+        local peek = type(misc.PE) == "table" and misc.PE[tostring(slot)]
+        if type(peek) == "table" and peek.AC and ((peek.TI or "") ~= "" or (peek.TX or "") ~= "") then
+            persona.impressions[slot] = { icon = peek.IC, title = Plain(peek.TI) or "", text = Plain(peek.TX) or "" }
+        end
+    end
+    for _, trait in ipairs(type(ch.PS) == "table" and ch.PS or {}) do
+        if type(trait.LT) == "string" and type(trait.RT) == "string" and #persona.traits < Profiles.MAX_TRAITS then
+            persona.traits[#persona.traits + 1] = { left = trait.LT, right = trait.RT, value = tonumber(trait.V2) or Profiles.TRAIT_MAX / 2 }
+        end
+    end
+    return persona
+end
+
+function Link.CurrentTRP3Persona()
+    if not Link.TRP3Running() or not TRP3_API.profile.getPlayerCurrentProfile then return nil end
+    local ok, profile = pcall(TRP3_API.profile.getPlayerCurrentProfile)
+    if not ok or type(profile) ~= "table" then return nil end
+    return Link.ConvertPersona(profile)
+end
+
 -- The Total RP 3 profile you're using now, as RP Forge fields (for Home in "keep" mode).
 function Link.CurrentTRP3Fields()
     if not Link.TRP3Running() or not TRP3_API.profile.getPlayerCurrentProfile then return nil end
@@ -126,6 +158,7 @@ function Link.ImportAll()
         if type(trp) == "table" then
             local profile = byOrigin[id] or Profiles.Create(trp.profileName or "Total RP 3 profile")
             profile.fields = Link.ConvertProfile(trp)
+            profile.persona = Link.ConvertPersona(trp)
             profile.fromTRP3 = id
             profile.updatedAt = time()
             count = count + 1
