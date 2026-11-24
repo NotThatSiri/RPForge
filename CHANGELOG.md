@@ -11,7 +11,7 @@ Bug reports, finishing the Foundation milestone.
   needs: your RP Forge and game versions, your settings, your other loaded addons and the recent errors.
   Copy it into the bug report form on GitHub (the link is in the window).
 - RP Forge now also keeps errors that happen in its buttons and windows, not just in its background work.
-  Errors from other addons are left alone.
+  Errors from other addons are left alone. This also works alongside BugGrabber and BugSack.
 - The first time something goes wrong in a session, RP Forge says so once in chat and points to `/rpf bug`.
 - The About page shows how many errors are logged.
 

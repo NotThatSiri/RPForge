@@ -26,14 +26,37 @@ end
 
 RPF.Listen("ERROR_LOGGED", Hint)
 
+-- Keep an error if it comes from RP Forge's files. The same error repeating within a few seconds is
+-- kept once, so a looping error can't fill the report.
+local lastKept, lastKeptAt = nil, 0
+local function KeepIfOurs(message, stack)
+    local text, trace = tostring(message or ""), tostring(stack or "")
+    if not (text:find(OUR_FILES) or trace:find(OUR_FILES)) then return end
+    local now = GetTime()
+    if text == lastKept and now - lastKeptAt < 5 then return end
+    lastKept, lastKeptAt = text, now
+    pcall(RPF.LogError, "lua error", text .. (trace ~= "" and ("\n" .. trace) or ""))
+end
+
+-- With BugGrabber (and BugSack): BugGrabber keeps the game's error handler to itself and switches off
+-- seterrorhandler for everyone else. It announces each error it catches instead, so listen to that.
+local function ListenToBugGrabber()
+    if RPF._listeningToBugGrabber or not (_G.BugGrabber and EventRegistry and BugGrabber.GetErrorByID) then
+        return
+    end
+    RPF._listeningToBugGrabber = true
+    EventRegistry:RegisterCallback("BugGrabber.BugGrabbed", function(_, tableID)
+        local err = BugGrabber:GetErrorByID(tableID)
+        if type(err) == "table" then KeepIfOurs(err.message, err.stack) end
+    end, RPF)
+end
+ListenToBugGrabber()
+RPF.OnEvent("PLAYER_LOGIN", ListenToBugGrabber) -- in case BugGrabber loaded after us
+
+-- Without BugGrabber: wrap the game's error handler, then pass every error on as usual.
 local previousHandler = geterrorhandler()
 seterrorhandler(function(message, ...)
-    local text = tostring(message)
-    local stack = debugstack and debugstack(3, 12, 0) or ""
-    if text:find(OUR_FILES) or stack:find(OUR_FILES) then
-        -- Our error: keep it for the bug report, then let the game (or BugSack and friends) show it as usual.
-        pcall(RPF.LogError, "lua error", text .. "\n" .. stack)
-    end
+    KeepIfOurs(message, debugstack and debugstack(3, 12, 0) or "")
     if previousHandler then return previousHandler(message, ...) end
 end)
 
