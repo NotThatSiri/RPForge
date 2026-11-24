@@ -10,7 +10,8 @@ A new Home: your character's banner.
 - **Banner** at the top of Home: your character's portrait in a ring, your RP name, your full title in
   < >, your race and class, and your guild.
 - **Banner background** from the game's own pictures: it starts with your race's dressing-room background.
-  **Change background** picks another race's. The choice is saved with each profile.
+  **Change background** opens a page of previews to pick another race's. The choice is saved with each
+  profile.
 - **Status** buttons under the banner (In character, Looking for RP, Out of character) and your
   "currently" line. Click the line to change it.
 - `/rpf profile` opens the profile editor.

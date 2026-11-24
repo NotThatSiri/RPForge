@@ -39,20 +39,6 @@ local function ChosenBackground(profile)
     return Profiles.GetLook("background", profile) or Backgrounds.PlayerRace()
 end
 
-local function ShowBackgroundMenu(owner)
-    local current = Profiles.GetLook("background")
-    local own = Backgrounds.PlayerRace()
-    local items = {
-        { "Your own race (" .. Backgrounds.RaceName(own) .. ")", function() Profiles.SetLook("background", nil) end, checked = current == nil },
-        "-",
-    }
-    for _, race in ipairs(Backgrounds.Races()) do
-        local file = race.file
-        items[#items + 1] = { race.name, function() Profiles.SetLook("background", file) end, checked = current == file }
-    end
-    UI.ShowMenu(owner, items)
-end
-
 local function RefreshHome()
     if not home then return end
     local profile = Profiles.GetActive()
@@ -151,8 +137,8 @@ UI.RegisterPage({
         edit:SetScript("OnClick", function() UI.OpenProfile() end)
         local background = UI.Button(overlay, "Change background", 140, 26)
         background:SetPoint("TOPRIGHT", edit, "BOTTOMRIGHT", 0, -6)
-        background:SetScript("OnClick", function(self) ShowBackgroundMenu(self) end)
-        UI.Tooltip(background, "Banner background", "Pick one of the game's race backgrounds for this profile's banner.")
+        background:SetScript("OnClick", function() UI.ShowPage("backgrounds") end)
+        UI.Tooltip(background, "Banner background", "Pick one of the game's pictures for this profile's banner.")
 
         -- Status ----------------------------------------------------------------------------
         local statusLabel = UI.Text(page, "STATUS", 10, "muted")

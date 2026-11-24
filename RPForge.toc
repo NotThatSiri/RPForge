@@ -28,3 +28,4 @@ Modules\Settings.lua
 Modules\Appearance.lua
 Modules\BugReport.lua
 Modules\ProfilePage.lua
+Modules\BackgroundPage.lua
