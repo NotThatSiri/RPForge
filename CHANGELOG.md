@@ -2,6 +2,12 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.8] - 2026-11-24
+
+### Changed
+- The round Home portrait now has a thin ring in the theme's accent colour, matching the square frame,
+  instead of the thick gold border.
+
 ## [0.3.7] - 2026-11-24
 
 ### Changed

@@ -142,19 +142,25 @@ UI.RegisterPage({
         portraitFrame:SetPoint("LEFT", 26, 0)
         local a = UI.Color("accent")
 
-        -- Circle: the game's round portrait inside the game's own round border (the minimap button
-        -- ring), the same frame the RP chat uses. The ring's art sits in the top-left of its texture,
-        -- so it is sized and offset from the portrait by fixed ratios.
+        -- Circle: a thin accent-coloured ring like the square's border. The game's round portrait
+        -- shape is drawn as a plain (smooth) disc in the accent colour, a dark disc just inside it,
+        -- and the round portrait on top.
         home.circle = CreateFrame("Frame", nil, portraitFrame)
         home.circle:SetAllPoints()
-        local size = 84
+        local ROUND = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
+        local ring = home.circle:CreateTexture(nil, "BACKGROUND")
+        ring:SetTexture(ROUND)
+        ring:SetAllPoints()
+        ring:SetVertexColor(a[1], a[2], a[3], 1)
+        local inner = home.circle:CreateTexture(nil, "BORDER")
+        inner:SetTexture(ROUND)
+        inner:SetPoint("TOPLEFT", 2, -2)
+        inner:SetPoint("BOTTOMRIGHT", -2, 2)
+        local w = UI.Color("window")
+        inner:SetVertexColor(w[1], w[2], w[3], 1)
         home.portrait = home.circle:CreateTexture(nil, "ARTWORK")
-        home.portrait:SetSize(size, size)
-        home.portrait:SetPoint("CENTER", 0, 0)
-        local ring = home.circle:CreateTexture(nil, "OVERLAY")
-        ring:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
-        ring:SetSize(size * 2.622, size * 2.622)
-        ring:SetPoint("TOPLEFT", home.portrait, "TOPLEFT", -size / 3, size * 0.233)
+        home.portrait:SetPoint("TOPLEFT", 3, -3)
+        home.portrait:SetPoint("BOTTOMRIGHT", -3, 3)
 
         -- Square: the same still portrait, cropped to the square inside its round picture so it
         -- fills the frame, in a thin accent border.
