@@ -48,10 +48,14 @@ with Total RP 3's glances and traits rather than kept twice.
 | Version | Bundle | Contents |
 |---|---|---|
 | 0.2.0 | Your profile | Profile page: identity, status, about; several profiles to switch between |
-| 0.2.1 | Sharing | Send and receive profiles in the shared format; names and status in tooltips; remember people met |
-| 0.2.2 | The Total RP 3 link | One-time choice; read Total RP 3 profiles; move Total RP 3 profiles into RP Forge |
-| 0.2.3 | Persona | First impressions, trait sliders, name colour, profile icon, theme tune |
-| 0.2.4 | Viewing profiles | Open anyone's profile; a People page of everyone met |
+| 0.2.1 | Home | Your character's banner: portrait, name, full title, race, class, guild; changeable background; status |
+| 0.2.2 | Sharing | Send and receive profiles in the shared format; names and status in tooltips; remember people met |
+| 0.2.3 | The Total RP 3 link | One-time choice; read Total RP 3 profiles; move Total RP 3 profiles into RP Forge |
+| 0.2.4 | Persona | First impressions, trait sliders, name colour, profile icon, theme tune |
+| 0.2.5 | Viewing profiles | Open anyone's profile; a People page of everyone met |
+
+Home grows with each milestone: cards for people met, sessions, health, quests and progress appear as
+those parts arrive.
 
 ## Principles
 

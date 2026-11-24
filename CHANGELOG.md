@@ -2,6 +2,24 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.2.1] - unreleased
+
+A new Home: your character's banner.
+
+### Added
+- **Banner** at the top of Home: your character's portrait in a ring, your RP name, your full title in
+  < >, your race and class, and your guild.
+- **Banner background** from the game's own pictures: it starts with your race's dressing-room background.
+  **Change background** picks another race's. The choice is saved with each profile.
+- **Status** buttons under the banner (In character, Looking for RP, Out of character) and your
+  "currently" line. Click the line to change it.
+- `/rpf profile` opens the profile editor.
+
+### Changed
+- The profile editor opens from **Edit profile** on Home instead of the side menu. **Done** goes back to
+  Home.
+- The RP Forge card (version, players heard, "Who's around?") sits under the status.
+
 ## [0.2.0] - 2026-11-24
 
 Your roleplay profile.

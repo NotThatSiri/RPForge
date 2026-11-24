@@ -54,6 +54,7 @@ end
 -- The page -------------------------------------------------------------------------------
 
 local page -- the built page frame, so PROFILE_CHANGED can update it
+local pendingTab -- the tab to show when the editor opens (from Home's "Currently")
 
 local IDENTITY_LEFT = {
     { "firstName", "FIRST NAME  (empty = your character's name)" }, { "lastName", "LAST NAME" },
@@ -178,9 +179,8 @@ local MARGIN = 28
 UI.RegisterPage({
     key = "profile",
     title = "Profile",
-    section = "Character",
-    sectionOrder = 2,
-    order = 10,
+    hidden = true, -- opened with "Edit profile" on Home
+
     build = function(frame)
         page = frame
         page.controls = {}
@@ -198,13 +198,19 @@ UI.RegisterPage({
         page.switcher:SetScript("OnClick", function(self) ShowProfileMenu(self) end)
         UI.Tooltip(page.switcher, "Your profiles", "Switch to another profile, or make, copy, rename or delete one.")
 
+        local done = UI.Button(frame, "Done", 90, 26, "primary")
+        done:SetPoint("RIGHT", page.switcher, "LEFT", -8, 0)
+        done:SetScript("OnClick", function() UI.ShowPage("home") end)
+        UI.Tooltip(done, "Done", "Back to Home. Your changes are already saved.")
+        page.done = done
+
         page.fullName = UI.Text(frame, "", 20, "accent")
         page.fullName:SetPoint("TOPLEFT", MARGIN, -24)
-        page.fullName:SetPoint("RIGHT", page.switcher, "LEFT", -16, 0)
+        page.fullName:SetPoint("RIGHT", done, "LEFT", -16, 0)
         page.fullName:SetWordWrap(false)
         page.fullTitle = UI.Text(frame, "", 12, "muted")
         page.fullTitle:SetPoint("TOPLEFT", page.fullName, "BOTTOMLEFT", 0, -5)
-        page.fullTitle:SetPoint("RIGHT", page.switcher, "LEFT", -16, 0)
+        page.fullTitle:SetPoint("RIGHT", done, "LEFT", -16, 0)
         page.fullTitle:SetWordWrap(false)
 
         page.tabButtons, page.tabs = {}, {}
@@ -232,8 +238,26 @@ UI.RegisterPage({
     onShow = function()
         RefreshHeader()
         FillFields()
+        if pendingTab then
+            ShowTab(pendingTab)
+            pendingTab = nil
+        end
     end,
 })
+
+-- Open the profile editor, optionally on a tab ("identity", "status" or "about").
+function UI.OpenProfile(tab)
+    pendingTab = tab
+    if UI.IsWindowShown() and UI.CurrentPage() == "profile" and page then
+        -- Already open: onShow won't run again, so switch the tab here.
+        if tab then ShowTab(tab) end
+        pendingTab = nil
+        return
+    end
+    UI.OpenWindow("profile")
+end
+
+RPF.AddCommand("profile", "Edit your roleplay profile", function() UI.OpenProfile() end)
 
 -- Keep the page up to date: the header always; the boxes only when another profile is chosen,
 -- so typing is never interrupted.

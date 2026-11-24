@@ -86,7 +86,12 @@ function Profiles.Create(name, copyFromID)
         -- New profiles start out of character: nobody is shown as IC until they choose it.
         fields.status = "ooc"
     end
-    local profile = { id = id, name = UniqueName(name), createdAt = time(), fields = fields }
+    local look
+    if source and source.look then
+        look = {}
+        for key, value in pairs(source.look) do look[key] = value end
+    end
+    local profile = { id = id, name = UniqueName(name), createdAt = time(), fields = fields, look = look }
     Store()[id] = profile
     return profile
 end
@@ -126,6 +131,21 @@ function Profiles.SetField(key, value)
     if profile.fields[key] == value then return true end
     profile.fields[key] = value
     profile.updatedAt = time()
+    Changed(profile.id)
+    return true
+end
+
+-- How a profile looks (for example the Home banner background). Kept apart from the text fields.
+function Profiles.GetLook(key, profile)
+    profile = profile or Profiles.GetActive()
+    return profile and profile.look and profile.look[key] or nil
+end
+
+function Profiles.SetLook(key, value)
+    local profile = Profiles.GetActive()
+    if not profile then return false end
+    profile.look = profile.look or {}
+    profile.look[key] = value
     Changed(profile.id)
     return true
 end

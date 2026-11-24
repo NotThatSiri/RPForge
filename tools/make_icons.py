@@ -39,6 +39,12 @@ def close(x, y):
     return False
 
 
+def ring(x, y):
+    # A round frame for portraits: a band near the edge, empty in the middle.
+    r = math.hypot(x - C, y - C)
+    return 27.0 <= r <= 31.5
+
+
 def write(path, shape):
     pixels = bytearray()
     for py in range(N):
@@ -59,3 +65,4 @@ if __name__ == "__main__":
     os.makedirs(folder, exist_ok=True)
     write(os.path.join(folder, "Cog.tga"), cog)
     write(os.path.join(folder, "Close.tga"), close)
+    write(os.path.join(folder, "Ring.tga"), ring)
