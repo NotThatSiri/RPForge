@@ -184,7 +184,7 @@ local function Build()
     -- RP Forge's own cogwheel (Media\Icons\Cog.tga), drawn white so the theme can colour it.
     cog.icon:SetTexture("Interface\\AddOns\\" .. RPF.ADDON .. "\\Media\\Icons\\Cog")
     cog.icon:SetPoint("CENTER")
-    cog.icon:SetSize(17, 17)
+    cog.icon:SetSize(15, 15)
     function cog:Refresh()
         local active = currentKey == "settings"
         local c = UI.Color((active or self:IsMouseOver()) and "accent" or "muted")
