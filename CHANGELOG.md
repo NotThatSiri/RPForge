@@ -2,7 +2,7 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
-## [0.1.3] - unreleased
+## [0.1.3] - 2026-11-24
 
 Bug reports, finishing the Foundation milestone.
 
