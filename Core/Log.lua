@@ -34,6 +34,13 @@ function RPF.LogError(where, err)
     if RPF.db and RPF.db.settings.debug then
         RPF.Print("|cffff6060error in " .. entry.where .. ":|r " .. entry.message)
     end
+    -- Tell the rest of the addon (the bug report hint). Guarded so an error while handling
+    -- an error can't loop back here forever.
+    if not RPF._loggingError then
+        RPF._loggingError = true
+        RPF.Send("ERROR_LOGGED", entry)
+        RPF._loggingError = false
+    end
 end
 
 function RPF.GetErrors()

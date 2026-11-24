@@ -2,6 +2,19 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.1.3] - unreleased
+
+Bug reports, finishing the Foundation milestone.
+
+### Added
+- `/rpf bug` and a **Report a bug** button on the About page open a window with everything a bug report
+  needs: your RP Forge and game versions, your settings, your other loaded addons and the recent errors.
+  Copy it into the bug report form on GitHub (the link is in the window).
+- RP Forge now also keeps errors that happen in its buttons and windows, not just in its background work.
+  Errors from other addons are left alone.
+- The first time something goes wrong in a session, RP Forge says so once in chat and points to `/rpf bug`.
+- The About page shows how many errors are logged.
+
 ## [0.1.2] - 2026-11-24
 
 The RP Forge window, in its own look.
