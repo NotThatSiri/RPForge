@@ -317,7 +317,12 @@ end
 -- Sending -------------------------------------------------------------------------------------------
 
 local MAX_LENGTH = 255
-local MODES = { { "SAY", "Say" }, { "EMOTE", "Emote" }, { "YELL", "Yell" } }
+local MODE_LABELS = { SAY = "Say:", EMOTE = "Emote:", YELL = "Yell:" }
+local MODE_HINTS = {
+    SAY = "Say something. /e to emote, /y to yell. Shift+Enter: new line.",
+    EMOTE = "Emote. /s to say, /y to yell. Shift+Enter: new line.",
+    YELL = "Yell. /s to say, /e to emote. Shift+Enter: new line.",
+}
 local PREFIXES = { ["/s "] = "SAY", ["/say "] = "SAY", ["/e "] = "EMOTE", ["/me "] = "EMOTE", ["/emote "] = "EMOTE",
     ["/y "] = "YELL", ["/yell "] = "YELL" }
 
@@ -552,37 +557,51 @@ local function Build()
 
     scroll = CreateFrame("ScrollFrame", nil, window, "UIPanelScrollFrameTemplate")
     scroll:SetPoint("TOPLEFT", 10, -32)
-    -- The typing area at the bottom: mode buttons, then a box that grows with the text.
-    local input = CreateFrame("Frame", nil, window, UI.BACKDROP_TEMPLATE)
+    -- The typing area at the bottom: a box that grows with the text. Start with /s, /e or /y to switch
+    -- between Say, Emote and Yell, like the game's chat; the box takes that chat colour.
+    local input = CreateFrame("Frame", nil, window)
     input:SetPoint("BOTTOMLEFT", 8, 18)
     input:SetPoint("BOTTOMRIGHT", -8, 18)
-    input:SetHeight(84)
+    input:SetHeight(52)
     window.input = input
-    window.mode = UI.Segmented(input, MODES, 64, function(value) RPF.db.settings.chatMode = value end)
-    window.mode:SetPoint("TOPLEFT", 0, 0)
-    window.mode:SetValue(RPF.db.settings.chatMode or "SAY")
-    window.parts = UI.Text(input, "", 10, "muted", "RIGHT")
-    window.parts:SetPoint("TOPRIGHT", -2, -7)
 
     local boxFrame = UI.Panel(input, "panelAlt", "border")
-    boxFrame:SetPoint("TOPLEFT", 0, -32)
-    boxFrame:SetPoint("BOTTOMRIGHT", 0, 0)
+    boxFrame:SetAllPoints()
+    local modeLabel = UI.Text(boxFrame, "", 12, "text")
+    modeLabel:SetPoint("TOPLEFT", 8, -7)
+    window.parts = UI.Text(boxFrame, "", 10, "muted", "RIGHT")
+    window.parts:SetPoint("BOTTOMRIGHT", -6, 4)
     local box = CreateFrame("EditBox", nil, boxFrame)
     box:SetMultiLine(true)
     box:SetAutoFocus(false)
     box:SetFont(UI.FONT, 12, "")
-    local tc = UI.Color("text")
-    box:SetTextColor(tc[1], tc[2], tc[3], 1)
-    box:SetPoint("TOPLEFT", 8, -6)
+    box:SetPoint("TOPLEFT", modeLabel, "TOPRIGHT", 5, 1)
     box:SetPoint("BOTTOMRIGHT", -8, 6)
     box:SetMaxLetters(4000)
     window.box = box
-    local placeholder = UI.Text(boxFrame, "Type here. Enter sends, Shift+Enter makes a new line.", 11, "muted")
-    placeholder:SetPoint("TOPLEFT", 9, -7)
+    local placeholder = UI.Text(boxFrame, "", 11, "muted")
+    placeholder:SetPoint("TOPLEFT", box, "TOPLEFT", 1, -1)
+    placeholder:SetPoint("RIGHT", boxFrame, "RIGHT", -8, 0)
+    placeholder:SetJustifyH("LEFT")
+    placeholder:SetWordWrap(false)
     boxFrame:EnableMouse(true)
     boxFrame:SetScript("OnMouseDown", function() box:SetFocus() end)
-    box:SetScript("OnEditFocusGained", function() UI.Backdrop(boxFrame, "panelAlt", "accent") end)
-    box:SetScript("OnEditFocusLost", function() UI.Backdrop(boxFrame, "panelAlt", "border") end)
+
+    -- Colour the label, text and border for the current mode (full border while typing).
+    local function ShowMode()
+        local mode = RPF.db.settings.chatMode or "SAY"
+        if not MODE_LABELS[mode] then mode = "SAY" end
+        local r, g, b = TypeColor(mode)
+        modeLabel:SetText(MODE_LABELS[mode])
+        modeLabel:SetTextColor(r, g, b, 1)
+        box:SetTextColor(r, g, b, 1)
+        placeholder:SetText(MODE_HINTS[mode])
+        boxFrame:SetBackdropBorderColor(r, g, b, box:HasFocus() and 1 or 0.45)
+    end
+    window.ShowMode = ShowMode
+    ShowMode()
+    box:SetScript("OnEditFocusGained", ShowMode)
+    box:SetScript("OnEditFocusLost", ShowMode)
     box:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
     box:SetScript("OnEnterPressed", function(self)
         if IsShiftKeyDown() then
@@ -591,16 +610,28 @@ local function Build()
         end
         SendFromBox(self)
     end)
-    box:SetScript("OnTextChanged", function(self)
+    box:SetScript("OnTextChanged", function(self, userInput)
         local text = self:GetText() or ""
+        -- "/e " at the start switches to Emote (and so on); the command itself is removed.
+        if userInput and text:sub(1, 1) == "/" then
+            local lower = text:lower()
+            for prefix, mode in pairs(PREFIXES) do
+                if lower:sub(1, #prefix) == prefix then
+                    RPF.db.settings.chatMode = mode
+                    ShowMode()
+                    self:SetText(text:sub(#prefix + 1))
+                    return
+                end
+            end
+        end
         placeholder:SetShown(text == "")
         local count = #Chat.SplitPost(text)
         window.parts:SetText(count > 1 and (count .. " posts") or "")
         -- Grow from 2 to 6 lines as you type.
         local lines = math.max(2, math.min(6, math.ceil((self:GetHeight() > 0 and select(2, text:gsub("\n", "")) + 1) or 1)))
         local _, fontHeight = self:GetFont()
-        local wanted = 32 + 12 + math.max(lines, math.ceil(((self.measure and self.measure:GetStringHeight()) or 0) / (fontHeight + 2))) * (fontHeight + 2)
-        input:SetHeight(math.max(84, math.min(32 + 12 + 6 * (fontHeight + 2), wanted)))
+        local wanted = 14 + math.max(lines, math.ceil(((self.measure and self.measure:GetStringHeight()) or 0) / (fontHeight + 2))) * (fontHeight + 2)
+        input:SetHeight(math.max(52, math.min(14 + 6 * (fontHeight + 2), wanted)))
     end)
     -- A hidden copy of the text to measure how many lines it wraps to.
     box.measure = input:CreateFontString(nil, "ARTWORK")
