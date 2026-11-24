@@ -2,6 +2,11 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.1] - 2026-11-24
+
+### Fixed
+- A warning, "Binding header RPFORGE was attempted to be loaded more than once", after logging in.
+
 ## [0.3.0] - 2026-11-24
 
 The RP chat window, the start of the Chat & Session Log milestone.
