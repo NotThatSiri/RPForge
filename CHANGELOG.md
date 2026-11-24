@@ -2,6 +2,20 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.3] - 2026-11-24
+
+### Added
+- A **typing box** at the bottom of the RP chat window:
+  - **Say**, **Emote** and **Yell** buttons choose how you post; it remembers your last choice. Starting
+    with /s, /e (or /me) or /y switches for that post.
+  - **Enter** sends, **Shift+Enter** starts a new line, Escape leaves the box. The box grows as you write.
+  - Long posts are split at word boundaries into several messages marked **(1/3), (2/3), (3/3)**; a
+    counter shows how many posts it will be. New lines become spaces, as the game can't send them.
+
+### Fixed
+- The RP chat was hard to read on the **Parchment** theme. Parchment now uses dark chat colours (ink for
+  Say, amber for Emote, deep red for Yell), and very light class colours are darkened for names.
+
 ## [0.3.2] - 2026-11-24
 
 ### Added

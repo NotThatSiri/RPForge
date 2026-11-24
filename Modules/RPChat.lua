@@ -29,6 +29,10 @@ local rows = {}     -- one frame per shown message, in order
 -- Colours and text ---------------------------------------------------------------------------------
 
 local function TypeColor(kind)
+    -- Light themes bring their own chat colours so text stays readable.
+    local theme = UI.THEMES[UI.themeKey]
+    local own = theme and theme.chat and theme.chat[kind == "TEXT_EMOTE" and "EMOTE" or kind]
+    if own then return own[1], own[2], own[3] end
     local info = ChatTypeInfo and ChatTypeInfo[kind == "TEXT_EMOTE" and "EMOTE" or kind]
     if info and info.r then return info.r, info.g, info.b end
     if kind == "YELL" then return 1, 0.25, 0.25 end
@@ -40,7 +44,16 @@ local function Hex(r, g, b)
     return string.format("|cff%02x%02x%02x", r * 255, g * 255, b * 255)
 end
 
-local OOC_COLOR = "|cff8c8c8c"
+local function OOCColor() return UI.ColorCode("muted") end
+
+-- On a light theme, very light colours (a white name) are darkened so they can be read.
+local function Readable(r, g, b)
+    local theme = UI.THEMES[UI.themeKey]
+    if theme and theme.light and (0.3 * r + 0.59 * g + 0.11 * b) > 0.7 then
+        return r * 0.55, g * 0.55, b * 0.55
+    end
+    return r, g, b
+end
 
 -- Speech in "quotes" gets the Say colour; ((OOC)) is dimmed. Text keeps any links it already has.
 local function Decorate(text, kind)
@@ -49,7 +62,7 @@ local function Decorate(text, kind)
         text = text:gsub('(".-")', sayHex .. "%1|r")
         text = text:gsub("(\226\128\156.-\226\128\157)", sayHex .. "%1|r") -- “curly quotes”
     end
-    text = text:gsub("(%(%(.-%)%))", OOC_COLOR .. "%1|r")
+    text = text:gsub("(%(%(.-%)%))", OOCColor() .. "%1|r")
     return text
 end
 
@@ -88,7 +101,7 @@ local function SpeakerName(msg)
     local class = ClassOf(msg.guid)
     local c = class and RAID_CLASS_COLORS and RAID_CLASS_COLORS[class]
     local plain = ShortName(msg.sender)
-    return c and (Hex(c.r, c.g, c.b) .. plain .. "|r") or plain, fields
+    return c and (Hex(Readable(c.r, c.g, c.b)) .. plain .. "|r") or plain, fields
 end
 
 local function Header(msg)
@@ -263,6 +276,53 @@ function Chat.Refresh()
     Layout(AtBottom())
 end
 
+-- Sending -------------------------------------------------------------------------------------------
+
+local MAX_LENGTH = 255
+local MODES = { { "SAY", "Say" }, { "EMOTE", "Emote" }, { "YELL", "Yell" } }
+local PREFIXES = { ["/s "] = "SAY", ["/say "] = "SAY", ["/e "] = "EMOTE", ["/me "] = "EMOTE", ["/emote "] = "EMOTE",
+    ["/y "] = "YELL", ["/yell "] = "YELL" }
+
+-- Split text into posts of at most 255 letters, at spaces, each ending in " (1/3)" when there are several.
+function Chat.SplitPost(text)
+    text = strtrim((text or ""):gsub("[\r\n]+", " "):gsub("%s+", " "))
+    if text == "" then return {} end
+    if #text <= MAX_LENGTH then return { text } end
+    local parts
+    for guess = 2, 50 do
+        local room = MAX_LENGTH - #(" (" .. guess .. "/" .. guess .. ")")
+        parts = {}
+        local rest = text
+        while #rest > room do
+            local cut = rest:sub(1, room):match("^.*()%s") or (room + 1) -- last space that fits
+            parts[#parts + 1] = strtrim(rest:sub(1, cut - 1))
+            rest = strtrim(rest:sub(cut))
+        end
+        if rest ~= "" then parts[#parts + 1] = rest end
+        if #parts <= guess then break end
+    end
+    for i, part in ipairs(parts) do parts[i] = part .. " (" .. i .. "/" .. #parts .. ")" end
+    return parts
+end
+
+-- Send what's in the typing box. Called straight from the Enter key: outside instances the game only
+-- lets addons post Say and Yell from a key press, so every part is sent right now, in order.
+local function SendFromBox(box)
+    local text = box:GetText() or ""
+    local mode = RPF.db.settings.chatMode or "SAY"
+    local lower = text:lower()
+    for prefix, prefixMode in pairs(PREFIXES) do
+        if lower:sub(1, #prefix) == prefix then
+            mode, text = prefixMode, text:sub(#prefix + 1)
+            break
+        end
+    end
+    for _, part in ipairs(Chat.SplitPost(text)) do
+        SendChatMessage(part, mode)
+    end
+    box:SetText("")
+end
+
 -- The window -----------------------------------------------------------------------------------------
 
 local function SavePosition()
@@ -312,7 +372,67 @@ local function Build()
 
     scroll = CreateFrame("ScrollFrame", nil, window, "UIPanelScrollFrameTemplate")
     scroll:SetPoint("TOPLEFT", 10, -32)
-    scroll:SetPoint("BOTTOMRIGHT", -26, 12)
+    -- The typing area at the bottom: mode buttons, then a box that grows with the text.
+    local input = CreateFrame("Frame", nil, window, UI.BACKDROP_TEMPLATE)
+    input:SetPoint("BOTTOMLEFT", 8, 18)
+    input:SetPoint("BOTTOMRIGHT", -8, 18)
+    input:SetHeight(84)
+    window.input = input
+    window.mode = UI.Segmented(input, MODES, 64, function(value) RPF.db.settings.chatMode = value end)
+    window.mode:SetPoint("TOPLEFT", 0, 0)
+    window.mode:SetValue(RPF.db.settings.chatMode or "SAY")
+    window.parts = UI.Text(input, "", 10, "muted", "RIGHT")
+    window.parts:SetPoint("TOPRIGHT", -2, -7)
+
+    local boxFrame = UI.Panel(input, "panelAlt", "border")
+    boxFrame:SetPoint("TOPLEFT", 0, -32)
+    boxFrame:SetPoint("BOTTOMRIGHT", 0, 0)
+    local box = CreateFrame("EditBox", nil, boxFrame)
+    box:SetMultiLine(true)
+    box:SetAutoFocus(false)
+    box:SetFont(UI.FONT, 12, "")
+    local tc = UI.Color("text")
+    box:SetTextColor(tc[1], tc[2], tc[3], 1)
+    box:SetPoint("TOPLEFT", 8, -6)
+    box:SetPoint("BOTTOMRIGHT", -8, 6)
+    box:SetMaxLetters(4000)
+    window.box = box
+    local placeholder = UI.Text(boxFrame, "Type here. Enter sends, Shift+Enter makes a new line.", 11, "muted")
+    placeholder:SetPoint("TOPLEFT", 9, -7)
+    boxFrame:EnableMouse(true)
+    boxFrame:SetScript("OnMouseDown", function() box:SetFocus() end)
+    box:SetScript("OnEditFocusGained", function() UI.Backdrop(boxFrame, "panelAlt", "accent") end)
+    box:SetScript("OnEditFocusLost", function() UI.Backdrop(boxFrame, "panelAlt", "border") end)
+    box:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+    box:SetScript("OnEnterPressed", function(self)
+        if IsShiftKeyDown() then
+            self:Insert("\n")
+            return
+        end
+        SendFromBox(self)
+    end)
+    box:SetScript("OnTextChanged", function(self)
+        local text = self:GetText() or ""
+        placeholder:SetShown(text == "")
+        local count = #Chat.SplitPost(text)
+        window.parts:SetText(count > 1 and (count .. " posts") or "")
+        -- Grow from 2 to 6 lines as you type.
+        local lines = math.max(2, math.min(6, math.ceil((self:GetHeight() > 0 and select(2, text:gsub("\n", "")) + 1) or 1)))
+        local _, fontHeight = self:GetFont()
+        local wanted = 32 + 12 + math.max(lines, math.ceil(((self.measure and self.measure:GetStringHeight()) or 0) / (fontHeight + 2))) * (fontHeight + 2)
+        input:SetHeight(math.max(84, math.min(32 + 12 + 6 * (fontHeight + 2), wanted)))
+    end)
+    -- A hidden copy of the text to measure how many lines it wraps to.
+    box.measure = input:CreateFontString(nil, "ARTWORK")
+    box.measure:SetFont(UI.FONT, 12, "")
+    box.measure:SetAlpha(0)
+    box.measure:SetPoint("TOPLEFT", boxFrame, "TOPLEFT", 8, -6)
+    box:HookScript("OnTextChanged", function(self)
+        box.measure:SetWidth(math.max(50, boxFrame:GetWidth() - 16))
+        box.measure:SetText(self:GetText() or "")
+    end)
+
+    scroll:SetPoint("BOTTOMRIGHT", input, "TOPRIGHT", -18, 8)
     content = CreateFrame("Frame", nil, scroll)
     content:SetSize(300, 10)
     scroll:SetScrollChild(content)
@@ -328,6 +448,7 @@ local function Build()
     grip:SetScript("OnMouseDown", function() window:StartSizing("BOTTOMRIGHT") end)
     grip:SetScript("OnMouseUp", function() window:StopMovingOrSizing(); SavePosition(); Layout(true) end)
     window:SetScript("OnSizeChanged", function() Layout(false) end)
+    if window.SetResizeBounds then window:SetResizeBounds(320, 300, 1000, 900) elseif window.SetMinResize then window:SetMinResize(320, 300) end
 
     rows = {}
     local previous
