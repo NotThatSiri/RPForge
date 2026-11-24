@@ -2,6 +2,12 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.2.13] - 2026-11-24
+
+### Changed
+- The Traits tab in the profile editor uses the same **dots** instead of sliders: click a dot towards the
+  side that fits your character; click the same dot again to go back to balanced.
+
 ## [0.2.12] - 2026-11-24
 
 ### Changed

@@ -250,7 +250,7 @@ local function RenderTraits()
         if trait then
             if not row.left:HasFocus() then row.left:SetText(trait.left or "") end
             if not row.right:HasFocus() then row.right:SetText(trait.right or "") end
-            row.slider:SetQuietly(trait.value or Profiles.TRAIT_MAX / 2)
+            row.dots:SetValue(trait.value or Profiles.TRAIT_MAX / 2)
         end
     end
     page.noTraits:SetShown(#traits == 0)
@@ -422,7 +422,7 @@ local function BuildPersona(frame, width)
 end
 
 local function BuildTraits(frame, width)
-    local label = UI.Text(frame, "TRAITS  (up to 10)  Slide towards the side that fits your character.", 10, "muted")
+    local label = UI.Text(frame, "TRAITS  (up to 10)  Click the dots towards the side that fits your character; click again to go back to balanced.", 10, "muted")
     label:SetPoint("TOPLEFT", 0, 0)
 
     page.traitRows = {}
@@ -455,12 +455,12 @@ local function BuildTraits(frame, width)
             local trait = Profiles.GetPersona().traits[i]
             if userInput and trait then trait.right = self:GetText(); Profiles.PersonaChanged() end
         end)
-        row.slider = UI.Slider(row, 0, Profiles.TRAIT_MAX, function(value)
+        row.dots = UI.TraitDots(row, function(value)
             local trait = Profiles.GetPersona().traits[i]
             if trait then trait.value = value; Profiles.PersonaChanged() end
         end)
-        row.slider:SetPoint("LEFT", row.left, "RIGHT", 14, 0)
-        row.slider:SetPoint("RIGHT", row.right, "LEFT", -14, 0)
+        -- In the middle between the two names.
+        row.dots:SetPoint("CENTER", row, "CENTER", -17, 0)
         page.traitRows[i] = row
     end
 

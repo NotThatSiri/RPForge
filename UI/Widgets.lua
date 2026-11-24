@@ -462,6 +462,62 @@ function UI.Slider(parent, minValue, maxValue, onChange)
     return s
 end
 
+-- Trait dots, like a tabletop sheet: five on each side of the middle, filled from the middle towards the
+-- side the character leans to. value runs 0..20 (0 = fully left, 10 = balanced, 20 = fully right);
+-- each dot is 2 steps. With onPick, the dots can be clicked: clicking the outermost filled dot again
+-- goes back to balanced. dots:SetValue(value) shows a value.
+UI.TRAIT_DOT_SIZE, UI.TRAIT_DOT_GAP, UI.TRAIT_DOT_MIDDLE = 12, 4, 14
+UI.TRAIT_DOTS_WIDTH = 10 * (UI.TRAIT_DOT_SIZE + UI.TRAIT_DOT_GAP) - UI.TRAIT_DOT_GAP + UI.TRAIT_DOT_MIDDLE
+
+function UI.TraitDots(parent, onPick)
+    local SIZE, GAP, MIDDLE = UI.TRAIT_DOT_SIZE, UI.TRAIT_DOT_GAP, UI.TRAIT_DOT_MIDDLE
+    local media = "Interface\\AddOns\\" .. RPF.ADDON .. "\\Media\\Icons\\"
+    local frame = CreateFrame("Frame", nil, parent)
+    frame:SetSize(UI.TRAIT_DOTS_WIDTH, SIZE + 4)
+    frame.dots = {}
+    local center = UI.TRAIT_DOTS_WIDTH / 2
+    for _, side in ipairs({ -1, 1 }) do
+        for i = 1, 5 do -- i counts outwards from the middle
+            local dot = CreateFrame("Button", nil, frame)
+            dot:SetSize(SIZE + GAP, SIZE + 4)
+            dot:SetPoint("CENTER", frame, "LEFT", center + side * (MIDDLE / 2 + (i - 1) * (SIZE + GAP) + SIZE / 2), 0)
+            dot.tex = dot:CreateTexture(nil, "ARTWORK")
+            dot.tex:SetSize(SIZE, SIZE)
+            dot.tex:SetPoint("CENTER")
+            dot.side, dot.strength = side, i
+            if onPick then
+                dot:SetScript("OnClick", function(self)
+                    local target = 10 + self.side * self.strength * 2
+                    if frame.value == target then target = 10 end
+                    frame:SetValue(target)
+                    RPF.SafeCall("trait dots", onPick, target)
+                end)
+                dot:SetScript("OnEnter", function(self) self.tex:SetAlpha(1) end)
+                dot:SetScript("OnLeave", function() frame:SetValue(frame.value) end)
+            else
+                dot:EnableMouse(false)
+            end
+            frame.dots[#frame.dots + 1] = dot
+        end
+    end
+    function frame:SetValue(value)
+        self.value = math.max(0, math.min(20, math.floor((tonumber(value) or 10) + 0.5)))
+        local lean = (self.value - 10) / 2 -- negative leans left, positive right
+        local strength = math.min(5, math.floor(math.abs(lean) + 0.5))
+        local filledSide = lean < 0 and -1 or 1
+        local a, m = UI.Color("accent"), UI.Color("muted")
+        for _, dot in ipairs(self.dots) do
+            local filled = strength >= dot.strength and dot.side == filledSide
+            dot.tex:SetTexture(media .. (filled and "Dot" or "DotEmpty"))
+            local c = filled and a or m
+            dot.tex:SetVertexColor(c[1], c[2], c[3], 1)
+            dot.tex:SetAlpha(filled and 1 or 0.7)
+        end
+    end
+    frame:SetValue(10)
+    return frame
+end
+
 -- A simple tooltip for any frame.
 function UI.Tooltip(frame, title, body)
     frame:HookScript("OnEnter", function(self)
