@@ -2,6 +2,12 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.10] - 2026-11-24
+
+### Fixed
+- Opening the RP chat gave the error "Cannot set tex coords when texture has mask" when a message came
+  from someone out of sight with no profile icon (shown with their class icon).
+
 ## [0.3.9] - 2026-11-24
 
 ### Changed

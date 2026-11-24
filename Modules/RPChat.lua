@@ -168,27 +168,29 @@ end
 -- The game's portrait if we can see them; otherwise their profile icon; otherwise a round class icon.
 local function SetPortrait(row, msg, fields)
     local unit = FindUnit(msg.guid)
+    -- Only one of the three pictures is shown. The masked (rounded) icon can't take tex coords, so the
+    -- class icon, which needs them and is already round, has its own unmasked texture.
+    row.portrait:Hide()
+    row.icon:Hide()
+    row.classIcon:Hide()
     if unit then
         SetPortraitTexture(row.portrait, unit)
         row.portrait:Show()
-        row.icon:Hide()
         return
     end
-    row.portrait:Hide()
-    row.icon:Show()
     if fields and fields.IC and fields.IC ~= "" then
         UI.SetIcon(row.icon, tonumber(fields.IC) or fields.IC)
-        row.icon:SetTexCoord(0, 1, 0, 1)
+        row.icon:Show()
         return
     end
     local class = ClassOf(msg.guid)
     local coords = class and CLASS_ICON_TCOORDS and CLASS_ICON_TCOORDS[class]
     if coords then
-        row.icon:SetTexture(CLASS_CIRCLES)
-        row.icon:SetTexCoord(unpack(coords))
+        row.classIcon:SetTexCoord(unpack(coords))
+        row.classIcon:Show()
     else
         UI.SetIcon(row.icon, nil)
-        row.icon:SetTexCoord(0, 1, 0, 1)
+        row.icon:Show()
     end
 end
 
@@ -222,6 +224,10 @@ local function NewRow(msg, grouped)
         row.icon:SetSize(DISC - 6, DISC - 6)
         row.icon:SetPoint("CENTER", ring, "CENTER", 0, 0)
         if row.icon.SetMask then row.icon:SetMask(CIRCLE_MASK) end
+        row.classIcon = holder:CreateTexture(nil, "ARTWORK")
+        row.classIcon:SetSize(DISC - 6, DISC - 6)
+        row.classIcon:SetPoint("CENTER", ring, "CENTER", 0, 0)
+        row.classIcon:SetTexture(CLASS_CIRCLES)
         row.header = UI.Text(row, "", 12, "text")
         row.header:SetPoint("TOPLEFT", PORTRAIT + 6, -4)
         row.header:SetWordWrap(false)
