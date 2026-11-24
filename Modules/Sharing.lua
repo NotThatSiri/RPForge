@@ -46,8 +46,11 @@ local IsLoaded = (C_AddOns and C_AddOns.IsAddOnLoaded) or IsAddOnLoaded
 local function MergedName(unit)
     local name, realm = UnitFullName(unit)
     if not name then return nil end
+    -- On surname clients (WoW Forever) Chomp refuses names that aren't "Given Surname" yet, for example
+    -- while the game is still loading someone's name. Fall back to the plain name instead of an error.
     if AddOn_Chomp and AddOn_Chomp.NameMergedRealm then
-        return AddOn_Chomp.NameMergedRealm(name, realm)
+        local ok, merged = pcall(AddOn_Chomp.NameMergedRealm, name, realm)
+        if ok then return merged end
     end
     return (realm and realm ~= "") and (name .. "-" .. realm) or name
 end

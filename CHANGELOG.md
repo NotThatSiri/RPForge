@@ -19,6 +19,10 @@ Persona: how your character comes across.
 - With **Keep Total RP 3**, Home shows your Total RP 3 glances and name colour. **Move my profiles to
   RP Forge** now also copies glances, custom traits, name colour and icon.
 
+### Fixed
+- An error ("Chomp.NameMergedRealm: expected a full name") could appear while standing near other
+  players, when the game hadn't loaded someone's full name yet. ([#7](https://github.com/NotThatSiri/RPForge/issues/7))
+
 ## [0.2.5] - 2026-11-24
 
 Choosing between Total RP 3 and RP Forge.
