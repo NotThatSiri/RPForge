@@ -169,18 +169,26 @@ local function Build()
     close:SetScript("OnClick", function() window:Hide() end)
 
     -- Settings: opens Settings, or goes back to the previous page when Settings is open.
+    -- The cogwheel image comes from ODYN's icon pack (see NOTICE); it's white, so the theme colours it.
     local cog = CreateFrame("Button", nil, title)
-    cog:SetHeight(TITLE_HEIGHT)
-    cog.label = UI.Text(cog, "Settings", 12, "muted", "CENTER")
-    cog.label:SetPoint("CENTER", 0, 0)
-    cog:SetWidth(cog.label:GetStringWidth() + 20)
+    cog:SetSize(TITLE_HEIGHT - 4, TITLE_HEIGHT)
     cog:SetPoint("RIGHT", close, "LEFT", -2, 0)
+    cog.icon = cog:CreateTexture(nil, "ARTWORK")
+    cog.icon:SetTexture("Interface\\AddOns\\" .. RPF.ADDON .. "\\Media\\Settings")
+    cog.icon:SetSize(16, 16)
+    cog.icon:SetPoint("CENTER")
     function cog:Refresh()
         local active = currentKey == "settings"
-        UI.SetTextColor(self.label, (active or self:IsMouseOver()) and "accent" or "muted")
+        local c = UI.Color((active or self:IsMouseOver()) and "accent" or "muted")
+        self.icon:SetVertexColor(c[1], c[2], c[3], 1)
     end
-    cog:SetScript("OnEnter", function(self) self:Refresh() end)
-    cog:SetScript("OnLeave", function(self) self:Refresh() end)
+    cog:SetScript("OnEnter", function(self)
+        self:Refresh()
+        GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
+        GameTooltip:AddLine("Settings", 1, 0.82, 0.45)
+        GameTooltip:Show()
+    end)
+    cog:SetScript("OnLeave", function(self) self:Refresh(); GameTooltip:Hide() end)
     cog:SetScript("OnClick", function() UI.ToggleSettings() end)
     window.cog = cog
     cog:Refresh()

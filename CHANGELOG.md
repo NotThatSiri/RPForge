@@ -2,6 +2,12 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.2.15] - 2026-11-24
+
+### Changed
+- The **Settings** button in the title bar is a cogwheel again, coloured by the theme. The cogwheel
+  image comes from an icon pack (see `NOTICE`).
+
 ## [0.2.14] - 2026-11-24
 
 ### Changed
