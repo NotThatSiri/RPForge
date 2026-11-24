@@ -2,6 +2,12 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.2.3] - 2026-11-24
+
+### Fixed
+- The background page listed races that only NPCs have (such as the Broken, Fel Orcs and Forest Trolls),
+  which have no picture. It now only lists playable races.
+
 ## [0.2.2] - 2026-11-24
 
 ### Changed

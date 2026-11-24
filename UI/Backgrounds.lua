@@ -25,6 +25,16 @@ local FALLBACK_RACES = {
     { file = "Tauren", name = "Tauren" }, { file = "Troll", name = "Troll" },
 }
 
+-- Only playable races have dressing-room pictures. The game's race list also holds NPC races (Broken,
+-- Fel Orc, Forest Troll...) whose pictures load but are empty, so those are left out.
+local PLAYABLE = {
+    Human = true, Dwarf = true, NightElf = true, Gnome = true, Orc = true, Scourge = true, Tauren = true,
+    Troll = true, BloodElf = true, Draenei = true, Goblin = true, Worgen = true, Pandaren = true,
+    Nightborne = true, HighmountainTauren = true, VoidElf = true, LightforgedDraenei = true,
+    ZandalariTroll = true, KulTiran = true, DarkIronDwarf = true, Vulpera = true, MagharOrc = true,
+    Mechagnome = true, Dracthyr = true, EarthenDwarf = true,
+}
+
 function Backgrounds.PlayerRace()
     local _, file = UnitRace("player")
     return file
@@ -48,7 +58,7 @@ function Backgrounds.Races()
         for id = 1, 40 do
             local info = C_CreatureInfo.GetRaceInfo(id)
             local file = info and info.clientFileString
-            if file and not seen[file] then
+            if file and PLAYABLE[file] and not seen[file] then
                 seen[file] = true
                 list[#list + 1] = { file = file, name = info.raceName or file }
             end
