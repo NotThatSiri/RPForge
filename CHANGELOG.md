@@ -2,7 +2,7 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
-## [0.2.0] - unreleased
+## [0.2.0] - 2026-11-24
 
 Your roleplay profile.
 
