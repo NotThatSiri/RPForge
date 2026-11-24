@@ -49,7 +49,7 @@ SLASH_RPFORGE2 = "/rpforge"
 SlashCmdList.RPFORGE = function(input)
     local name, rest = strtrim(input or ""):match("^(%S*)%s*(.-)$")
     name = (name or ""):lower()
-    if name == "" then name = "help" end
+    if name == "" then name = commands.open and "open" or "help" end
     local command = commands[name]
     if not command then
         RPF.Print("unknown command '" .. name .. "'. Type /rpf help.")

@@ -2,6 +2,18 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.1.2] - 2026-11-24
+
+### Added
+- The RP Forge window. `/rpf` opens it (`/rpf open` too). Drag the title bar to move it; it remembers
+  where you left it. Escape or the x closes it. `/rpf reset` moves it back to the middle of the screen.
+- Home page: your version (and whether a newer one is out), how many RP Forge players were heard, and a
+  "Who's around?" button.
+- About page: credits, licence and a link to the GitHub page to copy.
+
+### Changed
+- `/rpf` on its own now opens the window. `/rpf help` lists the commands.
+
 ## [0.1.1] - 2026-11-24
 
 ### Added
