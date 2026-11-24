@@ -105,6 +105,8 @@ function Link.ConvertPersona(trp)
     local persona = { impressions = {}, traits = {} }
     if type(ch.IC) == "string" and ch.IC ~= "" then persona.icon = ch.IC end
     if type(ch.CH) == "string" and #ch.CH == 6 then persona.nameColor = ch.CH:lower() end
+    local about = player.about or {}
+    if tonumber(about.MU) then persona.music = tonumber(about.MU) end
     for slot = 1, Profiles.MAX_IMPRESSIONS do
         local peek = type(misc.PE) == "table" and misc.PE[tostring(slot)]
         if type(peek) == "table" and peek.AC and ((peek.TI or "") ~= "" or (peek.TX or "") ~= "") then

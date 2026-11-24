@@ -102,6 +102,7 @@ end
 --   nameColor    "rrggbb", or nil for the default colour
 --   impressions  up to 5 first impressions: { icon, title, text }
 --   traits       up to 10 trait sliders: { left, right, value = 0..20 } (10 is the middle)
+--   music        theme tune: a music file ID, or nil
 Profiles.MAX_IMPRESSIONS = 5
 Profiles.MAX_TRAITS = 10
 Profiles.TRAIT_MAX = 20

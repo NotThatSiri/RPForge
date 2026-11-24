@@ -77,6 +77,7 @@ local function Publish()
     local persona = Profiles.GetPersona(profile)
     if persona.nameColor then my.NA = "|cff" .. persona.nameColor .. my.NA .. "|r" end
     my.IC = persona.icon and tostring(UI.IconTexture(persona.icon)) or nil
+    my.MU = persona.music and tostring(persona.music) or nil
     local glances = {}
     for slot = 1, Profiles.MAX_IMPRESSIONS do
         local impression = persona.impressions[slot]

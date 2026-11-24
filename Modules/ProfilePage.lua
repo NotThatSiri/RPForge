@@ -224,6 +224,11 @@ local function FillPersona()
     local r, g, b = HexToRGB(persona.nameColor)
     page.colorSwatch.fill:SetVertexColor(r or 1, g or 0.86, b or 0.56, 1)
     page.colorState:SetText(persona.nameColor and ("#" .. persona.nameColor) or "Default")
+    if page.tuneName then
+        page.tuneName:SetText(persona.music and UI.MusicName(persona.music) or "None chosen")
+        page.tunePlay:SetEnabled(persona.music ~= nil)
+        page.tunePlay.label:SetText(UI.IsTunePlaying(persona.music) and "Stop" or "Play")
+    end
     for slot, row in ipairs(page.impressionRows) do
         local impression = persona.impressions[slot] or {}
         row.icon:SetIcon(impression.icon)
@@ -380,6 +385,37 @@ local function BuildPersona(frame, width)
     end
     local hint = UI.Text(frame, "For example: a scar across the cheek, the smell of pipe smoke, a holy symbol worn openly.", 10, "muted")
     hint:SetPoint("TOPLEFT", 0, -124 - Profiles.MAX_IMPRESSIONS * 44 - 2)
+
+    local tuneLabel = UI.Text(frame, "THEME TUNE  (other players can play it from your profile)", 10, "muted")
+    tuneLabel:SetPoint("TOPLEFT", 0, -124 - Profiles.MAX_IMPRESSIONS * 44 - 30)
+    page.tuneName = UI.Text(frame, "", 12, "text")
+    page.tuneName:SetPoint("TOPLEFT", tuneLabel, "BOTTOMLEFT", 0, -12)
+    page.tuneName:SetWidth(320)
+    page.tuneName:SetWordWrap(false)
+    local choose = UI.Button(frame, "Choose...", 100, 26)
+    choose:SetPoint("LEFT", page.tuneName, "RIGHT", 10, 0)
+    choose:SetScript("OnClick", function()
+        UI.PickMusic(Profiles.GetPersona().music, function(file)
+            Profiles.GetPersona().music = file
+            Profiles.PersonaChanged()
+            FillPersona()
+        end)
+    end)
+    page.tunePlay = UI.Button(frame, "Play", 70, 26)
+    page.tunePlay:SetPoint("LEFT", choose, "RIGHT", 6, 0)
+    page.tunePlay:SetScript("OnClick", function()
+        local file = Profiles.GetPersona().music
+        if UI.IsTunePlaying(file) then UI.StopTune() else UI.PlayTune(file) end
+        FillPersona()
+    end)
+    local clear = UI.Button(frame, "Clear", 70, 26)
+    clear:SetPoint("LEFT", page.tunePlay, "RIGHT", 6, 0)
+    clear:SetScript("OnClick", function()
+        if UI.IsTunePlaying(Profiles.GetPersona().music) then UI.StopTune() end
+        Profiles.GetPersona().music = nil
+        Profiles.PersonaChanged()
+        FillPersona()
+    end)
 end
 
 local function BuildTraits(frame, width)

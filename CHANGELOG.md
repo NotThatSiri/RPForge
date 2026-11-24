@@ -2,6 +2,15 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.2.9] - 2026-11-24
+
+### Added
+- **Theme tune** on the Persona tab: choose a song from the game's music. **Choose...** opens a
+  searchable list of every track with its length; **Play** previews a track, clicking a row picks it.
+  Play, stop or clear your tune from the Persona tab.
+- Total RP 3 users can play your theme tune from your profile. **Move my profiles to RP Forge** also
+  copies Total RP 3 theme tunes.
+
 ## [0.2.8] - 2026-11-24
 
 ### Added
