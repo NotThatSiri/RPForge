@@ -67,7 +67,6 @@ local function RefreshHome()
     end
     for i = shown + 1, #home.impressions do home.impressions[i]:Hide() end
     home.impressionsLabel:SetShown(shown > 0)
-    home.edit.label:SetText(usingTRP3 and "Edit in Total RP 3" or "Edit profile")
     for _, b in ipairs(home.statusRow.buttons) do b:SetEnabled(not usingTRP3) end
     home.fullTitle:SetText((f.fullTitle and f.fullTitle ~= "") and ("< " .. f.fullTitle .. " >") or "")
     local race = (f.race and f.race ~= "") and f.race or UnitRace("player")
@@ -156,14 +155,8 @@ UI.RegisterPage({
             fs:SetPoint("RIGHT", overlay, "RIGHT", -170, 0)
         end
 
-        local edit = UI.Button(overlay, "Edit profile", 140, 26, "primary")
-        edit:SetPoint("TOPRIGHT", -14, -14)
-        edit:SetScript("OnClick", function()
-            if RPF.TRP3Link and RPF.TRP3Link.UsingTRP3() then RPF.TRP3Link.OpenTRP3() else UI.OpenProfile() end
-        end)
-        home.edit = edit
         local background = UI.Button(overlay, "Change background", 140, 26)
-        background:SetPoint("TOPRIGHT", edit, "BOTTOMRIGHT", 0, -6)
+        background:SetPoint("TOPRIGHT", -14, -14)
         background:SetScript("OnClick", function() UI.ShowPage("backgrounds") end)
         UI.Tooltip(background, "Banner background", "Pick one of the game's pictures for this profile's banner.")
 

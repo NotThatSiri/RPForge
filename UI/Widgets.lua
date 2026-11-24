@@ -355,20 +355,49 @@ end
 -- Icons are stored as the game's icon file ID (a number) or an icon name ("INV_Misc_Book_09").
 -- These turn either form into something a texture or a text icon can show.
 UI.DEFAULT_ICON = 134400 -- the question mark
-function UI.IconTexture(icon)
-    if type(icon) == "number" then return icon end
-    if type(icon) == "string" and icon ~= "" then
-        if tonumber(icon) then return tonumber(icon) end
-        if icon:find("[\\/]") then return icon end
-        return "Interface\\Icons\\" .. icon
+
+-- Other addons can send icons as LibRPMedia "icon IDs": numbers with extra bits on top that say whether
+-- it's a file or an atlas, too large to give the game directly. LibRPMedia decodes those.
+local function Media()
+    return LibStub and LibStub:GetLibrary("LibRPMedia-1.2", true)
+end
+
+-- Turn any icon value into (source, isAtlas): a file ID or path for SetTexture, or an atlas name.
+function UI.ResolveIcon(icon)
+    if type(icon) == "string" and tonumber(icon) then icon = tonumber(icon) end
+    if icon == nil or icon == "" then return UI.DEFAULT_ICON, false end
+    local media = Media()
+    if media and media.ResolveIcon then
+        local ok, source, kind = pcall(media.ResolveIcon, media, icon)
+        if ok and source and not (source == UI.DEFAULT_ICON and type(icon) == "string" and icon:find("[\\/]")) then
+            return source, kind == media.IconType.Atlas
+        end
     end
-    return UI.DEFAULT_ICON
+    if type(icon) == "number" then
+        -- Without LibRPMedia: keep only the file part of the number, so it always fits.
+        return (icon >= 0 and icon <= 0x03ffffff) and icon or UI.DEFAULT_ICON, false
+    end
+    if icon:find("[\\/]") then return icon, false end
+    return "Interface\\Icons\\" .. icon, false
+end
+
+-- A file icon (for SetTexture). Atlas icons fall back to the question mark here; use UI.SetIcon instead.
+function UI.IconTexture(icon)
+    local source, isAtlas = UI.ResolveIcon(icon)
+    return isAtlas and UI.DEFAULT_ICON or source
+end
+
+-- Show an icon on a texture, file or atlas.
+function UI.SetIcon(texture, icon)
+    local source, isAtlas = UI.ResolveIcon(icon)
+    if isAtlas then texture:SetAtlas(source) else texture:SetTexture(source) end
 end
 
 function UI.IconMarkup(icon, size)
     size = size or 32
-    local tex = UI.IconTexture(icon)
-    return string.format("|T%s:%d:%d|t", tostring(tex), size, size)
+    local source, isAtlas = UI.ResolveIcon(icon)
+    if isAtlas then return string.format("|A:%s:%d:%d|a", source, size, size) end
+    return string.format("|T%s:%d:%d|t", tostring(source), size, size)
 end
 
 -- A square button showing an icon, with a thin border.
@@ -382,7 +411,7 @@ function UI.IconButton(parent, size, onClick)
     b.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
     function b:SetIcon(icon)
         self.value = icon
-        self.icon:SetTexture(UI.IconTexture(icon))
+        UI.SetIcon(self.icon, icon)
     end
     b:SetScript("OnEnter", function(self) UI.Backdrop(self, "panelAlt", "accent") end)
     b:SetScript("OnLeave", function(self) UI.Backdrop(self, "panelAlt", "border") end)

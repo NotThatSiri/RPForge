@@ -71,36 +71,31 @@ local function Ago(seconds)
 end
 
 -- The profile viewer -------------------------------------------------------------------------------
+-- One layout shows every profile: other people's (the "person" page) and your own (the Profile page).
 
-local viewer -- the built viewer page
-local viewing -- whose profile is shown (an MSP name such as "Kiri Stormcrest")
+-- Draw a profile (MSP fields) into the layout v; seenText is the small line under the header.
+local function RenderInto(v, field, seenText, fallbackName)
+    field = field or {}
 
-local function RenderProfile()
-    if not viewer or not viewing then return end
-    local field = Sharing.GetProfile(viewing) or {}
-    local person = RPF.db.people and RPF.db.people[viewing]
-
-    viewer.icon:SetIcon(Has(field.IC) and (tonumber(field.IC) or field.IC) or nil)
-    viewer.name:SetText(Has(field.NA) and ((Has(field.PX) and (field.PX .. " ") or "") .. field.NA) or viewing)
-    viewer.title:SetText(Has(field.NT) and ("< " .. field.NT .. " >") or "")
+    v.icon:SetIcon(Has(field.IC) and (tonumber(field.IC) or field.IC) or nil)
+    v.name:SetText(Has(field.NA) and ((Has(field.PX) and (field.PX .. " ") or "") .. field.NA) or fallbackName or "")
+    v.title:SetText(Has(field.NT) and ("< " .. field.NT .. " >") or "")
     local status = STATUS[field.FC or ""]
     local race = Has(field.RA) and field.RA or ""
     local class = Has(field.RC) and field.RC or ""
-    viewer.sub:SetText(strtrim(race .. " " .. class) .. (status and ("   " .. UI.ColorCode(status[2]) .. status[1] .. "|r") or ""))
-    local seen = (viewing == Sharing.MergedName("player")) and "Your own profile" or
-        ("Character: " .. viewing .. (person and person.seen and ("   Last seen " .. Ago(person.seen)) or ""))
-    viewer.seen:SetText(seen)
-    viewer.playTune:SetShown(tonumber(field.MU) ~= nil)
-    viewer.playTune.file = tonumber(field.MU)
-    viewer.playTune.label:SetText(UI.IsTunePlaying(viewer.playTune.file) and "Stop theme" or "Play theme")
+    v.sub:SetText(strtrim(race .. " " .. class) .. (status and ("   " .. UI.ColorCode(status[2]) .. status[1] .. "|r") or ""))
+    v.seen:SetText(seenText or "")
+    v.playTune:SetShown(tonumber(field.MU) ~= nil)
+    v.playTune.file = tonumber(field.MU)
+    v.playTune.label:SetText(UI.IsTunePlaying(v.playTune.file) and "Stop theme" or "Play theme")
 
     -- Rebuild the scrolling body.
-    if viewer.body then viewer.body:Hide(); viewer.body:SetParent(nil) end
-    local body = CreateFrame("Frame", nil, viewer.scroll)
-    local width = viewer.scroll:GetWidth()
+    if v.body then v.body:Hide(); v.body:SetParent(nil) end
+    local body = CreateFrame("Frame", nil, v.scroll)
+    local width = v.scroll:GetWidth()
     body:SetWidth(width > 0 and width or 680)
-    viewer.scroll:SetScrollChild(body)
-    viewer.body = body
+    v.scroll:SetScrollChild(body)
+    v.body = body
     local y = 0
 
     local function Heading(text)
@@ -193,53 +188,84 @@ local function RenderProfile()
     body:SetHeight(y + 20)
 end
 
+-- Build the viewer layout on a page. addButtons(v) adds buttons at the top right and returns the
+-- leftmost one, so the name and Play theme sit to its left.
+local function CreateViewer(frame, addButtons)
+    local v = { frame = frame }
+    v.icon = UI.IconButton(frame, 52)
+    v.icon:SetPoint("TOPLEFT", 28, -24)
+    v.icon:EnableMouse(false)
+    local leftmost = addButtons(v)
+    v.playTune = UI.Button(frame, "Play theme", 110, 26)
+    v.playTune:SetPoint("RIGHT", leftmost, "LEFT", -8, 0)
+    v.playTune:SetScript("OnClick", function(self)
+        if UI.IsTunePlaying(self.file) then UI.StopTune() else UI.PlayTune(self.file) end
+        self.label:SetText(UI.IsTunePlaying(self.file) and "Stop theme" or "Play theme")
+    end)
+    v.name = UI.Text(frame, "", 20, "accent")
+    v.name:SetPoint("TOPLEFT", v.icon, "TOPRIGHT", 14, -2)
+    v.name:SetPoint("RIGHT", v.playTune, "LEFT", -12, 0)
+    v.name:SetWordWrap(false)
+    v.title = UI.Text(frame, "", 12, "muted")
+    v.title:SetPoint("TOPLEFT", v.name, "BOTTOMLEFT", 0, -4)
+    v.sub = UI.Text(frame, "", 12, "text")
+    v.sub:SetPoint("TOPLEFT", v.title, "BOTTOMLEFT", 0, -6)
+    v.seen = UI.Text(frame, "", 10, "muted")
+    v.seen:SetPoint("TOPLEFT", 28, -92)
+    UI.Divider(frame, -110, 28)
+    v.scroll = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
+    v.scroll:SetPoint("TOPLEFT", 28, -122)
+    v.scroll:SetPoint("BOTTOMRIGHT", -44, 16)
+    UI.SkinScrollBar(v.scroll)
+    return v
+end
+
+-- Someone else's profile ------------------------------------------------------------------------------
+
+local viewer -- the "person" page's viewer
+local viewing -- whose profile is shown (an MSP name such as "Kiri Stormcrest")
+
+local function RenderProfile()
+    if not viewer or not viewing then return end
+    if viewing == Sharing.MergedName("player") then
+        RenderInto(viewer, Sharing.GetProfile(viewing), "Your own profile, as others see it", viewing)
+        return
+    end
+    local person = RPF.db.people and RPF.db.people[viewing]
+    RenderInto(viewer, Sharing.GetProfile(viewing),
+        "Character: " .. viewing .. (person and person.seen and ("   Last seen " .. Ago(person.seen)) or ""), viewing)
+end
+
 UI.RegisterPage({
     key = "person",
     title = "Profile",
     hidden = true, -- opened from People, /rpf view, or a player's name
     build = function(frame)
-        viewer = frame
-        viewer.icon = UI.IconButton(frame, 52)
-        viewer.icon:SetPoint("TOPLEFT", 28, -24)
-        viewer.icon:EnableMouse(false)
-        viewer.back = UI.Button(frame, "Back", 80, 26)
-        viewer.back:SetPoint("TOPRIGHT", -28, -24)
-        viewer.back:SetScript("OnClick", function() UI.ShowPage(UI.previousPage ~= "person" and UI.previousPage or "people") end)
-        viewer.playTune = UI.Button(frame, "Play theme", 110, 26)
-        viewer.playTune:SetPoint("RIGHT", viewer.back, "LEFT", -8, 0)
-        viewer.playTune:SetScript("OnClick", function(self)
-            if UI.IsTunePlaying(self.file) then UI.StopTune() else UI.PlayTune(self.file) end
-            self.label:SetText(UI.IsTunePlaying(self.file) and "Stop theme" or "Play theme")
+        viewer = CreateViewer(frame, function(v)
+            v.back = UI.Button(frame, "Back", 80, 26)
+            v.back:SetPoint("TOPRIGHT", -28, -24)
+            v.back:SetScript("OnClick", function() UI.ShowPage(UI.previousPage ~= "person" and UI.previousPage or "people") end)
+            return v.back
         end)
-        viewer.name = UI.Text(frame, "", 20, "accent")
-        viewer.name:SetPoint("TOPLEFT", viewer.icon, "TOPRIGHT", 14, -2)
-        viewer.name:SetPoint("RIGHT", viewer.playTune, "LEFT", -12, 0)
-        viewer.name:SetWordWrap(false)
-        viewer.title = UI.Text(frame, "", 12, "muted")
-        viewer.title:SetPoint("TOPLEFT", viewer.name, "BOTTOMLEFT", 0, -4)
-        viewer.sub = UI.Text(frame, "", 12, "text")
-        viewer.sub:SetPoint("TOPLEFT", viewer.title, "BOTTOMLEFT", 0, -6)
-        viewer.seen = UI.Text(frame, "", 10, "muted")
-        viewer.seen:SetPoint("TOPLEFT", 28, -92)
-        UI.Divider(frame, -110, 28)
-        viewer.scroll = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
-        viewer.scroll:SetPoint("TOPLEFT", 28, -122)
-        viewer.scroll:SetPoint("BOTTOMRIGHT", -44, 16)
-        UI.SkinScrollBar(viewer.scroll)
     end,
     onShow = RenderProfile,
 })
 
 -- Open someone's profile by their character name. Asks them for it if it isn't here yet.
+-- Your own name opens your Profile page instead.
 function UI.ViewProfile(name)
     if not name or name == "" then return end
+    if name == Sharing.MergedName("player") then
+        UI.OpenWindow("myprofile")
+        return
+    end
     viewing = name
     Sharing.RequestProfile(name)
     UI.OpenWindow("person")
 end
 
 RPF.Listen("PERSON_UPDATED", function(name)
-    if name == viewing and viewer and viewer:IsVisible() then RenderProfile() end
+    if name == viewing and viewer and viewer.frame:IsVisible() then RenderProfile() end
 end)
 
 RPF.AddCommand("view", "View your target's roleplay profile (or your own)", function(rest)
@@ -252,6 +278,65 @@ RPF.AddCommand("view", "View your target's roleplay profile (or your own)", func
         end
     end
     UI.ViewProfile(name)
+end)
+
+-- Your own profile ------------------------------------------------------------------------------------
+
+local mine -- the Profile page's viewer
+
+-- Your profile as others see it: the Total RP 3 one with "Keep Total RP 3", otherwise RP Forge's.
+local function MyFields()
+    local link = RPF.TRP3Link
+    if link and link.UsingTRP3() then
+        local fields, persona = link.CurrentTRP3Fields(), link.CurrentTRP3Persona()
+        if fields then return Sharing.BuildFields({ fields = fields, persona = persona }) end
+    end
+    return Sharing.BuildFields()
+end
+
+local function RenderMine()
+    if not mine then return end
+    local usingTRP3 = RPF.TRP3Link and RPF.TRP3Link.UsingTRP3()
+    local active = RPF.Profiles.GetActive()
+    RenderInto(mine, MyFields(), usingTRP3 and "Your Total RP 3 profile, as others see it" or "Your profile, as others see it",
+        Sharing.MergedName("player"))
+    mine.edit.label:SetText(usingTRP3 and "Edit in Total RP 3" or "Edit profile")
+    mine.switcher.label:SetText("Profile: " .. (active and active.name or "?"))
+    mine.switcher:SetShown(not usingTRP3)
+end
+
+UI.RegisterPage({
+    key = "myprofile",
+    title = "Profile",
+    section = "Character",
+    sectionOrder = 2,
+    order = 10,
+    build = function(frame)
+        mine = CreateViewer(frame, function(v)
+            v.switcher = UI.Button(frame, "", 190, 26)
+            v.switcher:SetPoint("TOPRIGHT", -28, -24)
+            v.switcher.label:ClearAllPoints()
+            v.switcher.label:SetPoint("LEFT", 10, 0)
+            v.switcher.label:SetPoint("RIGHT", -24, 0)
+            v.switcher.label:SetJustifyH("LEFT")
+            v.switcher.label:SetWordWrap(false)
+            local arrow = UI.Text(v.switcher, "v", 11, "muted", "CENTER")
+            arrow:SetPoint("RIGHT", -10, 0)
+            v.switcher:SetScript("OnClick", function(self) UI.ShowProfileMenu(self) end)
+            UI.Tooltip(v.switcher, "Your profiles", "Switch to another profile, or make, copy, rename or delete one.")
+            v.edit = UI.Button(frame, "Edit profile", 130, 26, "primary")
+            v.edit:SetPoint("RIGHT", v.switcher, "LEFT", -8, 0)
+            v.edit:SetScript("OnClick", function()
+                if RPF.TRP3Link and RPF.TRP3Link.UsingTRP3() then RPF.TRP3Link.OpenTRP3() else UI.OpenProfile() end
+            end)
+            return v.edit
+        end)
+    end,
+    onShow = RenderMine,
+})
+
+RPF.Listen("PROFILE_CHANGED", function()
+    if mine and mine.frame:IsVisible() then RenderMine() end
 end)
 
 -- The People page ------------------------------------------------------------------------------------

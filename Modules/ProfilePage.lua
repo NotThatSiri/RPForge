@@ -103,6 +103,7 @@ end
 
 -- The menu behind the "Profile: ..." button: switch profiles, or make, copy, rename and delete them.
 local function ShowProfileMenu(owner)
+    if not Profiles.GetActive() then return end
     local active = Profiles.GetActive()
     local list = Profiles.List()
     local items = {}
@@ -127,6 +128,8 @@ local function ShowProfileMenu(owner)
     end, disabled = #list <= 1 }
     UI.ShowMenu(owner, items)
 end
+
+UI.ShowProfileMenu = ShowProfileMenu
 
 local function BuildIdentity(frame, width)
     local colWidth = math.floor((width - 24) / 2)
@@ -505,8 +508,8 @@ UI.RegisterPage({
 
         local done = UI.Button(frame, "Done", 90, 26, "primary")
         done:SetPoint("RIGHT", page.switcher, "LEFT", -8, 0)
-        done:SetScript("OnClick", function() UI.ShowPage("home") end)
-        UI.Tooltip(done, "Done", "Back to Home. Your changes are already saved.")
+        done:SetScript("OnClick", function() UI.ShowPage("myprofile") end)
+        UI.Tooltip(done, "Done", "Back to your profile. Your changes are already saved.")
         page.done = done
 
         page.fullName = UI.Text(frame, "", 20, "accent")

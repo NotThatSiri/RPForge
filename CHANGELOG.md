@@ -2,6 +2,21 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.2.11] - 2026-11-24
+
+### Added
+- A **Profile** page in the side menu, under Character: your own profile shown the way other players
+  see it, with **Edit profile** and your profile switcher at the top. With Keep Total RP 3, it shows
+  your Total RP 3 profile and **Edit in Total RP 3**.
+
+### Changed
+- **Edit profile** moved from the Home banner to the Profile page. **Done** in the editor goes back to it.
+- `/rpf view` without a player targeted opens your Profile page.
+
+### Fixed
+- The People page could fail to open with "integer overflow" when someone's icon came from Total RP 3 in
+  its packed form. Icons from other addons (including atlas icons) now show correctly everywhere.
+
 ## [0.2.10] - 2026-11-24
 
 Viewing profiles, finishing the Profile & Persona milestone.
