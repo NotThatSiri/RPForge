@@ -2,6 +2,18 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.26] - 2026-11-25
+
+### Added
+- **Write to your party, raid and whispers from the RP chat box**, like the game's chat:
+  - /p and /ra for party and raid (with "Party and raid in RP chat" on).
+  - /w Name to whisper someone, and /r to answer the last whisper (with "Whispers in RP chat" on).
+  - The box shows where it sends ("Party:", "To Kiri:") in that chat colour, and stays there until you
+    switch with /s, /e or /y. Party and raid go back to Say when you leave the group.
+  - Typing in party or raid tells your group you're typing. Typing a whisper tells no one.
+- **Chat tab in Settings.** The RP chat layout, typing indicator, party and raid, whispers and the RP button
+  have moved there from General and Appearance, with a list of the commands you can use in the box.
+
 ## [0.3.25] - 2026-11-25
 
 ### Added

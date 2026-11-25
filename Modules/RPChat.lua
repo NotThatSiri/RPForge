@@ -348,14 +348,103 @@ end
 -- Sending -------------------------------------------------------------------------------------------
 
 local MAX_LENGTH = 255
-local MODE_LABELS = { SAY = "Say:", EMOTE = "Emote:", YELL = "Yell:" }
+local MODE_LABELS = { SAY = "Say:", EMOTE = "Emote:", YELL = "Yell:", PARTY = "Party:", RAID = "Raid:" }
 local MODE_HINTS = {
-    SAY = "Say something. /e to emote, /y to yell. Shift+Enter: new line.",
-    EMOTE = "Emote. /s to say, /y to yell. Shift+Enter: new line.",
-    YELL = "Yell. /s to say, /e to emote. Shift+Enter: new line.",
+    SAY = "Say something.", EMOTE = "Emote.", YELL = "Yell.", PARTY = "Write to your party.",
+    RAID = "Write to your raid.", WHISPER = "Whisper.",
 }
 local PREFIXES = { ["/s "] = "SAY", ["/say "] = "SAY", ["/e "] = "EMOTE", ["/me "] = "EMOTE", ["/emote "] = "EMOTE",
-    ["/y "] = "YELL", ["/yell "] = "YELL" }
+    ["/y "] = "YELL", ["/yell "] = "YELL",
+    -- Only with "Party and raid in RP chat" on.
+    ["/p "] = "PARTY", ["/party "] = "PARTY", ["/ra "] = "RAID", ["/raid "] = "RAID" }
+-- Only with "Whispers in RP chat" on: "/w Name text" whispers Name, "/r text" answers your last whisper.
+local WHISPER_COMMANDS = { "/w ", "/whisper ", "/t ", "/tell " }
+local REPLY_COMMANDS = { "/r ", "/reply " }
+local GROUP_MODES = { PARTY = true, RAID = true }
+
+local whisperTo        -- while set, the box whispers this person (until you switch with /s and so on)
+local lastWhisperFrom  -- the last person who whispered you, for /r
+
+-- The mode the box sends in right now, and for a whisper to whom. Party and raid fall back to Say when
+-- you aren't in a group (and come back when you are); a whisper ends when whispers are turned off.
+local function CurrentMode()
+    local settings = RPF.db.settings
+    if whisperTo and settings.chatWhispers then return "WHISPER", whisperTo end
+    whisperTo = nil
+    local mode = settings.chatMode or "SAY"
+    if not MODE_LABELS[mode] then return "SAY" end
+    if GROUP_MODES[mode] and (not settings.chatGroup or not IsInGroup()) then return "SAY" end
+    if mode == "RAID" and not IsInRaid() then return IsInGroup() and "PARTY" or "SAY" end
+    return mode
+end
+
+-- The switch letters you can use now, for the hint in the empty box.
+local function SwitchHint()
+    local list = "/s /e /y"
+    if RPF.db.settings.chatGroup then list = list .. " /p /ra" end
+    if RPF.db.settings.chatWhispers then list = list .. " /w /r" end
+    return list .. " to switch. Shift+Enter: new line."
+end
+
+-- A command at the start of the text: returns the mode ("REPLY" for /r), whom to whisper, and the text
+-- after it. Nothing when there's no command (or not a finished one yet: "/w Kiri" needs the space after
+-- the name, unless sending).
+local function ParseCommand(text, sending)
+    if text:sub(1, 1) ~= "/" then return end
+    local lower = text:lower()
+    for prefix, mode in pairs(PREFIXES) do
+        if lower:sub(1, #prefix) == prefix and (not GROUP_MODES[mode] or RPF.db.settings.chatGroup) then
+            return mode, nil, text:sub(#prefix + 1)
+        end
+    end
+    if not RPF.db.settings.chatWhispers then return end
+    for _, prefix in ipairs(REPLY_COMMANDS) do
+        if lower:sub(1, #prefix) == prefix then return "REPLY", nil, text:sub(#prefix + 1) end
+    end
+    for _, prefix in ipairs(WHISPER_COMMANDS) do
+        if lower:sub(1, #prefix) == prefix then
+            local name, rest = text:sub(#prefix + 1):match(sending and "^(%S+)%s*(.*)$" or "^(%S+)%s(.*)$")
+            if name then return "WHISPER", name, rest end
+            return
+        end
+    end
+end
+
+-- Switch the box to a mode. Returns false (and says why) when it can't.
+local function SwitchMode(mode, target)
+    if mode == "REPLY" then
+        target = lastWhisperFrom
+        if not target and ChatEdit_GetLastTellTarget then
+            local last = ChatEdit_GetLastTellTarget()
+            if type(last) == "string" and not RPF.IsSecret(last) and last ~= "" then target = last end
+        end
+        if not target then
+            RPF.Print("no one has whispered you yet.")
+            return false
+        end
+        mode = "WHISPER"
+    end
+    if mode == "WHISPER" then
+        whisperTo = target
+        return true
+    end
+    if mode == "PARTY" and not IsInGroup() then
+        RPF.Print("you aren't in a party.")
+        return false
+    end
+    if mode == "RAID" and not IsInRaid() then
+        RPF.Print("you aren't in a raid.")
+        return false
+    end
+    whisperTo = nil
+    RPF.db.settings.chatMode = mode
+    return true
+end
+
+-- What the typing indicator says about the box: group modes go to the group, whispers send nothing.
+local function TypingWhere(mode)
+    if GROUP_MODES[mode] or mode == "WHISPER" then return mode end
+end
 
 -- Split text into posts of at most 255 letters, at spaces, each ending in " (1/3)" when there are several.
 function Chat.SplitPost(text)
@@ -384,17 +473,16 @@ end
 local MyTypingChanged -- defined with the typing indicator below
 local function SendFromBox(box)
     local text = box:GetText() or ""
-    local mode = RPF.db.settings.chatMode or "SAY"
-    local lower = text:lower()
-    for prefix, prefixMode in pairs(PREFIXES) do
-        if lower:sub(1, #prefix) == prefix then
-            mode, text = prefixMode, text:sub(#prefix + 1)
-            break
-        end
+    local command, target, rest = ParseCommand(text, true)
+    if command then
+        if not SwitchMode(command, target) then return end
+        text = rest
+        if window and window.ShowMode then window.ShowMode() end
     end
+    local mode, whisper = CurrentMode()
     text = RPF.Accents.Apply(text, mode)
     for _, part in ipairs(Chat.SplitPost(text)) do
-        SendChatMessage(part, mode)
+        SendChatMessage(part, mode, nil, whisper)
     end
     box:SetText("")
     MyTypingChanged("")
@@ -417,7 +505,7 @@ local TYPING_RECENT = 10 * 60
 local TYPING_MAX_PEOPLE = 6
 local typists = {}         -- typists[shortName] = { name = full sender, at = GetTime() }
 local typingTicker
-local myTyping = { on = false, sent = 0 }
+local myTyping = { on = false, sent = 0, where = nil }
 
 local function TypingEnabled() return RPF.db.settings.typingIndicator ~= false end
 
@@ -475,15 +563,17 @@ local function SendTyping(state, where)
 end
 
 -- Called whenever the text in your box changes because you typed.
-MyTypingChanged = function(text)
+-- where: nil for say, emote and yell, "PARTY" or "RAID" to tell the group; nothing is sent for whispers.
+MyTypingChanged = function(text, where)
     if not TypingEnabled() then return end
-    local typing = strtrim(text or "") ~= ""
-    if typing and (not myTyping.on or GetTime() - myTyping.sent >= TYPING_REPEAT) then
-        myTyping.on, myTyping.sent = true, GetTime()
-        SendTyping("1")
-    elseif not typing and myTyping.on then
+    local typing = strtrim(text or "") ~= "" and where ~= "WHISPER"
+    if myTyping.on and (not typing or myTyping.where ~= where) then
         myTyping.on = false
-        SendTyping("0")
+        SendTyping("0", myTyping.where)
+    end
+    if typing and (not myTyping.on or GetTime() - myTyping.sent >= TYPING_REPEAT) then
+        myTyping.on, myTyping.sent, myTyping.where = true, GetTime(), where
+        SendTyping("1", where)
     end
 end
 
@@ -702,7 +792,8 @@ local function Build()
     scroll = CreateFrame("ScrollFrame", nil, window, "UIPanelScrollFrameTemplate")
     scroll:SetPoint("TOPLEFT", 10, -32)
     -- The typing area at the bottom: a box that grows with the text. Start with /s, /e or /y to switch
-    -- between Say, Emote and Yell, like the game's chat; the box takes that chat colour.
+    -- between Say, Emote and Yell, like the game's chat (and /p, /ra, /w Name and /r when party and raid or
+    -- whispers are on in Settings); the box takes that chat colour.
     local input = CreateFrame("Frame", nil, window)
     input:SetPoint("BOTTOMLEFT", 8, 18)
     input:SetPoint("BOTTOMRIGHT", -8, 18)
@@ -752,13 +843,12 @@ local function Build()
 
     -- Colour the label, text and border for the current mode (full border while typing).
     local function ShowMode()
-        local mode = RPF.db.settings.chatMode or "SAY"
-        if not MODE_LABELS[mode] then mode = "SAY" end
+        local mode, whisper = CurrentMode()
         local r, g, b = TypeColor(mode)
-        modeLabel:SetText(MODE_LABELS[mode])
+        modeLabel:SetText(whisper and ("To " .. ShortName(whisper) .. ":") or MODE_LABELS[mode])
         modeLabel:SetTextColor(r, g, b, 1)
         box:SetTextColor(r, g, b, 1)
-        placeholder:SetText(MODE_HINTS[mode])
+        placeholder:SetText(MODE_HINTS[mode] .. " " .. SwitchHint())
         boxFrame:SetBackdropBorderColor(r, g, b, box:HasFocus() and 1 or 0.45)
         if window.UpdateCorner then window.UpdateCorner() end
     end
@@ -766,7 +856,7 @@ local function Build()
     -- Bottom-right corner: your accent, and how many posts a long text becomes.
     function window.UpdateCorner()
         local text = box:GetText() or ""
-        local count = #Chat.SplitPost(RPF.Accents.Apply(text, RPF.db.settings.chatMode or "SAY"))
+        local count = #Chat.SplitPost(RPF.Accents.Apply(text, (CurrentMode())))
         local accent, active = RPF.Accents.Describe()
         window.accentButton.label:SetText("Accent: " .. (accent or "none") .. ((accent and not active) and " (off while not IC)" or ""))
         window.accentButton:SetWidth(window.accentButton.label:GetStringWidth() + 4)
@@ -786,20 +876,19 @@ local function Build()
     box:SetScript("OnTextChanged", function(self, userInput)
         local text = self:GetText() or ""
         -- "/e " at the start switches to Emote (and so on); the command itself is removed.
-        if userInput and text:sub(1, 1) == "/" then
-            local lower = text:lower()
-            for prefix, mode in pairs(PREFIXES) do
-                if lower:sub(1, #prefix) == prefix then
-                    RPF.db.settings.chatMode = mode
+        if userInput then
+            local command, target, rest = ParseCommand(text, false)
+            if command then
+                if SwitchMode(command, target) then
                     ShowMode()
-                    self:SetText(text:sub(#prefix + 1))
-                    return
+                    self:SetText(rest)
                 end
+                return
             end
         end
         -- Your accent shows as you type: each word changes once it's finished.
         if userInput then
-            local changed, cursor = RPF.Accents.ApplyTyping(text, self:GetCursorPosition(), RPF.db.settings.chatMode or "SAY")
+            local changed, cursor = RPF.Accents.ApplyTyping(text, self:GetCursorPosition(), (CurrentMode()))
             if changed then
                 self:SetText(changed)
                 self:SetCursorPosition(cursor)
@@ -830,7 +919,7 @@ local function Build()
     window.typing:SetJustifyH("LEFT")
     window.typing:SetWordWrap(false)
     box:HookScript("OnTextChanged", function(self, userInput)
-        if userInput then MyTypingChanged(self:GetText()) end
+        if userInput then MyTypingChanged(self:GetText(), TypingWhere((CurrentMode()))) end
     end)
 
     scroll:SetPoint("BOTTOMRIGHT", input, "TOPRIGHT", -18, 22)
@@ -970,6 +1059,7 @@ local lastAsked = {}
 local function OnChat(event, text, sender, language, _, _, _, _, _, _, _, _, guid)
     if not RPF.char then return end
     local kind = EVENTS[event]
+    if kind == "WHISPER" and type(sender) == "string" and not RPF.IsSecret(sender) then lastWhisperFrom = sender end
     if KIND_SETTING[kind] and not RPF.db.settings[KIND_SETTING[kind]] then return end
     local msg = { at = time(), kind = kind, sender = sender, guid = guid, text = text, language = language }
     if kind == "WHISPER_INFORM" then
@@ -1023,6 +1113,16 @@ RPF.Listen("PROFILE_CHANGED", function()
         if window.UpdateCorner then window.UpdateCorner() end
     end
 end)
+
+-- Joining or leaving a group changes where Party and Raid go.
+RPF.OnEvent("GROUP_ROSTER_UPDATE", function()
+    if window and window.ShowMode then window.ShowMode() end
+end)
+
+-- Settings can turn party and raid or whispers on and off: show the right mode and hint.
+function Chat.UpdateMode()
+    if window and window.ShowMode then window.ShowMode() end
+end
 
 RPF.Listen("DATA_READY", function()
     RPF.char.chatLog = RPF.char.chatLog or {}
