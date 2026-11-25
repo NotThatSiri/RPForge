@@ -40,9 +40,9 @@ UI.RegisterSettingsPage({
         group:SetPoint("TOPLEFT", typing, "BOTTOMLEFT", 0, -16)
         group:SetPoint("RIGHT", page, "RIGHT", 0, 0)
 
-        local whispers = UI.Toggle(page, "Whispers in RP chat",
-            "The RP chat window also shows whispers you get and send, and you can whisper from it with /w Name "
-                .. "and answer with /r.",
+        local whispers = UI.Toggle(page, "Whispers window",
+            "Whispers you get and send go to a Whispers window, one tab per person. /w Name and /r in the RP chat "
+                .. "open it. New whispers put a dot on the RP button.",
             function() return RPF.db.settings.chatWhispers == true end,
             function(on)
                 RPF.db.settings.chatWhispers = on
@@ -68,7 +68,7 @@ UI.RegisterSettingsPage({
         local commands = UI.Text(page,
             "/s say    /e emote    /y yell\n"
                 .. "/p party    /ra raid    (with party and raid on)\n"
-                .. "/w Name whisper    /r answer the last whisper    (with whispers on)\n"
+                .. "/w Name whisper    /r answer the last whisper    (open the Whispers window, with it on)\n"
                 .. "After /w, names you know show up as you type: Up and Down pick, Tab or Enter takes one. For a name\n"
                 .. "it doesn't know, type the whole name (first and last) and press Enter.\n"
                 .. "The box stays on what you picked until you switch again.", 11, "text")
@@ -76,6 +76,27 @@ UI.RegisterSettingsPage({
         commands:SetPoint("RIGHT", page, "RIGHT", 0, 0)
         commands:SetJustifyH("LEFT")
         commands:SetSpacing(4)
+
+        -- Clearing asks once more in a small menu, so it can't happen by accident.
+        local logsLabel = UI.Text(page, "LOGS", 10, "muted")
+        logsLabel:SetPoint("TOPLEFT", commands, "BOTTOMLEFT", 0, -22)
+        local clearChat = UI.Button(page, "Clear RP chat log", 160, 26)
+        clearChat:SetPoint("TOPLEFT", logsLabel, "BOTTOMLEFT", 0, -8)
+        clearChat:SetScript("OnClick", function(self)
+            UI.ShowMenu(self, { { "Yes, clear the RP chat log", function()
+                local chat = ChatModule()
+                if chat then chat.ClearLog() end
+            end } })
+        end)
+        local clearWhispers = UI.Button(page, "Clear all whispers", 160, 26)
+        clearWhispers:SetPoint("LEFT", clearChat, "RIGHT", 10, 0)
+        clearWhispers:SetScript("OnClick", function(self)
+            UI.ShowMenu(self, { { "Yes, clear all whispers", function()
+                if RPF.Whispers then RPF.Whispers.ClearAll() end
+            end } })
+        end)
+        local logsHint = UI.Text(page, "Or /rpf clearchat. Each whisper tab can be cleared too (right-click it).", 11, "muted")
+        logsHint:SetPoint("TOPLEFT", clearChat, "BOTTOMLEFT", 0, -8)
     end,
     onShow = function(page)
         page.chatStyle:SetValue(RPF.db.settings.chatStyle == "story" and "story" or "game")

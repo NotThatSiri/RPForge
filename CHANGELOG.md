@@ -2,6 +2,26 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.28] - 2026-11-25
+
+### Added
+- **Whispers window.** With "Whispers window" on (Settings > Chat), whispers you get and send go to their
+  own window, one tab per person:
+  - Click a tab to read and answer. Right-click it to clear or close that conversation. Tabs that don't fit
+    are under "More".
+  - /w Name and /r in the RP chat box (or in the Whispers window) open the right tab. "/w Kiri Stormcrest
+    hello" sends "hello" straight away. Name suggestions work in both boxes.
+  - New whispers put a dot on the RP button by the game's chat (a click then opens the Whispers window) and
+    a count in the RP chat's title ("Whispers (2)", click to open).
+  - Whispers are kept per character, so they survive a reload.
+- **Clear the chat log:** "Clear" in the RP chat title, "Clear" in the Whispers window (this conversation,
+  or all whispers), the buttons in Settings > Chat, or /rpf clearchat. Each asks once more first.
+- /rpf whispers opens or closes the Whispers window.
+
+### Changed
+- Whispers no longer show in the RP chat window. The setting is now called "Whispers window".
+- The cogwheel on the RP chat opens Settings > Chat.
+
 ## [0.3.27] - 2026-11-25
 
 ### Added
