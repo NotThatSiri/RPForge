@@ -19,7 +19,11 @@ local GROUP_SECONDS = 15 * 60
 local PORTRAIT = 46        -- the round portrait area at the left of a message
 local EVENTS = {
     CHAT_MSG_SAY = "SAY", CHAT_MSG_YELL = "YELL", CHAT_MSG_EMOTE = "EMOTE", CHAT_MSG_TEXT_EMOTE = "TEXT_EMOTE",
+    -- Only with "Party and raid in RP chat" on (Settings > General).
+    CHAT_MSG_PARTY = "PARTY", CHAT_MSG_PARTY_LEADER = "PARTY", CHAT_MSG_RAID = "RAID", CHAT_MSG_RAID_LEADER = "RAID",
+    CHAT_MSG_RAID_WARNING = "RAID_WARNING",
 }
+local GROUP_KINDS = { PARTY = " (party)", RAID = " (raid)", RAID_WARNING = " (raid warning)" }
 local CIRCLE_MASK = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 local CLASS_CIRCLES = "Interface\\TargetingFrame\\UI-Classes-Circles"
 
@@ -122,7 +126,9 @@ local function Header(msg)
     if target then name = name .. UI.ColorCode("muted") .. "  ->  |r" .. target end
     local r, g, b = TypeColor(msg.kind)
     local tail = ""
-    if Style() == "game" then
+    if GROUP_KINDS[msg.kind] then
+        tail = GROUP_KINDS[msg.kind] .. (Style() == "game" and ":" or "")
+    elseif Style() == "game" then
         if msg.kind == "SAY" then tail = " says:" elseif msg.kind == "YELL" then tail = " yells:" end
     elseif msg.kind == "YELL" then
         tail = " (yelling)"
@@ -235,15 +241,30 @@ local function NewRow(msg, grouped)
         row.time:SetPoint("TOPRIGHT", -4, -5)
         row.header:SetPoint("RIGHT", row.time, "LEFT", -8, 0)
     end
-    if grouped then
-        row:EnableMouse(true)
-        row:SetScript("OnEnter", function(self)
+    -- Hover shows a faint band (and the time on grouped lines); a click opens the text to copy.
+    row:EnableMouse(true)
+    row.hover = row:CreateTexture(nil, "BACKGROUND")
+    row.hover:SetTexture(UI.WHITE)
+    row.hover:SetPoint("TOPLEFT", PORTRAIT + 2, grouped and 1 or 0)
+    row.hover:SetPoint("BOTTOMRIGHT", 0, -1)
+    local tc = UI.Color("text")
+    row.hover:SetVertexColor(tc[1], tc[2], tc[3], 0.06)
+    row.hover:Hide()
+    row:SetScript("OnEnter", function(self)
+        self.hover:Show()
+        if self.grouped then
             GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
             GameTooltip:AddLine(date("%H:%M", self.msg.at), 0.9, 0.9, 0.9)
             GameTooltip:Show()
-        end)
-        row:SetScript("OnLeave", function() GameTooltip:Hide() end)
-    end
+        end
+    end)
+    row:SetScript("OnLeave", function(self)
+        self.hover:Hide()
+        GameTooltip:Hide()
+    end)
+    row:SetScript("OnMouseUp", function(self, button)
+        if button == "LeftButton" then Chat.CopyMessage(self.msg) end
+    end)
     row.body = UI.Text(row, "", 12, "text")
     row.body:SetSpacing(2)
     row.body:SetPoint("TOPLEFT", PORTRAIT + 6, grouped and 0 or -22)
@@ -846,11 +867,88 @@ function Chat.Toggle()
 end
 RPForge_ToggleChat = Chat.Toggle -- for the key binding
 
+-- Copying ------------------------------------------------------------------------------------------------
+
+-- The game can't put text on the clipboard itself, so the text opens selected in a box: Ctrl+C copies it
+-- and closes the box.
+local copyFrame
+function Chat.CopyMessage(msg)
+    if not copyFrame then
+        copyFrame = UI.Panel(UIParent, "window", "accent")
+        copyFrame:SetSize(420, 86)
+        copyFrame:SetFrameStrata("DIALOG")
+        copyFrame:SetClampedToScreen(true)
+        copyFrame:EnableMouse(true)
+        local title = UI.Text(copyFrame, "COPY MESSAGE", 10, "muted")
+        title:SetPoint("TOPLEFT", 12, -10)
+        copyFrame.box = UI.EditBox(copyFrame, 396, 26)
+        copyFrame.box:SetPoint("TOPLEFT", 12, -28)
+        copyFrame.box:SetMaxLetters(0)
+        local hint = UI.Text(copyFrame, "Ctrl+C to copy, Esc to close.", 10, "muted")
+        hint:SetPoint("TOPLEFT", copyFrame.box, "BOTTOMLEFT", 0, -7)
+        local box = copyFrame.box
+        box:SetScript("OnEscapePressed", function() copyFrame:Hide() end)
+        box:SetScript("OnEnterPressed", function() copyFrame:Hide() end)
+        box:HookScript("OnEditFocusLost", function() copyFrame:Hide() end)
+        -- Read only: typing puts the message back.
+        box:HookScript("OnTextChanged", function(self, userInput)
+            if userInput then
+                self:SetText(copyFrame.text or "")
+                self:HighlightText()
+            end
+        end)
+        box:SetScript("OnKeyDown", function(self, key)
+            if key == "C" and IsControlKeyDown() then C_Timer.After(0, function() copyFrame:Hide() end) end
+        end)
+    end
+    copyFrame.text = msg.text or ""
+    copyFrame:ClearAllPoints()
+    if window and window:IsShown() then
+        copyFrame:SetPoint("CENTER", window, "CENTER", 0, 0)
+    else
+        copyFrame:SetPoint("CENTER")
+    end
+    copyFrame:Show()
+    copyFrame.box:SetText(copyFrame.text)
+    copyFrame.box:SetFocus()
+    copyFrame.box:HighlightText()
+    copyFrame.box:SetCursorPosition(0)
+    copyFrame.box:HighlightText()
+end
+
+-- Button on the game's chat ------------------------------------------------------------------------------
+
+-- A small "RP" button above the right end of the main chat window: opens and closes the RP chat.
+local chatButton
+function Chat.UpdateChatButton()
+    local wanted = RPF.db.settings.chatButton ~= false and ChatFrame1 ~= nil
+    if not wanted then
+        if chatButton then chatButton:Hide() end
+        return
+    end
+    if not chatButton then
+        chatButton = UI.Button(UIParent, "RP", 30, 20)
+        chatButton:SetPoint("BOTTOMRIGHT", ChatFrame1, "TOPRIGHT", 2, 6)
+        chatButton:SetFrameStrata("MEDIUM")
+        chatButton:SetScript("OnClick", function() Chat.Toggle() end)
+        chatButton:HookScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_TOP")
+            GameTooltip:AddLine("RP chat")
+            GameTooltip:AddLine("Click to open or close the RP chat window.", 0.9, 0.9, 0.9, true)
+            GameTooltip:Show()
+        end)
+        chatButton:HookScript("OnLeave", function() GameTooltip:Hide() end)
+    end
+    chatButton:Refresh()
+    chatButton:Show()
+end
+
 -- Receiving ----------------------------------------------------------------------------------------------
 
 local lastAsked = {}
 local function OnChat(event, text, sender, language, _, _, _, _, _, _, _, _, guid)
     if not RPF.char then return end
+    if GROUP_KINDS[EVENTS[event]] and not RPF.db.settings.chatGroup then return end
     local msg = { at = time(), kind = EVENTS[event], sender = sender, guid = guid, text = text, language = language }
     -- Whom were they speaking to? Only known when the game can see the speaker (you, your target,
     -- mouseover, group or nameplates): then their target is "<unit>target".
@@ -905,9 +1003,11 @@ end)
 
 function Chat:OnLogin()
     if RPF.db.settings.chatOpen then C_Timer.After(1, Chat.Show) end
+    Chat.UpdateChatButton()
 end
 
 RPF.Listen("THEME_CHANGED", function()
+    if chatButton then chatButton:Refresh() end
     if not window then return end
     local wasShown = window:IsShown()
     window:Hide()

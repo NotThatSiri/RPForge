@@ -2,6 +2,16 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.22] - 2026-11-25
+
+### Added
+- **Party and raid in RP chat** (Settings > General, off at first): the RP chat window also shows what
+  your party and raid write, marked "(party)", "(raid)" or "(raid warning)" in their chat colours.
+- **Click a message to copy it.** The text opens selected in a small box; Ctrl+C copies it and closes the
+  box. Messages light up faintly when you point at them.
+- **RP button on the chat:** a small "RP" button above the right end of the game's chat window opens and
+  closes the RP chat. It can be turned off in Settings > General.
+
 ## [0.3.21] - 2026-11-25
 
 ### Added
