@@ -2,6 +2,13 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.30] - 2026-11-25
+
+### Fixed
+- An error ("expected a full name") when someone in the RP chat had a monster or NPC targeted, for example
+  in party chat during a dungeon. NPCs have no last name, and looking up their profile failed. Names
+  without a profile are now simply shown without one.
+
 ## [0.3.29] - 2026-11-25
 
 ### Changed
