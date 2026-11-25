@@ -2,6 +2,15 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.29] - 2026-11-25
+
+### Changed
+- **Right-click a message to copy it** (it was a left-click), in the RP chat and the Whispers window.
+
+### Fixed
+- Links in messages (items, spells, quests, players) can be clicked again, as in the game's chat:
+  click to open, Shift-click to put it in your chat box. Pointing at an item shows its tooltip.
+
 ## [0.3.28] - 2026-11-25
 
 ### Added

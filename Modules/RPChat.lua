@@ -255,7 +255,8 @@ local function NewRow(view, msg, grouped)
         row.time:SetPoint("TOPRIGHT", -4, -5)
         row.header:SetPoint("RIGHT", row.time, "LEFT", -8, 0)
     end
-    -- Hover shows a faint band (and the time on grouped lines); a click opens the text to copy.
+    -- Hover shows a faint band (and the time on grouped lines); a right-click opens the text to copy, so a
+    -- left-click stays free for links (items, spells, players) in the message.
     row:EnableMouse(true)
     row.hover = row:CreateTexture(nil, "BACKGROUND")
     row.hover:SetTexture(UI.WHITE)
@@ -277,8 +278,22 @@ local function NewRow(view, msg, grouped)
         GameTooltip:Hide()
     end)
     row:SetScript("OnMouseUp", function(self, button)
-        if button == "LeftButton" then Chat.CopyMessage(self.msg) end
+        if button == "RightButton" then Chat.CopyMessage(self.msg) end
     end)
+    -- Links work as in the game's chat: click to open (Shift-click to put it in your chat box), and
+    -- pointing at an item shows its tooltip.
+    if row.SetHyperlinksEnabled then row:SetHyperlinksEnabled(true) end
+    row:SetScript("OnHyperlinkClick", function(self, link, text, button)
+        if SetItemRef then SetItemRef(link, text, button, self) end
+    end)
+    row:SetScript("OnHyperlinkEnter", function(self, link)
+        local kind = type(link) == "string" and link:match("^(%a+):")
+        if kind == "item" or kind == "spell" or kind == "enchant" or kind == "quest" or kind == "achievement" then
+            GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
+            if pcall(GameTooltip.SetHyperlink, GameTooltip, link) then GameTooltip:Show() else GameTooltip:Hide() end
+        end
+    end)
+    row:SetScript("OnHyperlinkLeave", function() GameTooltip:Hide() end)
     row.body = UI.Text(row, "", 12, "text")
     row.body:SetSpacing(2)
     row.body:SetPoint("TOPLEFT", PORTRAIT + 6, grouped and 0 or -22)
