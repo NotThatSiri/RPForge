@@ -143,9 +143,26 @@ local function Prune()
     for i = MAX_PEOPLE + 1, #list do RPF.db.people[list[i].name] = nil end
 end
 
+-- LibMSP only takes full names: on a client with surnames, "Kiri" alone (no surname) is an error. Such a
+-- name is treated as one we know nothing about.
+local function CanLookUp(name)
+    if not msp or type(name) ~= "string" or name == "" or RPF.IsSecret(name) then return false end
+    if AddOn_Chomp and AddOn_Chomp.NameMergedRealm then
+        return (pcall(AddOn_Chomp.NameMergedRealm, name))
+    end
+    return true
+end
+
+-- What LibMSP knows about this person, or nil.
+local function MspChar(name)
+    if not CanLookUp(name) then return nil end
+    local ok, char = pcall(function() return msp.char[name] end)
+    return ok and char or nil
+end
+
 -- Keep a record of each profile heard.
 local function Remember(name)
-    local char = msp and msp.char[name]
+    local char = MspChar(name)
     local field = char and char.field
     if not field or not field.NA or field.NA == "" then return end
     RPF.db.people = RPF.db.people or {}
@@ -163,14 +180,14 @@ end
 
 -- Ask someone for their whole profile (used when opening it). LibMSP limits how often.
 function Sharing.RequestProfile(name)
-    if msp and name and name ~= MergedName("player") then
+    if CanLookUp(name) and name ~= MergedName("player") then
         RPF.SafeCall("request profile", msp.Request, msp, name, KEPT_FIELDS)
     end
 end
 
 -- Ask someone for their name card only (the tooltip fields). LibMSP limits how often.
 function Sharing.RequestTooltip(name)
-    if msp and name and name ~= MergedName("player") then
+    if CanLookUp(name) and name ~= MergedName("player") then
         RPF.SafeCall("request tooltip", msp.Request, msp, name)
     end
 end
@@ -178,7 +195,8 @@ end
 -- Someone's profile fields: what we just heard, or what was kept from before.
 function Sharing.GetProfile(name)
     if name == MergedName("player") then return Sharing.BuildFields() end
-    local live = msp and msp.char[name] and msp.char[name].field
+    local char = MspChar(name)
+    local live = char and char.field
     if live and live.NA and live.NA ~= "" then return live end
     local person = RPF.db.people and RPF.db.people[name]
     return person and person.fields or nil
@@ -190,14 +208,14 @@ Sharing.MergedName = MergedName
 
 local function Fields(name)
     if name == MergedName("player") and msp then return msp.my end
-    local char = msp and msp.char[name]
+    local char = MspChar(name)
     return char and char.field or nil
 end
 
 local function AddLines(tooltip, unit)
     local name = MergedName(unit)
     if not name then return end
-    if name ~= MergedName("player") then msp:Request(name) end -- asks for the tooltip fields; LibMSP limits how often
+    if name ~= MergedName("player") and CanLookUp(name) then msp:Request(name) end -- asks for the tooltip fields; LibMSP limits how often
     local field = Fields(name)
     if not field or not field.NA or field.NA == "" then return end
 
