@@ -22,8 +22,18 @@ local EVENTS = {
     -- Only with "Party and raid in RP chat" on (Settings > General).
     CHAT_MSG_PARTY = "PARTY", CHAT_MSG_PARTY_LEADER = "PARTY", CHAT_MSG_RAID = "RAID", CHAT_MSG_RAID_LEADER = "RAID",
     CHAT_MSG_RAID_WARNING = "RAID_WARNING",
+    -- Only with "Whispers in RP chat" on. WHISPER_INFORM is one you sent.
+    CHAT_MSG_WHISPER = "WHISPER", CHAT_MSG_WHISPER_INFORM = "WHISPER_INFORM",
 }
-local GROUP_KINDS = { PARTY = " (party)", RAID = " (raid)", RAID_WARNING = " (raid warning)" }
+-- Kinds shown only when their setting is on, and the note after the name.
+local GROUP_KINDS = {
+    PARTY = " (party)", RAID = " (raid)", RAID_WARNING = " (raid warning)",
+    WHISPER = " (whisper)", WHISPER_INFORM = " (whisper)",
+}
+local KIND_SETTING = {
+    PARTY = "chatGroup", RAID = "chatGroup", RAID_WARNING = "chatGroup",
+    WHISPER = "chatWhispers", WHISPER_INFORM = "chatWhispers",
+}
 local CIRCLE_MASK = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 local CLASS_CIRCLES = "Interface\\TargetingFrame\\UI-Classes-Circles"
 
@@ -959,18 +969,25 @@ end
 local lastAsked = {}
 local function OnChat(event, text, sender, language, _, _, _, _, _, _, _, _, guid)
     if not RPF.char then return end
-    if GROUP_KINDS[EVENTS[event]] and not RPF.db.settings.chatGroup then return end
-    local msg = { at = time(), kind = EVENTS[event], sender = sender, guid = guid, text = text, language = language }
-    -- Whom were they speaking to? Only known when the game can see the speaker (you, your target,
-    -- mouseover, group or nameplates): then their target is "<unit>target".
-    local unit = FindUnit(guid)
-    local targetUnit = unit and (unit == "player" and "target" or (unit .. "target"))
-    local targetGuid = targetUnit and RPF.UnitGUID(targetUnit)
-    if targetGuid and targetGuid ~= guid then
-        msg.target = Sharing.MergedName(targetUnit) or RPF.PlayerName(targetUnit)
-        msg.targetGuid = targetGuid
+    local kind = EVENTS[event]
+    if KIND_SETTING[kind] and not RPF.db.settings[KIND_SETTING[kind]] then return end
+    local msg = { at = time(), kind = kind, sender = sender, guid = guid, text = text, language = language }
+    if kind == "WHISPER_INFORM" then
+        -- A whisper you sent: you are the speaker, the other person is who it went to.
+        msg.sender, msg.guid = RPF.PlayerName("player") or UnitName("player"), UnitGUID("player")
+        msg.target, msg.targetGuid = sender, guid
+    elseif kind ~= "WHISPER" then
+        -- Whom were they speaking to? Only known when the game can see the speaker (you, your target,
+        -- mouseover, group or nameplates): then their target is "<unit>target".
+        local unit = FindUnit(guid)
+        local targetUnit = unit and (unit == "player" and "target" or (unit .. "target"))
+        local targetGuid = targetUnit and RPF.UnitGUID(targetUnit)
+        if targetGuid and targetGuid ~= guid then
+            msg.target = Sharing.MergedName(targetUnit) or RPF.PlayerName(targetUnit)
+            msg.targetGuid = targetGuid
+        end
     end
-    if typists[ShortName(sender)] then SomeoneTyping(sender, false) end
+    if kind ~= "WHISPER_INFORM" and typists[ShortName(sender)] then SomeoneTyping(sender, false) end
     local previous = messages[#messages]
     messages[#messages + 1] = msg
     while #messages > MAX_MESSAGES do table.remove(messages, 1) end

@@ -2,6 +2,12 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.25] - 2026-11-25
+
+### Added
+- **Whispers in RP chat** (Settings > General, off at first): whispers you get show as "Name (whisper)",
+  and ones you send as "You -> Name (whisper)", in the whisper colour.
+
 ## [0.3.24] - 2026-11-25
 
 ### Changed

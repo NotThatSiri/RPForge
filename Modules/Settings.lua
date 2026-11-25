@@ -35,6 +35,13 @@ UI.RegisterSettingsPage({
         group:SetPoint("TOPLEFT", typing, "BOTTOMLEFT", 0, -16)
         group:SetPoint("RIGHT", page, "RIGHT", 0, 0)
 
+        local whispers = UI.Toggle(page, "Whispers in RP chat",
+            "The RP chat window also shows whispers you get and send.",
+            function() return RPF.db.settings.chatWhispers == true end,
+            function(on) RPF.db.settings.chatWhispers = on end)
+        whispers:SetPoint("TOPLEFT", group, "BOTTOMLEFT", 0, -16)
+        whispers:SetPoint("RIGHT", page, "RIGHT", 0, 0)
+
         local button = UI.Toggle(page, "RP button on the chat",
             "A small \"RP\" button above the General chat tab that opens and closes the RP chat.",
             function() return RPF.db.settings.chatButton ~= false end,
@@ -43,7 +50,7 @@ UI.RegisterSettingsPage({
                 local chat = RPF.GetModule("RPChat")
                 if chat and chat.UpdateChatButton then chat.UpdateChatButton() end
             end)
-        button:SetPoint("TOPLEFT", group, "BOTTOMLEFT", 0, -16)
+        button:SetPoint("TOPLEFT", whispers, "BOTTOMLEFT", 0, -16)
         button:SetPoint("RIGHT", page, "RIGHT", 0, 0)
 
         local debug = UI.Toggle(page, "Debug messages",
