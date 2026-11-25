@@ -2,6 +2,29 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.21] - 2026-11-25
+
+### Added
+- **Typing indicator for the game's chat box.** Typing in say or emote tells RP Forge users near you, and
+  typing in party or raid tells your group, just like the RP chat window does.
+- While the RP chat window is closed, a small bar under the chat shows who is typing ("Kiri is typing in
+  party..."). Drag it to move it.
+- **Show accents for other races** on the Voice tab. Without it you only see your own race's accents (your
+  game race, or the race written on your profile).
+
+### Changed
+- Accents are only for the races in the game, and only for your faction:
+  - Alliance: Dwarven, Gnomish, Kaldorei.
+  - Horde: Orcish, Trollish, Forsaken, Tauren.
+- Accents only change your words while your profile is **In Character**. The RP chat and the Voice tab say
+  when it is off. Try it on the Voice tab works either way.
+
+### Removed
+- The Draenei, Gilnean, Sin'dorei and Goblin accents.
+
+### Fixed
+- The Gnomish accent had gone missing in 0.3.19.
+
 ## [0.3.20] - 2026-11-24
 
 ### Added

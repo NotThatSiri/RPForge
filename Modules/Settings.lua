@@ -20,7 +20,9 @@ UI.RegisterSettingsPage({
         network:SetPoint("RIGHT", page, "RIGHT", 0, 0)
 
         local typing = UI.Toggle(page, "Typing indicator",
-            "In the RP chat, shows \"Kiri is typing...\" when RP Forge users near you are writing, and lets them see when you are.",
+            "Shows \"Kiri is typing...\" when RP Forge users near you or in your group are writing: in the RP chat, "
+                .. "or in a small bar under the chat while it's closed. Lets them see when you type too (RP chat, say, "
+                .. "emote, party and raid).",
             function() return RPF.db.settings.typingIndicator ~= false end,
             function(on) RPF.db.settings.typingIndicator = on end)
         typing:SetPoint("TOPLEFT", network, "BOTTOMLEFT", 0, -16)

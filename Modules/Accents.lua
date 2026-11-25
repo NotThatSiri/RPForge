@@ -26,7 +26,8 @@ Accents.LIST = {
     --   Strong: th', o', nae, och, cannae, dinnae, laddie/lassie.
     -- "friend", "mate", "buddy" and "pal" become lad or lass (laddie or lassie at Strong) from your
     -- target's gender; with no target they stay.
-    { key = "dwarven", name = "Dwarven", side = "Alliance", ladLass = { friend = true, mate = true, buddy = true, pal = true },
+    { key = "dwarven", name = "Dwarven", side = "Alliance", races = { Dwarf = true },
+        words = { "dwarf", "dwarven", "wildhammer", "bronzebeard", "dark iron", "ironforge" }, ladLass = { friend = true, mate = true, buddy = true, pal = true },
         rules = {
         { 1, "you", "ye" }, { 1, "your", "yer" }, { 1, "yours", "yers" }, { 1, "yourself", "yerself" },
         { 1, "yourselves", "yerselves" }, { 1, "you're", "ye're" }, { 1, "you've", "ye've" }, { 1, "you'll", "ye'll" },
@@ -47,10 +48,22 @@ Accents.LIST = {
         { 3, "aren't", "arenae" }, { 3, "arent", "arenae" }, { 3, "weren't", "werenae" }, { 3, "werent", "werenae" },
         { 3, "boy", "laddie" }, { 3, "girl", "lassie" },
     } },
+    { key = "gnomish", name = "Gnomish", side = "Alliance", races = { Gnome = true }, words = { "gnome", "gnomish" },
+        rules = {
+        { 1, "wow", "fascinating" }, { 1, "good", "splendid" }, { 1, "great", "marvellous" },
+        { 1, "broken", "defective" },
+        { 2, "think", "calculate" }, { 2, "idea", "hypothesis" }, { 2, "ideas", "hypotheses" },
+        { 2, "problem", "malfunction" }, { 2, "problems", "malfunctions" }, { 2, "thing", "gizmo" },
+        { 2, "things", "gizmos" }, { 2, "maybe", "theoretically" }, { 2, "hello", "salutations" },
+        { 3, "fix", "recalibrate" }, { 3, "make", "engineer" }, { 3, "big", "gargantuan" },
+        { 3, "small", "pocket-sized" }, { 3, "yes", "affirmative" }, { 3, "no", "negative" },
+        { 3, "fast", "high-velocity" }, { 3, "quickly", "at optimal velocity" },
+    } },
     -- Kaldorei: formal and old-fashioned rather than a sound. Night elves in the game hardly use
     -- contractions, and greet in Darnassian.
     --   Light: no contractions.  Medium: formal words.  Strong: Ishnu-alah, Elune-adore.
-    { key = "kaldorei", name = "Kaldorei", side = "Alliance", rules = {
+    { key = "kaldorei", name = "Kaldorei", side = "Alliance", races = { NightElf = true },
+        words = { "night elf", "night-elf", "nightelf", "kaldorei" }, rules = {
         { 1, "don't", "do not" }, { 1, "can't", "cannot" }, { 1, "won't", "will not" }, { 1, "didn't", "did not" },
         { 1, "doesn't", "does not" }, { 1, "isn't", "is not" }, { 1, "aren't", "are not" },
         { 1, "wasn't", "was not" }, { 1, "weren't", "were not" }, { 1, "haven't", "have not" },
@@ -73,26 +86,9 @@ Accents.LIST = {
         { 3, "greetings", "Ishnu-alah" }, { 3, "bye", "Elune-adore" }, { 3, "goodbye", "Elune-adore" },
         { 3, "farewell", "Elune-adore" }, { 3, "teacher", "shan'do" },
     } },
-    { key = "draenei", name = "Draenei", side = "Alliance", rules = {
-        { 1, "goodbye", "Archenon poros" }, { 1, "bye", "Archenon poros" }, { 1, "oh my god", "by ze Naaru" },
-        { 1, "my god", "by ze Naaru" },
-        { 1, "the", "ze" }, { 2, "this", "zis" }, { 2, "that", "zat" }, { 2, "they", "zey" },
-        { 2, "them", "zem" }, { 2, "there", "zere" }, { 2, "these", "zese" }, { 2, "those", "zose" },
-        { 3, "think", "zink" }, { 3, "with", "vith" }, { 3, "what", "vhat" }, { 3, "we", "ve" },
-        { 3, "will", "vill" }, { 3, "when", "vhen" }, { 3, "where", "vhere" }, { 3, "why", "vhy" },
-        { 3, "was", "vas" }, { 3, "want", "vant" },
-    } },
-    { key = "gilnean", name = "Gilnean", side = "Alliance", rules = {
-        { 1, "mom", "mum" }, { 1, "very", "rather" }, { 1, "great", "splendid" }, { 1, "hello", "good day" },
-        { 1, "hi", "good day" }, { 1, "trash", "rubbish" },
-        { 2, "okay", "right then" }, { 2, "ok", "right then" }, { 2, "cool", "smashing" },
-        { 2, "goodbye", "cheerio" }, { 2, "bye", "cheerio" }, { 2, "friend", "mate" }, { 2, "friends", "mates" },
-        { 2, "guy", "chap" }, { 2, "guys", "chaps" }, { 2, "crazy", "barmy" },
-        { 3, "cool", "smashin'" }, { 3, "tired", "knackered" }, { 3, "isn't it", "innit" }, { 3, "h", "'", "start" },
-        { 3, "ing", "in'", "end" },
-    } },
     -- Horde --------------------------------------------------------------------------------------
-    { key = "orcish", name = "Orcish", side = "Horde", rules = {
+    { key = "orcish", name = "Orcish", side = "Horde", races = { Orc = true }, words = { "orc", "mag'har", "frostwolf" },
+        rules = {
         { 1, "hello", "Throm-ka" }, { 1, "hi", "Throm-ka" }, { 1, "okay", "zug zug" }, { 1, "ok", "zug zug" },
         { 1, "goodbye", "Lok'tar" }, { 1, "bye", "Lok'tar" },
         { 2, "yes", "dabu" }, { 2, "weak", "puny" }, { 2, "small", "puny" }, { 2, "victory", "lok'tar" },
@@ -100,7 +96,8 @@ Accents.LIST = {
         { 3, "my", "me" }, { 3, "are", "be" }, { 3, "is", "be" }, { 3, "fight", "smash" },
         { 3, "very", "much" },
     } },
-    { key = "trollish", name = "Trollish", side = "Horde", rules = {
+    { key = "trollish", name = "Trollish", side = "Horde", races = { Troll = true }, words = { "troll", "darkspear" },
+        rules = {
         { 1, "the", "da" }, { 1, "this", "dis" }, { 1, "that", "dat" }, { 1, "man", "mon" },
         { 1, "you", "ya" }, { 1, "your", "ya" },
         { 2, "these", "dese" }, { 2, "those", "dose" }, { 2, "them", "dem" }, { 2, "they", "dey" },
@@ -109,7 +106,8 @@ Accents.LIST = {
         { 3, "is", "be" }, { 3, "are", "be" }, { 3, "am", "be" }, { 3, "nothing", "nuttin'" },
         { 3, "something", "sometin'" }, { 3, "gods", "loa" }, { 3, "what", "wha'" }, { 3, "little", "likkle" },
     } },
-    { key = "forsaken", name = "Forsaken", side = "Horde", rules = {
+    { key = "forsaken", name = "Forsaken", side = "Horde", races = { Scourge = true, Undead = true },
+        words = { "forsaken", "undead" }, rules = {
         { 1, "hello", "greetings" }, { 1, "goodbye", "Dark Lady watch over you" },
         { 1, "bye", "Dark Lady watch over you" }, { 1, "oh my god", "Dark Lady" }, { 1, "my god", "Dark Lady" },
         { 2, "yes", "indeed" }, { 2, "die", "perish" }, { 2, "friend", "ally" }, { 2, "friends", "allies" },
@@ -118,31 +116,14 @@ Accents.LIST = {
         { 3, "beautiful", "tolerable" }, { 3, "love", "tolerate" }, { 3, "humans", "breathers" },
         { 3, "human", "breather" },
     } },
-    { key = "tauren", name = "Tauren", side = "Horde", rules = {
+    { key = "tauren", name = "Tauren", side = "Horde", races = { Tauren = true }, words = { "tauren" },
+        rules = {
         { 1, "goodbye", "walk with the Earth Mother" }, { 1, "bye", "walk with the Earth Mother" },
         { 1, "oh my god", "Earth Mother" }, { 1, "my god", "Earth Mother" }, { 1, "hello", "peace" }, { 1, "hi", "peace" },
         { 2, "yes", "it is so" }, { 2, "okay", "so be it" }, { 2, "ok", "so be it" }, { 2, "kid", "calf" },
         { 2, "kids", "calves" }, { 2, "child", "calf" }, { 2, "children", "calves" },
         { 3, "old", "elder" }, { 3, "think", "believe" }, { 3, "hurry", "go swiftly" },
         { 3, "very", "most" },
-    } },
-    { key = "sindorei", name = "Sin'dorei", side = "Horde", rules = {
-        { 1, "hello", "Bal'a dash" }, { 1, "hi", "Bal'a dash" }, { 1, "goodbye", "Shorel'aran" },
-        { 1, "bye", "Shorel'aran" }, { 1, "oh my god", "by the Sunwell" }, { 1, "my god", "by the Sunwell" },
-        { 2, "yes", "indeed" }, { 2, "okay", "very well" }, { 2, "ok", "very well" },
-        { 2, "great", "exquisite" }, { 2, "can't", "cannot" }, { 2, "don't", "do not" },
-        { 2, "won't", "will not" },
-        { 3, "friend", "darling" }, { 3, "stupid", "simple-minded" }, { 3, "cheap", "common" },
-        { 3, "good", "adequate" }, { 3, "nice", "elegant" }, { 3, "ugly", "crude" },
-    } },
-    { key = "goblin", name = "Goblin", side = "Horde", rules = {
-        { 1, "hello", "heya" }, { 1, "hi", "heya" }, { 1, "friend", "pal" }, { 1, "friends", "pals" },
-        { 1, "yes", "yeah" },
-        { 2, "money", "moolah" }, { 2, "want to", "wanna" },
-        { 2, "ing", "in'", "end" }, { 2, "you", "ya" }, { 2, "them", "'em" }, { 2, "sir", "boss" },
-        { 2, "ma'am", "boss" },
-        { 3, "buy", "invest in" }, { 3, "think", "figure" }, { 3, "lot", "bundle" }, { 3, "great", "profitable" },
-        { 3, "good", "profitable" },
     } },
 }
 
@@ -308,21 +289,80 @@ end
 
 -- Public -------------------------------------------------------------------------------------------------
 
--- The active profile's accent: accent table and strength, or nil.
-function Accents.Current()
+local function Persona()
     local Profiles = RPF.Profiles
-    local persona = Profiles and Profiles.GetActive() and Profiles.GetPersona()
+    return Profiles and Profiles.GetActive() and Profiles.GetPersona() or nil
+end
+
+-- Is the active profile In Character? Accents only change your words then.
+function Accents.IsIC()
+    local profile = RPF.Profiles and RPF.Profiles.GetActive()
+    return profile ~= nil and profile.fields ~= nil and profile.fields.status == "ic"
+end
+
+-- Is this accent for your race: the game's race, or the race written on your profile?
+function Accents.MatchesRace(accent)
+    if type(UnitRace) == "function" then
+        local name, file = UnitRace("player")
+        if file and accent.races[file] then return true end
+        for _, word in ipairs(accent.words) do
+            if type(name) == "string" and name:lower():find(word, 1, true) then return true end
+        end
+    end
+    local profile = RPF.Profiles and RPF.Profiles.GetActive()
+    local race = profile and profile.fields and profile.fields.race
+    if type(race) == "string" and race ~= "" then
+        race = race:lower()
+        for _, word in ipairs(accent.words) do
+            if race:find(word, 1, true) then return true end
+        end
+    end
+    return false
+end
+
+-- Voice tab toggle: list the accents of the other races of your faction too.
+function Accents.ShowAllRaces()
+    local persona = Persona()
+    return persona ~= nil and persona.accentAllRaces == true
+end
+
+function Accents.SetShowAllRaces(on)
+    local persona = Persona()
+    if not persona then return end
+    persona.accentAllRaces = on and true or nil
+    -- Turning it off drops an accent that isn't for your race.
+    local accent = persona.accent and Accents.BY_KEY[persona.accent.key]
+    if not on and accent and not Accents.MatchesRace(accent) then persona.accent = nil end
+    RPF.Profiles.PersonaChanged()
+end
+
+-- Can you pick this accent? Only your faction's, and only your race's unless the toggle is on.
+function Accents.Available(accent)
+    local faction = type(UnitFactionGroup) == "function" and UnitFactionGroup("player") or nil
+    if faction and accent.side ~= faction then return false end
+    return Accents.ShowAllRaces() or Accents.MatchesRace(accent)
+end
+
+-- The accent chosen on the active profile (accent table and strength), whether or not you are IC.
+function Accents.Chosen()
+    local persona = Persona()
     local choice = persona and persona.accent
     local accent = choice and Accents.BY_KEY[choice.key]
-    if not accent then return nil end
+    if not accent or not Accents.Available(accent) then return nil end
     return accent, math.max(1, math.min(3, tonumber(choice.strength) or 1))
 end
 
--- "Dwarven, light", or nil without an accent.
+-- The accent to use now: the chosen one, while In Character.
+function Accents.Current()
+    if not Accents.IsIC() then return nil end
+    return Accents.Chosen()
+end
+
+-- "Dwarven, light" and whether it is on now (In Character), or nil without an accent.
 function Accents.Describe()
-    local accent, strength = Accents.Current()
+    local accent, strength = Accents.Chosen()
     if not accent then return nil end
-    return accent.name .. ", " .. Accents.STRENGTH_NAMES[strength]:lower()
+    return accent.name .. ", " .. Accents.STRENGTH_NAMES[strength]:lower(), Accents.IsIC()
 end
 
 -- Choose the active profile's accent (nil = none), keeping the strength.
@@ -336,28 +376,31 @@ function Accents.Set(key)
 end
 
 function Accents.SetStrength(strength)
-    local Profiles = RPF.Profiles
-    local choice = Profiles.GetActive() and Profiles.GetPersona().accent
+    local persona = Persona()
+    local choice = persona and persona.accent
     if not choice then return end
     choice.strength = strength
-    Profiles.PersonaChanged()
+    RPF.Profiles.PersonaChanged()
 end
 
 -- The accent menu, used by the RP chat window and the Voice tab. withStrength adds the strengths and a
 -- link to the Voice tab.
 function Accents.ShowMenu(owner, withStrength)
     local UI = RPF.UI
-    local current, strength = Accents.Current()
+    local current, strength = Accents.Chosen()
     local items = { { "No accent", function() Accents.Set(nil) end, checked = not current } }
-    for _, side in ipairs({ "Alliance", "Horde" }) do
-        items[#items + 1] = "-"
-        items[#items + 1] = { side:upper(), nil, disabled = true }
-        for _, accent in ipairs(Accents.LIST) do
-            if accent.side == side then
-                local key = accent.key
-                items[#items + 1] = { accent.name, function() Accents.Set(key) end, checked = current == accent }
-            end
+    local any = false
+    for _, accent in ipairs(Accents.LIST) do
+        if Accents.Available(accent) then
+            if not any then items[#items + 1] = "-" end
+            any = true
+            local key = accent.key
+            items[#items + 1] = { accent.name, function() Accents.Set(key) end, checked = current == accent }
         end
+    end
+    if not any then
+        items[#items + 1] = "-"
+        items[#items + 1] = { "No accent for your race", nil, disabled = true }
     end
     if withStrength then
         items[#items + 1] = "-"
@@ -366,14 +409,16 @@ function Accents.ShowMenu(owner, withStrength)
             items[#items + 1] = { s[2], function() Accents.SetStrength(value) end,
                 checked = current ~= nil and strength == value, disabled = current == nil }
         end
+    end
+    if withStrength or not any then
         items[#items + 1] = "-"
-        items[#items + 1] = { "Try it on the Voice tab...", function() UI.OpenProfile("voice") end }
+        items[#items + 1] = { "Voice settings...", function() UI.OpenProfile("voice") end }
     end
     UI.ShowMenu(owner, items)
 end
 
 -- Change text with an accent. mode: "SAY", "YELL" or "EMOTE" (emotes: only "quoted" words).
--- accent and strength default to the active profile's.
+-- accent and strength default to the active profile's, and then only while In Character.
 -- who ("lad" or "lass") stands in for your target's gender, for trying the accent out.
 function Accents.Apply(text, mode, accent, strength, who)
     if not accent then accent, strength = Accents.Current() end

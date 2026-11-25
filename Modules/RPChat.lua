@@ -376,6 +376,9 @@ end
 -- shows "Kiri Stormcrest is typing..." above the box. It fades by itself if no update comes.
 -- Near you = people you can see (target, mouseover, group, nameplates) or heard in the last 10 minutes,
 -- and known to use RP Forge. Settings > General turns it off both ways.
+-- The game's own chat box does the same for say and emote, and for party and raid it goes to the group
+-- ("1P" / "1R"; a letter after the 1 or 0 says where). With the RP chat window closed, a small bar under
+-- the chat shows who is typing.
 
 local TYPING_REPEAT = 6    -- seconds between "still typing" messages
 local TYPING_TIMEOUT = 12  -- seconds before someone's "is typing" disappears without news
@@ -423,9 +426,18 @@ local function NearbyForgeUsers()
     return out
 end
 
-local function SendTyping(state)
+-- where: nil for the RP chat window, or "SAY", "EMOTE", "PARTY" or "RAID" from the game's chat box.
+local WHERE_CODE = { SAY = "S", EMOTE = "E", PARTY = "P", RAID = "R" }
+local WHERE_TEXT = { E = " an emote", P = " in party", R = " in raid" }
+
+local function SendTyping(state, where)
+    local payload = state .. (where and WHERE_CODE[where] or "")
+    if where == "PARTY" or where == "RAID" then
+        RPF.Comm.Send("T", payload, where)
+        return
+    end
     for _, name in ipairs(NearbyForgeUsers()) do
-        RPF.Comm.Send("T", state, "WHISPER", name)
+        RPF.Comm.Send("T", payload, "WHISPER", name)
     end
 end
 
@@ -442,6 +454,92 @@ MyTypingChanged = function(text)
     end
 end
 
+-- The game's chat box: say, emote, party and raid (slash commands being typed don't count).
+local GAME_KINDS = {
+    SAY = "SAY", EMOTE = "EMOTE", PARTY = "PARTY", PARTY_LEADER = "PARTY",
+    RAID = "RAID", RAID_LEADER = "RAID", RAID_WARNING = "RAID",
+}
+local gameTyping = { where = nil, sent = 0 }
+
+local function GameTypingStopped()
+    if gameTyping.where then
+        SendTyping("0", gameTyping.where)
+        gameTyping.where = nil
+    end
+end
+
+local function GameTypingChanged(editBox)
+    if not TypingEnabled() then return end
+    local text = strtrim(editBox:GetText() or "")
+    local chatType = editBox:GetAttribute("chatType") or editBox.chatType
+    local where = (text ~= "" and text:sub(1, 1) ~= "/") and GAME_KINDS[chatType] or nil
+    if gameTyping.where and gameTyping.where ~= where then GameTypingStopped() end
+    if where and (gameTyping.where ~= where or GetTime() - gameTyping.sent >= TYPING_REPEAT) then
+        gameTyping.where, gameTyping.sent = where, GetTime()
+        SendTyping("1", where)
+    end
+end
+
+local function HookGameChat()
+    for i = 1, (NUM_CHAT_WINDOWS or 10) do
+        local box = _G["ChatFrame" .. i .. "EditBox"]
+        if box and not box.rpfTyping then
+            box.rpfTyping = true
+            box:HookScript("OnTextChanged", function(self, userInput)
+                if userInput then GameTypingChanged(self) end
+            end)
+            box:HookScript("OnEditFocusLost", GameTypingStopped)
+            box:HookScript("OnHide", GameTypingStopped)
+        end
+    end
+end
+HookGameChat()
+
+-- The bar under the game's chat that shows who is typing while the RP chat window is closed. Drag it to
+-- move it; the place is remembered.
+local bar
+local function TypingBar(text)
+    if text == "" then
+        if bar then bar:Hide() end
+        return
+    end
+    if not bar then
+        bar = UI.Panel(UIParent, "panel", "border")
+        bar:SetHeight(22)
+        bar:SetFrameStrata("MEDIUM")
+        bar:SetClampedToScreen(true)
+        bar:SetMovable(true)
+        bar:EnableMouse(true)
+        bar:RegisterForDrag("LeftButton")
+        bar.text = UI.Text(bar, "", 11, "text")
+        bar.text:SetPoint("LEFT", 8, 0)
+        local pos = RPF.db.settings.typingBarPos
+        if pos then
+            bar:SetPoint(pos[1], UIParent, pos[2], pos[3], pos[4])
+        elseif ChatFrame1 then
+            bar:SetPoint("TOPLEFT", ChatFrame1, "BOTTOMLEFT", -4, -34)
+        else
+            bar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 30, 90)
+        end
+        bar:SetScript("OnDragStart", function(self) self:StartMoving() end)
+        bar:SetScript("OnDragStop", function(self)
+            self:StopMovingOrSizing()
+            local point, _, relativePoint, x, y = self:GetPoint()
+            RPF.db.settings.typingBarPos = { point, relativePoint, x, y }
+        end)
+        bar:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_TOP")
+            GameTooltip:AddLine("Typing")
+            GameTooltip:AddLine("RP Forge users near you or in your group who are writing. Drag to move.", 0.9, 0.9, 0.9, true)
+            GameTooltip:Show()
+        end)
+        bar:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    end
+    bar.text:SetText(text)
+    bar:SetWidth(bar.text:GetStringWidth() + 16)
+    bar:Show()
+end
+
 local function TypingName(info)
     local fields = Sharing.GetProfile(info.name) or Sharing.GetProfile(ShortName(info.name))
     if fields and fields.NA and fields.NA ~= "" then return fields.NA end
@@ -449,31 +547,38 @@ local function TypingName(info)
 end
 
 local function ShowTyping()
-    if not window or not window.typing then return end
-    local now, names = GetTime(), {}
+    local now, names, only = GetTime(), {}, nil
     for short, info in pairs(typists) do
-        if now - info.at > TYPING_TIMEOUT then typists[short] = nil else names[#names + 1] = TypingName(info) end
+        if now - info.at > TYPING_TIMEOUT then
+            typists[short] = nil
+        else
+            names[#names + 1] = TypingName(info)
+            only = info
+        end
     end
     table.sort(names)
     local text = ""
     if #names == 1 then
-        text = names[1] .. UI.ColorCode("muted") .. " is typing...|r"
+        text = names[1] .. UI.ColorCode("muted") .. " is typing" .. (WHERE_TEXT[only.where or ""] or "") .. "...|r"
     elseif #names == 2 then
         text = names[1] .. UI.ColorCode("muted") .. " and |r" .. names[2] .. UI.ColorCode("muted") .. " are typing...|r"
     elseif #names > 2 then
         text = UI.ColorCode("muted") .. "Several people are typing...|r"
     end
-    window.typing:SetText(text)
+    -- In the RP chat window when it's open, otherwise in the bar under the game's chat.
+    local inWindow = window ~= nil and window:IsShown()
+    if window and window.typing then window.typing:SetText(inWindow and text or "") end
+    TypingBar(inWindow and "" or text)
     if #names == 0 and typingTicker then
         typingTicker:Cancel()
         typingTicker = nil
     end
 end
 
-local function SomeoneTyping(sender, on)
+local function SomeoneTyping(sender, on, where)
     local short = ShortName(sender)
     if on then
-        typists[short] = { name = sender, at = GetTime() }
+        typists[short] = { name = sender, at = GetTime(), where = where ~= "" and where or nil }
         if not typingTicker then typingTicker = C_Timer.NewTicker(1, ShowTyping) end
     else
         typists[short] = nil
@@ -483,7 +588,8 @@ end
 
 RPF.Comm.On("T", function(payload, sender)
     if not TypingEnabled() then return end
-    SomeoneTyping(sender, payload == "1")
+    if type(payload) ~= "string" then return end
+    SomeoneTyping(sender, payload:sub(1, 1) == "1", payload:sub(2, 2))
 end)
 
 -- The window -----------------------------------------------------------------------------------------
@@ -624,8 +730,8 @@ local function Build()
     function window.UpdateCorner()
         local text = box:GetText() or ""
         local count = #Chat.SplitPost(RPF.Accents.Apply(text, RPF.db.settings.chatMode or "SAY"))
-        local accent = RPF.Accents.Describe()
-        window.accentButton.label:SetText("Accent: " .. (accent or "none"))
+        local accent, active = RPF.Accents.Describe()
+        window.accentButton.label:SetText("Accent: " .. (accent or "none") .. ((accent and not active) and " (off while not IC)" or ""))
         window.accentButton:SetWidth(window.accentButton.label:GetStringWidth() + 4)
         window.parts:SetText(count > 1 and (count .. " posts") or "")
     end

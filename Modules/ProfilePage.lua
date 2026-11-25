@@ -490,27 +490,29 @@ local EMOTE_SAMPLE = 'waves. "Hello there, friend! Are you going to the tavern?"
 
 local function FillVoice()
     if not page.accentButton then return end
-    local choice = Profiles.GetPersona().accent
-    local accent = choice and Accents.BY_KEY[choice.key]
+    local accent, strength = Accents.Chosen()
     page.accentButton.label:SetText(accent and accent.name or "No accent")
-    page.strength:SetValue(accent and (choice.strength or 1) or 0)
+    page.strength:SetValue(accent and strength or 0)
     for _, b in ipairs(page.strength.buttons) do b:SetEnabled(accent ~= nil) end
+    page.allRaces:Refresh()
     -- "Talking to" only matters for accents that call people lad or lass.
     page.talkingTo:SetShown(accent ~= nil and accent.ladLass ~= nil)
     page.talkingTo:SetValue(page.tryWho or "target")
     local who = page.tryWho ~= "target" and page.tryWho or nil
     -- A different accent, strength or "talking to" starts the try-it box again from the sample.
-    local voice = accent and (accent.key .. (choice.strength or 1) .. (page.tryWho or "")) or "none"
+    local voice = accent and (accent.key .. strength .. (page.tryWho or "")) or "none"
     if page.tryVoice ~= voice then
         page.tryVoice = voice
-        page.trySay:SetText(accent and Accents.Apply(Accents.SAMPLE, "SAY", nil, nil, who) or Accents.SAMPLE)
+        page.trySay:SetText(accent and Accents.Apply(Accents.SAMPLE, "SAY", accent, strength, who) or Accents.SAMPLE)
         page.trySay:SetCursorPosition(0)
     end
     local sample = page.trySay:GetText() or ""
-    local say = accent and Accents.Apply(sample, "SAY", nil, nil, who) or sample
-    local emote = accent and Accents.Apply(EMOTE_SAMPLE, "EMOTE", nil, nil, who) or EMOTE_SAMPLE
+    local say = accent and Accents.Apply(sample, "SAY", accent, strength, who) or sample
+    local emote = accent and Accents.Apply(EMOTE_SAMPLE, "EMOTE", accent, strength, who) or EMOTE_SAMPLE
     page.saidText:SetText(UI.ColorCode("muted") .. "Say:|r  " .. say)
     page.emoteText:SetText(UI.ColorCode("muted") .. "Emote:|r  " .. UnitName("player") .. " " .. emote)
+    page.voiceIC:SetText(accent and not Accents.IsIC()
+        and "You are not In Character, so your accent is off. Set your status on the Status tab." or "")
 end
 
 local function BuildVoice(frame, width)
@@ -526,10 +528,17 @@ local function BuildVoice(frame, width)
     page.strength = UI.Segmented(frame, Accents.STRENGTHS, 90, function(value) Accents.SetStrength(value) end)
     page.strength:SetPoint("TOPLEFT", strengthLabel, "BOTTOMLEFT", 0, -8)
 
-    local hint = UI.Text(frame, "Your accent changes what you post from the RP chat window: everything you say or yell, "
-        .. "and the words in \"quotes\" when you emote. *Actions* and ((OOC)) stay as you wrote them. "
-        .. "Light changes a few words, Strong changes many.", 11, "muted")
-    hint:SetPoint("TOPLEFT", page.accentButton, "BOTTOMLEFT", 0, -16)
+    page.allRaces = UI.Toggle(frame, "Show accents for other races",
+        "Your own race's accents are always there. This adds the other races of your faction.",
+        function() return Accents.ShowAllRaces() end,
+        function(on) Accents.SetShowAllRaces(on) end)
+    page.allRaces:SetPoint("TOPLEFT", page.accentButton, "BOTTOMLEFT", 0, -14)
+    page.allRaces:SetWidth(width)
+
+    local hint = UI.Text(frame, "While you are In Character, your accent changes what you post from the RP chat window: "
+        .. "everything you say or yell, and the words in \"quotes\" when you emote. *Actions* and ((OOC)) stay as "
+        .. "you wrote them. Light changes a few words, Strong changes many.", 11, "muted")
+    hint:SetPoint("TOPLEFT", page.allRaces, "BOTTOMLEFT", 0, -10)
     hint:SetWidth(width)
     hint:SetJustifyH("LEFT")
 
@@ -554,7 +563,9 @@ local function BuildVoice(frame, width)
         -- The accent shows as you type, like in the RP chat window.
         if userInput then
             local who = page.tryWho ~= "target" and page.tryWho or nil
-            local changed, cursor = Accents.ApplyTyping(self:GetText() or "", self:GetCursorPosition(), "SAY", nil, nil, who)
+            local accent, strength = Accents.Chosen()
+            local changed, cursor = accent and Accents.ApplyTyping(self:GetText() or "", self:GetCursorPosition(), "SAY",
+                accent, strength, who)
             if changed then
                 self:SetText(changed)
                 self:SetCursorPosition(cursor)
@@ -571,6 +582,10 @@ local function BuildVoice(frame, width)
     page.emoteText:SetPoint("TOPLEFT", page.saidText, "BOTTOMLEFT", 0, -10)
     page.emoteText:SetWidth(width - 4)
     page.emoteText:SetJustifyH("LEFT")
+    page.voiceIC = UI.Text(frame, "", 11, "accent")
+    page.voiceIC:SetPoint("TOPLEFT", page.emoteText, "BOTTOMLEFT", 0, -16)
+    page.voiceIC:SetWidth(width - 4)
+    page.voiceIC:SetJustifyH("LEFT")
     FillVoice()
 end
 
