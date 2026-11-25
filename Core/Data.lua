@@ -17,6 +17,9 @@ local ACCOUNT_DEFAULTS = {
         portraitShape = "circle", -- Home portrait: "circle" or "square"
         chatOpen = false,   -- RP chat window open (reopens after a reload)
         typingIndicator = true, -- RP chat: tell nearby RP Forge users when you type, and show when they do
+        chatGroup = false,  -- RP chat also shows party and raid messages
+        chatWhispers = false, -- RP chat also shows whispers (sent and received)
+        chatButton = true,  -- an "RP" button on the game's chat that opens the RP chat
     },
     profiles = {}, -- roleplay profiles, shared by all characters (Modules\Profiles.lua)
     people = {},   -- profiles heard from other players (Modules\Sharing.lua)

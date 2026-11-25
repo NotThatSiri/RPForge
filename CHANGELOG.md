@@ -2,6 +2,100 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.25] - 2026-11-25
+
+### Added
+- **Whispers in RP chat** (Settings > General, off at first): whispers you get show as "Name (whisper)",
+  and ones you send as "You -> Name (whisper)", in the whisper colour.
+
+## [0.3.24] - 2026-11-25
+
+### Changed
+- The RP button sits above the General chat tab instead of in the row of tabs.
+
+## [0.3.23] - 2026-11-25
+
+### Fixed
+- You could see yourself as "typing" when you wrote in party or raid: your own message came back from the
+  group and your name didn't match. Typing messages now carry your character's ID, and your own are ignored.
+
+## [0.3.22] - 2026-11-25
+
+### Added
+- **Party and raid in RP chat** (Settings > General, off at first): the RP chat window also shows what
+  your party and raid write, marked "(party)", "(raid)" or "(raid warning)" in their chat colours.
+- **Click a message to copy it.** The text opens selected in a small box; Ctrl+C copies it and closes the
+  box. Messages light up faintly when you point at them.
+- **RP button on the chat:** a small "RP" button above the right end of the game's chat window opens and
+  closes the RP chat. It can be turned off in Settings > General.
+
+## [0.3.21] - 2026-11-25
+
+### Added
+- **Typing indicator for the game's chat box.** Typing in say or emote tells RP Forge users near you, and
+  typing in party or raid tells your group, just like the RP chat window does.
+- While the RP chat window is closed, a small bar under the chat shows who is typing ("Kiri is typing in
+  party..."). Drag it to move it.
+- **Show accents for other races** on the Voice tab. Without it you only see your own race's accents (your
+  game race, or the race written on your profile).
+
+### Changed
+- Accents are only for the races in the game, and only for your faction:
+  - Alliance: Dwarven, Gnomish, Kaldorei.
+  - Horde: Orcish, Trollish, Forsaken, Tauren.
+- Accents only change your words while your profile is **In Character**. The RP chat and the Voice tab say
+  when it is off. Try it on the Voice tab works either way.
+
+### Removed
+- The Draenei, Gilnean, Sin'dorei and Goblin accents.
+
+### Fixed
+- The Gnomish accent had gone missing in 0.3.19.
+
+## [0.3.20] - 2026-11-24
+
+### Added
+- **Talking to** next to Try it on the Voice tab (for Dwarven): your target, a man or a woman, so you can
+  see "friend" become lad or lass without targeting anyone.
+
+### Fixed
+- Five-letter "-ing" words change too: "going" becomes "goin'", "doing" becomes "doin'". Short words
+  where "ing" is part of the word stay ("thing", "bring", "swing").
+
+## [0.3.19] - 2026-11-24
+
+### Changed
+- **Dwarven** uses the full word list from before: "friend", "mate", "buddy" and "pal" become lad or lass
+  from your target's gender (laddie or lassie at Strong), and stay as they are without a target. Also
+  "guys" becomes "lads", "nope" becomes "nae", and Strong covers more words (hasnae, werenae, and
+  "dont" or "cant" typed without an apostrophe).
+- "Evening" is left alone.
+
+## [0.3.18] - 2026-11-24
+
+### Changed
+- The **Try it** box on the Voice tab changes as you type too, like the RP chat window. Choosing another
+  accent or strength starts it again from the sample text in that accent.
+
+## [0.3.17] - 2026-11-24
+
+### Changed
+- **Your accent shows as you type** in the RP chat window: each word changes as soon as you finish it,
+  so you see what you will post before you send it.
+- **Dwarven** now sounds like the game's dwarves (Falstad, Kurdran, quest text) instead of Scots:
+  - Light: ye, yer, me, aye, lad/lass, -in'.
+  - Medium: adds fer, tae, wi', an', 'em, 'tis, wee.
+  - Strong: adds th', o', nae, och, cannae, dinnae, laddie/lassie.
+- **Kaldorei** starts formal and saves Darnassian for Strong:
+  - Light: no contractions ("I don't" becomes "I do not", "isn't it" becomes "is it not").
+  - Medium: formal words (greetings, farewell, very well, thank you).
+  - Strong: Ishnu-alah and Elune-adore.
+
+### Fixed
+- Words where "ing" is part of the word are left alone ("string", "spring", "during", "ceiling").
+- An accent never changes its own words a second time (Draenei "by the Naaru" stays "by ze Naaru",
+  Trollish "sometin'", Gilnean "smashin'").
+
 ## [0.3.16] - 2026-11-24
 
 ### Fixed
