@@ -3,7 +3,8 @@
 -- A window of its own that shows only Say, Emote and Yell from people nearby (your normal chat is left
 -- alone). Each message shows the speaker's portrait in a round frame, their roleplay name in its colour
 -- and the time. Speech inside emotes is coloured like Say, and ((OOC)) text is dimmed.
--- Two layouts (Settings > Appearance): game style ("Kiri says: ...") or story style (Kiri: "...").
+-- Two layouts (Settings > Chat): game style ("Kiri says: ...") or story style (Kiri: "...").
+-- Whispers have their own window (Whispers.lua), which uses the same message rows.
 -- The last messages are kept per character, so the window survives a reload.
 local _, RPF = ...
 local UI = RPF.UI
@@ -38,8 +39,10 @@ local CIRCLE_MASK = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 local CLASS_CIRCLES = "Interface\\TargetingFrame\\UI-Classes-Circles"
 
 local messages = {} -- { at, kind, sender, guid, text, language }
-local window, scroll, content
-local rows = {}     -- one frame per shown message, in order
+local window
+-- A view is a scroll area of message rows: { scroll, content, rows, plain }. The RP chat window has one,
+-- the Whispers window another (plain: headers show only the name).
+local mainView = { rows = {} }
 
 -- Colours and text ---------------------------------------------------------------------------------
 
@@ -130,8 +133,9 @@ local function TargetName(msg)
     return c and (Hex(Readable(c.r, c.g, c.b)) .. plain .. "|r") or plain
 end
 
-local function Header(msg)
+local function Header(msg, plain)
     local name = SpeakerName(msg)
+    if plain then return name end
     local target = TargetName(msg)
     if target then name = name .. UI.ColorCode("muted") .. "  ->  |r" .. target end
     local r, g, b = TypeColor(msg.kind)
@@ -212,9 +216,9 @@ end
 
 -- Rows -------------------------------------------------------------------------------------------------
 
-local function NewRow(msg, grouped)
-    local row = CreateFrame("Frame", nil, content)
-    row.msg, row.grouped = msg, grouped
+local function NewRow(view, msg, grouped)
+    local row = CreateFrame("Frame", nil, view.content)
+    row.msg, row.grouped, row.view = msg, grouped, view
     if not grouped then
         local holder = CreateFrame("Frame", nil, row)
         holder:SetSize(PORTRAIT, PORTRAIT)
@@ -251,7 +255,8 @@ local function NewRow(msg, grouped)
         row.time:SetPoint("TOPRIGHT", -4, -5)
         row.header:SetPoint("RIGHT", row.time, "LEFT", -8, 0)
     end
-    -- Hover shows a faint band (and the time on grouped lines); a click opens the text to copy.
+    -- Hover shows a faint band (and the time on grouped lines); a right-click opens the text to copy, so a
+    -- left-click stays free for links (items, spells, players) in the message.
     row:EnableMouse(true)
     row.hover = row:CreateTexture(nil, "BACKGROUND")
     row.hover:SetTexture(UI.WHITE)
@@ -273,8 +278,22 @@ local function NewRow(msg, grouped)
         GameTooltip:Hide()
     end)
     row:SetScript("OnMouseUp", function(self, button)
-        if button == "LeftButton" then Chat.CopyMessage(self.msg) end
+        if button == "RightButton" then Chat.CopyMessage(self.msg) end
     end)
+    -- Links work as in the game's chat: click to open (Shift-click to put it in your chat box), and
+    -- pointing at an item shows its tooltip.
+    if row.SetHyperlinksEnabled then row:SetHyperlinksEnabled(true) end
+    row:SetScript("OnHyperlinkClick", function(self, link, text, button)
+        if SetItemRef then SetItemRef(link, text, button, self) end
+    end)
+    row:SetScript("OnHyperlinkEnter", function(self, link)
+        local kind = type(link) == "string" and link:match("^(%a+):")
+        if kind == "item" or kind == "spell" or kind == "enchant" or kind == "quest" or kind == "achievement" then
+            GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
+            if pcall(GameTooltip.SetHyperlink, GameTooltip, link) then GameTooltip:Show() else GameTooltip:Hide() end
+        end
+    end)
+    row:SetScript("OnHyperlinkLeave", function() GameTooltip:Hide() end)
     row.body = UI.Text(row, "", 12, "text")
     row.body:SetSpacing(2)
     row.body:SetPoint("TOPLEFT", PORTRAIT + 6, grouped and 0 or -22)
@@ -289,22 +308,24 @@ local function FillRow(row, firstTime)
     row.body:SetText(Body(msg))
     if not row.grouped then
         local _, fields = SpeakerName(msg)
-        row.header:SetText(Header(msg))
+        row.header:SetText(Header(msg, row.view.plain))
         row.time:SetText(date("%H:%M", msg.at))
         if firstTime then SetPortrait(row, msg, fields) end
     end
 end
 
-local function AtBottom()
-    return scroll:GetVerticalScroll() >= (scroll:GetVerticalScrollRange() - 4)
+local function AtBottom(view)
+    local scroll = view.scroll
+    return scroll ~= nil and scroll:GetVerticalScroll() >= (scroll:GetVerticalScrollRange() - 4)
 end
 
-local function Layout(keepBottom)
-    if not window then return end
+local function Layout(view, keepBottom)
+    local scroll, content = view.scroll, view.content
+    if not scroll then return end
     local width = math.max(200, scroll:GetWidth() - 4)
     content:SetWidth(width)
     local y = 6
-    for i, row in ipairs(rows) do
+    for i, row in ipairs(view.rows) do
         if not row.grouped and i > 1 then y = y + 8 end
         row:ClearAllPoints()
         row:SetPoint("TOPLEFT", 0, -y)
@@ -317,7 +338,7 @@ local function Layout(keepBottom)
     end
     content:SetHeight(y + 6)
     if keepBottom then
-        C_Timer.After(0, function() if scroll then scroll:SetVerticalScroll(scroll:GetVerticalScrollRange()) end end)
+        C_Timer.After(0, function() scroll:SetVerticalScroll(scroll:GetVerticalScrollRange()) end)
     end
 end
 
@@ -326,36 +347,343 @@ local function GroupsWith(previous, msg)
         and previous.target == msg.target and (msg.at - previous.at) <= GROUP_SECONDS
 end
 
-local function AddRow(msg, previous)
-    local row = NewRow(msg, GroupsWith(previous, msg))
-    rows[#rows + 1] = row
+local function AddRow(view, msg, previous)
+    local row = NewRow(view, msg, GroupsWith(previous, msg))
+    view.rows[#view.rows + 1] = row
     FillRow(row, true)
     -- Keep only as many rows as messages.
-    while #rows > MAX_MESSAGES do
-        local old = table.remove(rows, 1)
+    while #view.rows > MAX_MESSAGES do
+        local old = table.remove(view.rows, 1)
         old:Hide()
         old:SetParent(nil)
     end
 end
 
--- Show every stored message again (when the window opens, the style changes, or names arrive).
+-- A new, empty view inside parent. The caller places view.scroll.
+function Chat.NewView(parent, plain)
+    local view = { rows = {}, plain = plain }
+    view.scroll = CreateFrame("ScrollFrame", nil, parent, "UIPanelScrollFrameTemplate")
+    view.content = CreateFrame("Frame", nil, view.scroll)
+    view.content:SetSize(300, 10)
+    view.scroll:SetScrollChild(view.content)
+    UI.SkinScrollBar(view.scroll)
+    view.scroll:EnableMouseWheel(true)
+    return view
+end
+
+-- Show these messages in the view, in place of what it showed.
+function Chat.ShowMessages(view, list)
+    for _, row in ipairs(view.rows) do
+        row:Hide()
+        row:SetParent(nil)
+    end
+    view.rows = {}
+    local previous
+    for _, msg in ipairs(list) do
+        AddRow(view, msg, previous)
+        previous = msg
+    end
+    Layout(view, true)
+end
+
+-- One new message at the bottom (staying at the bottom if you were there).
+function Chat.AddMessage(view, msg, previous)
+    local wasBottom = AtBottom(view)
+    AddRow(view, msg, previous)
+    Layout(view, wasBottom)
+end
+
+-- Fill every row's texts again (the style changed, or names arrived).
+function Chat.RefreshView(view)
+    for _, row in ipairs(view.rows) do FillRow(row, false) end
+    Layout(view, AtBottom(view))
+end
+Chat.LayoutView = Layout
+Chat.TypeColor = TypeColor
+
+-- Show every stored message again in the open windows.
 function Chat.Refresh()
-    if not window then return end
-    for _, row in ipairs(rows) do FillRow(row, false) end
-    Layout(AtBottom())
+    if window and window:IsShown() then Chat.RefreshView(mainView) end
+    if RPF.Whispers then RPF.Whispers.Refresh() end
+end
+
+-- Empty the RP chat log (whispers are kept: they have their own Clear).
+function Chat.ClearLog()
+    wipe(messages)
+    if window then Chat.ShowMessages(mainView, messages) end
 end
 
 -- Sending -------------------------------------------------------------------------------------------
 
 local MAX_LENGTH = 255
-local MODE_LABELS = { SAY = "Say:", EMOTE = "Emote:", YELL = "Yell:" }
+local MODE_LABELS = { SAY = "Say:", EMOTE = "Emote:", YELL = "Yell:", PARTY = "Party:", RAID = "Raid:" }
 local MODE_HINTS = {
-    SAY = "Say something. /e to emote, /y to yell. Shift+Enter: new line.",
-    EMOTE = "Emote. /s to say, /y to yell. Shift+Enter: new line.",
-    YELL = "Yell. /s to say, /e to emote. Shift+Enter: new line.",
+    SAY = "Say something.", EMOTE = "Emote.", YELL = "Yell.", PARTY = "Write to your party.",
+    RAID = "Write to your raid.",
 }
 local PREFIXES = { ["/s "] = "SAY", ["/say "] = "SAY", ["/e "] = "EMOTE", ["/me "] = "EMOTE", ["/emote "] = "EMOTE",
-    ["/y "] = "YELL", ["/yell "] = "YELL" }
+    ["/y "] = "YELL", ["/yell "] = "YELL",
+    -- Only with "Party and raid in RP chat" on.
+    ["/p "] = "PARTY", ["/party "] = "PARTY", ["/ra "] = "RAID", ["/raid "] = "RAID" }
+-- Only with "Whispers in RP chat" on: "/w Name text" whispers Name, "/r text" answers your last whisper.
+local WHISPER_COMMANDS = { "/w ", "/whisper ", "/t ", "/tell " }
+local REPLY_COMMANDS = { "/r ", "/reply " }
+local GROUP_MODES = { PARTY = true, RAID = true }
+
+local lastWhisperFrom  -- the last person who whispered you, for /r
+local recentWhispers = {} -- people you whispered with lately, newest first (for /w suggestions)
+
+local function RememberWhisper(name)
+    if type(name) ~= "string" or RPF.IsSecret(name) or name == "" then return end
+    for i = #recentWhispers, 1, -1 do
+        if recentWhispers[i]:lower() == name:lower() then table.remove(recentWhispers, i) end
+    end
+    table.insert(recentWhispers, 1, name)
+    while #recentWhispers > 10 do table.remove(recentWhispers) end
+end
+
+-- The mode the box sends in right now. Party and raid fall back to Say when you aren't in a group (and
+-- come back when you are).
+local function CurrentMode()
+    local settings = RPF.db.settings
+    local mode = settings.chatMode or "SAY"
+    if not MODE_LABELS[mode] then return "SAY" end
+    if GROUP_MODES[mode] and (not settings.chatGroup or not IsInGroup()) then return "SAY" end
+    if mode == "RAID" and not IsInRaid() then return IsInGroup() and "PARTY" or "SAY" end
+    return mode
+end
+
+-- The switch letters you can use now, for the hint in the empty box.
+local function SwitchHint()
+    local list = "/s /e /y"
+    if RPF.db.settings.chatGroup then list = list .. " /p /ra" end
+    if RPF.db.settings.chatWhispers then list = list .. " /w /r" end
+    return list .. " to switch. Shift+Enter: new line."
+end
+
+-- Names have a space in them (first and last name), so a whisper's name ends where a name you know ends:
+-- "/w Kiri Stormcrest hello" whispers Kiri Stormcrest "hello" once that name has been seen (whispers,
+-- group, friends, guild, RP chat). While you type, it waits as long as a longer known name could still
+-- follow. A name it doesn't know: type all of it and press Enter.
+local function MatchWhisperName(rest, sending)
+    local lower = rest:lower()
+    local best, longer = nil, false
+    for _, item in ipairs(Chat.WhisperSuggestions("", 200)) do
+        local key = item.name:lower()
+        if lower:sub(1, #key + 1) == key .. " " or (sending and lower == key) then
+            if not best or #key > #best then best = item.name end
+        elseif #key > #lower and key:sub(1, #lower) == lower then
+            longer = true
+        end
+    end
+    if sending then
+        if best then return best, rest:sub(#best + 2) end
+        local name = strtrim(rest)
+        if name ~= "" then return name, "" end
+        return
+    end
+    if best and not longer then return best, rest:sub(#best + 2) end
+end
+
+-- A command at the start of the text: returns the mode ("REPLY" for /r), whom to whisper, and the text
+-- after it. Nothing when there's no command (or the name after /w isn't finished yet, see above).
+local function ParseCommand(text, sending)
+    if text:sub(1, 1) ~= "/" then return end
+    local lower = text:lower()
+    for prefix, mode in pairs(PREFIXES) do
+        if lower:sub(1, #prefix) == prefix and (not GROUP_MODES[mode] or RPF.db.settings.chatGroup) then
+            return mode, nil, text:sub(#prefix + 1)
+        end
+    end
+    if not RPF.db.settings.chatWhispers then return end
+    for _, prefix in ipairs(REPLY_COMMANDS) do
+        if lower:sub(1, #prefix) == prefix then return "REPLY", nil, text:sub(#prefix + 1) end
+    end
+    for _, prefix in ipairs(WHISPER_COMMANDS) do
+        if lower:sub(1, #prefix) == prefix then
+            local name, rest = MatchWhisperName(text:sub(#prefix + 1), sending)
+            if name then return "WHISPER", name, rest end
+            return
+        end
+    end
+end
+
+-- Who /r answers: the last person who whispered you.
+function Chat.ReplyTarget()
+    if lastWhisperFrom then return lastWhisperFrom end
+    if ChatEdit_GetLastTellTarget then
+        local last = ChatEdit_GetLastTellTarget()
+        if type(last) == "string" and not RPF.IsSecret(last) and last ~= "" then return last end
+    end
+end
+
+-- Switch the box to a mode. Returns false (and says why) when it can't, and "moved" for a whisper: those
+-- are written in the Whispers window, which opens on that person with the text so far.
+local function SwitchMode(mode, target, rest)
+    if mode == "REPLY" then
+        target = Chat.ReplyTarget()
+        if not target then
+            RPF.Print("no one has whispered you yet.")
+            return false
+        end
+        mode = "WHISPER"
+    end
+    if mode == "WHISPER" then
+        RPF.Whispers.Open(target, rest)
+        return "moved"
+    end
+    if mode == "PARTY" and not IsInGroup() then
+        RPF.Print("you aren't in a party.")
+        return false
+    end
+    if mode == "RAID" and not IsInRaid() then
+        RPF.Print("you aren't in a raid.")
+        return false
+    end
+    RPF.db.settings.chatMode = mode
+    return true
+end
+Chat.ParseCommand = ParseCommand
+
+-- "/w Kiri St" (a whisper command with the name being typed): returns the command and the name so far.
+local function WhisperPartial(text)
+    if not RPF.db.settings.chatWhispers then return end
+    local lower = text:lower()
+    for _, prefix in ipairs(WHISPER_COMMANDS) do
+        if lower:sub(1, #prefix) == prefix then return prefix, text:sub(#prefix + 1) end
+    end
+end
+
+-- Names for /w that start with what you typed, like the game's chat suggests: people you whispered with,
+-- your group, online friends and guild, and people in the RP chat. Each with where it came from.
+local MAX_SUGGESTIONS = 8
+function Chat.WhisperSuggestions(partial, max)
+    partial = (partial or ""):lower()
+    max = max or MAX_SUGGESTIONS
+    local list, seen = {}, {}
+    local me, myName = (UnitName("player") or ""):lower(), (RPF.PlayerName("player") or ""):lower()
+    local function Add(name, from)
+        if #list >= max or type(name) ~= "string" or RPF.IsSecret(name) or name == "" then return end
+        local short = Ambiguate and Ambiguate(name, "none") or name
+        local key = short:lower()
+        if seen[key] or key == me or key == myName or key:sub(1, #partial) ~= partial then return end
+        seen[key] = true
+        list[#list + 1] = { name = short, from = from }
+    end
+    for _, name in ipairs(recentWhispers) do Add(name, "whispered") end
+    for _, unit in ipairs({ "target", "mouseover" }) do Add(RPF.PlayerName(unit), unit) end
+    local raid = IsInRaid()
+    for i = 1, (GetNumGroupMembers and GetNumGroupMembers() or 0) do
+        Add(RPF.PlayerName((raid and "raid" or "party") .. i), raid and "raid" or "party")
+    end
+    if C_FriendList and C_FriendList.GetNumFriends then
+        for i = 1, C_FriendList.GetNumFriends() or 0 do
+            local info = C_FriendList.GetFriendInfoByIndex(i)
+            if info and info.connected then Add(info.name, "friend") end
+        end
+    end
+    if IsInGuild and IsInGuild() and GetNumGuildMembers then
+        for i = 1, GetNumGuildMembers() or 0 do
+            local name, _, _, _, _, _, _, _, online = GetGuildRosterInfo(i)
+            if online then Add(name, "guild") end
+        end
+    end
+    for i = #messages, 1, -1 do
+        local msg = messages[i]
+        if msg.guid ~= UnitGUID("player") then Add(msg.sender, "RP chat") end
+        if msg.target and msg.kind == "WHISPER_INFORM" then Add(msg.target, "whispered") end
+    end
+    return list
+end
+
+-- Name suggestions for /w above a typing box: Up and Down pick, Tab or Enter (or a click) takes one, and
+-- onTake(name) gets it. The owner calls list.Update() when the text changes, list.FocusLost() when the box
+-- loses focus, and checks list:IsShown() before its own Enter and Escape.
+function Chat.AttachSuggestions(box, anchor, onTake)
+    local list = UI.Panel(anchor, "panel", "accent")
+    list:SetFrameStrata("DIALOG")
+    list:SetPoint("BOTTOMLEFT", anchor, "TOPLEFT", 0, 22)
+    list:SetWidth(240)
+    list:Hide()
+    list.rows, list.items, list.selected = {}, {}, 1
+    local function Paint()
+        local accent = UI.Color("accent")
+        for i, row in ipairs(list.rows) do
+            row.band:SetVertexColor(accent[1], accent[2], accent[3], i == list.selected and 0.25 or 0)
+        end
+    end
+    local function Row(i)
+        local row = list.rows[i]
+        if row then return row end
+        row = CreateFrame("Button", nil, list)
+        row:SetHeight(18)
+        row:SetPoint("TOPLEFT", 4, -4 - (i - 1) * 18)
+        row:SetPoint("RIGHT", list, "RIGHT", -4, 0)
+        row.band = row:CreateTexture(nil, "BACKGROUND")
+        row.band:SetTexture(UI.WHITE)
+        row.band:SetAllPoints()
+        row.name = UI.Text(row, "", 12, "text")
+        row.name:SetPoint("LEFT", 6, 0)
+        row.from = UI.Text(row, "", 10, "muted", "RIGHT")
+        row.from:SetPoint("RIGHT", -6, 0)
+        row:SetScript("OnEnter", function(self)
+            list.selected = self.index
+            Paint()
+        end)
+        row:SetScript("OnClick", function(self) list.Take(self.index) end)
+        list.rows[i] = row
+        return row
+    end
+    -- Show the names that match what's typed after /w, or hide the list.
+    function list.Update()
+        local _, partial = WhisperPartial(box:GetText() or "")
+        local items = partial and Chat.WhisperSuggestions(partial) or {}
+        list.items = items
+        if #items == 0 or not box:HasFocus() then
+            list:Hide()
+            return
+        end
+        if list.selected > #items then list.selected = 1 end
+        for i, row in ipairs(list.rows) do row:SetShown(i <= #items) end
+        for i, item in ipairs(items) do
+            local row = Row(i)
+            row.index = i
+            row.name:SetText(item.name)
+            row.from:SetText(item.from)
+            row:Show()
+        end
+        list:SetHeight(8 + #items * 18)
+        Paint()
+        list:Show()
+    end
+    function list.Take(index)
+        local item = list.items[index or list.selected]
+        list:Hide()
+        if item then onTake(item.name) end
+    end
+    -- Later, so a click on a name still lands.
+    function list.FocusLost()
+        C_Timer.After(0.2, function() if not box:HasFocus() then list:Hide() end end)
+    end
+    box:SetScript("OnTabPressed", function()
+        if list:IsShown() then list.Take() end
+    end)
+    box:SetScript("OnArrowPressed", function(self, key)
+        if not list:IsShown() or (key ~= "UP" and key ~= "DOWN") then return end
+        -- The list is above the box, so Up goes up the list.
+        list.selected = (list.selected - 1 + (key == "UP" and -1 or 1)) % #list.items + 1
+        Paint()
+        -- The arrow also moved the cursor: put it back at the end of the name.
+        local length = #(self:GetText() or "")
+        C_Timer.After(0, function() self:SetCursorPosition(length) end)
+    end)
+    return list
+end
+
+-- Where the typing indicator goes for the box: group modes tell the group.
+local function TypingWhere(mode)
+    if GROUP_MODES[mode] then return mode end
+end
 
 -- Split text into posts of at most 255 letters, at spaces, each ending in " (1/3)" when there are several.
 function Chat.SplitPost(text)
@@ -384,14 +712,26 @@ end
 local MyTypingChanged -- defined with the typing indicator below
 local function SendFromBox(box)
     local text = box:GetText() or ""
-    local mode = RPF.db.settings.chatMode or "SAY"
-    local lower = text:lower()
-    for prefix, prefixMode in pairs(PREFIXES) do
-        if lower:sub(1, #prefix) == prefix then
-            mode, text = prefixMode, text:sub(#prefix + 1)
-            break
+    local command, target, rest = ParseCommand(text, true)
+    if command == "WHISPER" or command == "REPLY" then
+        -- Whispers belong in the Whispers window: it opens on that person, and any text goes to them.
+        local to = command == "REPLY" and Chat.ReplyTarget() or target
+        if not to then
+            RPF.Print("no one has whispered you yet.")
+            return
         end
+        box:SetText("")
+        MyTypingChanged("")
+        RPF.Whispers.Open(to, "")
+        if strtrim(rest or "") ~= "" then RPF.Whispers.Send(to, rest) end
+        return
     end
+    if command then
+        if not SwitchMode(command, target) then return end
+        text = rest
+        if window and window.ShowMode then window.ShowMode() end
+    end
+    local mode = CurrentMode()
     text = RPF.Accents.Apply(text, mode)
     for _, part in ipairs(Chat.SplitPost(text)) do
         SendChatMessage(part, mode)
@@ -417,7 +757,7 @@ local TYPING_RECENT = 10 * 60
 local TYPING_MAX_PEOPLE = 6
 local typists = {}         -- typists[shortName] = { name = full sender, at = GetTime() }
 local typingTicker
-local myTyping = { on = false, sent = 0 }
+local myTyping = { on = false, sent = 0, where = nil }
 
 local function TypingEnabled() return RPF.db.settings.typingIndicator ~= false end
 
@@ -475,15 +815,17 @@ local function SendTyping(state, where)
 end
 
 -- Called whenever the text in your box changes because you typed.
-MyTypingChanged = function(text)
+-- where: nil for say, emote and yell, "PARTY" or "RAID" to tell the group; nothing is sent for whispers.
+MyTypingChanged = function(text, where)
     if not TypingEnabled() then return end
-    local typing = strtrim(text or "") ~= ""
-    if typing and (not myTyping.on or GetTime() - myTyping.sent >= TYPING_REPEAT) then
-        myTyping.on, myTyping.sent = true, GetTime()
-        SendTyping("1")
-    elseif not typing and myTyping.on then
+    local typing = strtrim(text or "") ~= "" and where ~= "WHISPER"
+    if myTyping.on and (not typing or myTyping.where ~= where) then
         myTyping.on = false
-        SendTyping("0")
+        SendTyping("0", myTyping.where)
+    end
+    if typing and (not myTyping.on or GetTime() - myTyping.sent >= TYPING_REPEAT) then
+        myTyping.on, myTyping.sent, myTyping.where = true, GetTime(), where
+        SendTyping("1", where)
     end
 end
 
@@ -675,7 +1017,7 @@ local function Build()
     close:SetScript("OnLeave", function(self) UI.SetTextColor(self.label, "muted") end)
     close:SetScript("OnClick", function() Chat.Hide() end)
 
-    -- Cogwheel: opens Settings > Appearance, where the RP chat layout is chosen.
+    -- Cogwheel: opens Settings > Chat.
     local cog = CreateFrame("Button", nil, title)
     cog:SetSize(22, 24)
     cog:SetPoint("RIGHT", close, "LEFT", -2, 0)
@@ -692,17 +1034,57 @@ local function Build()
         TintCog("accent")
         GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
         GameTooltip:AddLine("Chat settings", 1, 0.82, 0.45)
-        GameTooltip:AddLine("Opens Settings > Appearance (RP chat layout).", 0.9, 0.9, 0.9, true)
+        GameTooltip:AddLine("Opens Settings > Chat.", 0.9, 0.9, 0.9, true)
         GameTooltip:Show()
     end)
     cog:SetScript("OnLeave", function() TintCog("muted"); GameTooltip:Hide() end)
-    cog:SetScript("OnClick", function() UI.OpenSettings("appearance") end)
+    cog:SetScript("OnClick", function() UI.OpenSettings("chat") end)
+
+    -- Small text buttons in the title, right to left: Clear, and Whispers (with how many are unread).
+    local function TitleButton(text, anchor, onClick, tip)
+        local b = CreateFrame("Button", nil, title)
+        b:SetHeight(24)
+        b:SetPoint("RIGHT", anchor, "LEFT", -8, 0)
+        b.label = UI.Text(b, text, 11, "muted", "RIGHT")
+        b.label:SetPoint("RIGHT", 0, 0)
+        b:SetWidth(b.label:GetStringWidth() + 4)
+        b:SetScript("OnEnter", function(self)
+            UI.SetTextColor(self.label, "accent")
+            GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
+            GameTooltip:AddLine(tip, 0.9, 0.9, 0.9, true)
+            GameTooltip:Show()
+        end)
+        b:SetScript("OnLeave", function(self)
+            UI.SetTextColor(self.label, self.unread and "accent" or "muted")
+            GameTooltip:Hide()
+        end)
+        b:SetScript("OnClick", onClick)
+        return b
+    end
+    -- Clear asks once more in a small menu, so it can't happen by accident.
+    local clear = TitleButton("Clear", cog, function(self)
+        UI.ShowMenu(self, { { "Clear the RP chat log", function() Chat.ClearLog() end } })
+    end, "Clear the messages in this window.")
+    local whispers = TitleButton("Whispers", clear, function()
+        if RPF.Whispers then RPF.Whispers.Toggle() end
+    end, "Open or close the Whispers window.")
+    function window.UpdateWhispers()
+        whispers:SetShown(RPF.db.settings.chatWhispers == true)
+        local unread = RPF.Whispers and RPF.Whispers.Unread() or 0
+        whispers.unread = unread > 0
+        whispers.label:SetText(unread > 0 and ("Whispers (" .. unread .. ")") or "Whispers")
+        UI.SetTextColor(whispers.label, whispers.unread and "accent" or "muted")
+        whispers:SetWidth(whispers.label:GetStringWidth() + 4)
+    end
+    window.UpdateWhispers()
     UI.Divider(window, -25, 1)
 
-    scroll = CreateFrame("ScrollFrame", nil, window, "UIPanelScrollFrameTemplate")
+    mainView = Chat.NewView(window)
+    local scroll = mainView.scroll
     scroll:SetPoint("TOPLEFT", 10, -32)
     -- The typing area at the bottom: a box that grows with the text. Start with /s, /e or /y to switch
-    -- between Say, Emote and Yell, like the game's chat; the box takes that chat colour.
+    -- between Say, Emote and Yell, like the game's chat (and /p, /ra, /w Name and /r when party and raid or
+    -- whispers are on in Settings); the box takes that chat colour.
     local input = CreateFrame("Frame", nil, window)
     input:SetPoint("BOTTOMLEFT", 8, 18)
     input:SetPoint("BOTTOMRIGHT", -8, 18)
@@ -752,13 +1134,12 @@ local function Build()
 
     -- Colour the label, text and border for the current mode (full border while typing).
     local function ShowMode()
-        local mode = RPF.db.settings.chatMode or "SAY"
-        if not MODE_LABELS[mode] then mode = "SAY" end
+        local mode = CurrentMode()
         local r, g, b = TypeColor(mode)
         modeLabel:SetText(MODE_LABELS[mode])
         modeLabel:SetTextColor(r, g, b, 1)
         box:SetTextColor(r, g, b, 1)
-        placeholder:SetText(MODE_HINTS[mode])
+        placeholder:SetText(MODE_HINTS[mode] .. " " .. SwitchHint())
         boxFrame:SetBackdropBorderColor(r, g, b, box:HasFocus() and 1 or 0.45)
         if window.UpdateCorner then window.UpdateCorner() end
     end
@@ -766,19 +1147,38 @@ local function Build()
     -- Bottom-right corner: your accent, and how many posts a long text becomes.
     function window.UpdateCorner()
         local text = box:GetText() or ""
-        local count = #Chat.SplitPost(RPF.Accents.Apply(text, RPF.db.settings.chatMode or "SAY"))
+        local count = #Chat.SplitPost(RPF.Accents.Apply(text, (CurrentMode())))
         local accent, active = RPF.Accents.Describe()
         window.accentButton.label:SetText("Accent: " .. (accent or "none") .. ((accent and not active) and " (off while not IC)" or ""))
         window.accentButton:SetWidth(window.accentButton.label:GetStringWidth() + 4)
         window.parts:SetText(count > 1 and (count .. " posts") or "")
     end
     ShowMode()
+
+    -- Name suggestions for /w, above the box: taking one opens the Whispers window on that person.
+    local suggest = Chat.AttachSuggestions(box, input, function(name)
+        box:SetText("")
+        SwitchMode("WHISPER", name, "")
+    end)
     box:SetScript("OnEditFocusGained", ShowMode)
-    box:SetScript("OnEditFocusLost", ShowMode)
-    box:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+    box:SetScript("OnEditFocusLost", function()
+        ShowMode()
+        suggest.FocusLost()
+    end)
+    box:SetScript("OnEscapePressed", function(self)
+        if suggest:IsShown() then
+            suggest:Hide()
+            return
+        end
+        self:ClearFocus()
+    end)
     box:SetScript("OnEnterPressed", function(self)
         if IsShiftKeyDown() then
             self:Insert("\n")
+            return
+        end
+        if suggest:IsShown() then
+            suggest.Take()
             return
         end
         SendFromBox(self)
@@ -786,20 +1186,22 @@ local function Build()
     box:SetScript("OnTextChanged", function(self, userInput)
         local text = self:GetText() or ""
         -- "/e " at the start switches to Emote (and so on); the command itself is removed.
-        if userInput and text:sub(1, 1) == "/" then
-            local lower = text:lower()
-            for prefix, mode in pairs(PREFIXES) do
-                if lower:sub(1, #prefix) == prefix then
-                    RPF.db.settings.chatMode = mode
+        if userInput then
+            local command, target, rest = ParseCommand(text, false)
+            if command then
+                local result = SwitchMode(command, target, rest)
+                if result == "moved" then
+                    self:SetText("")
+                elseif result then
                     ShowMode()
-                    self:SetText(text:sub(#prefix + 1))
-                    return
+                    self:SetText(rest)
                 end
+                return
             end
         end
         -- Your accent shows as you type: each word changes once it's finished.
         if userInput then
-            local changed, cursor = RPF.Accents.ApplyTyping(text, self:GetCursorPosition(), RPF.db.settings.chatMode or "SAY")
+            local changed, cursor = RPF.Accents.ApplyTyping(text, self:GetCursorPosition(), (CurrentMode()))
             if changed then
                 self:SetText(changed)
                 self:SetCursorPosition(cursor)
@@ -808,6 +1210,7 @@ local function Build()
         end
         placeholder:SetShown(text == "")
         window.UpdateCorner()
+        suggest.Update()
         -- Grow from 2 to 6 lines as you type.
         local lines = math.max(2, math.min(6, math.ceil((self:GetHeight() > 0 and select(2, text:gsub("\n", "")) + 1) or 1)))
         local _, fontHeight = self:GetFont()
@@ -830,15 +1233,10 @@ local function Build()
     window.typing:SetJustifyH("LEFT")
     window.typing:SetWordWrap(false)
     box:HookScript("OnTextChanged", function(self, userInput)
-        if userInput then MyTypingChanged(self:GetText()) end
+        if userInput then MyTypingChanged(self:GetText(), TypingWhere((CurrentMode()))) end
     end)
 
     scroll:SetPoint("BOTTOMRIGHT", input, "TOPRIGHT", -18, 22)
-    content = CreateFrame("Frame", nil, scroll)
-    content:SetSize(300, 10)
-    scroll:SetScrollChild(content)
-    UI.SkinScrollBar(scroll)
-    scroll:EnableMouseWheel(true)
 
     local grip = CreateFrame("Button", nil, window)
     grip:SetSize(16, 16)
@@ -847,17 +1245,11 @@ local function Build()
     grip:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
     grip:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
     grip:SetScript("OnMouseDown", function() window:StartSizing("BOTTOMRIGHT") end)
-    grip:SetScript("OnMouseUp", function() window:StopMovingOrSizing(); SavePosition(); Layout(true) end)
-    window:SetScript("OnSizeChanged", function() Layout(false) end)
+    grip:SetScript("OnMouseUp", function() window:StopMovingOrSizing(); SavePosition(); Layout(mainView, true) end)
+    window:SetScript("OnSizeChanged", function() Layout(mainView, false) end)
     if window.SetResizeBounds then window:SetResizeBounds(320, 300, 1000, 900) elseif window.SetMinResize then window:SetMinResize(320, 300) end
 
-    rows = {}
-    local previous
-    for _, msg in ipairs(messages) do
-        AddRow(msg, previous)
-        previous = msg
-    end
-    Layout(true)
+    Chat.ShowMessages(mainView, messages)
 end
 
 function Chat.Show()
@@ -869,8 +1261,9 @@ function Chat.Show()
     window:Show()
     ShowTyping()
     RPF.db.settings.chatOpen = true
-    Chat.Refresh()
-    Layout(true)
+    if window.UpdateWhispers then window.UpdateWhispers() end
+    Chat.RefreshView(mainView)
+    Layout(mainView, true)
 end
 
 function Chat.Hide()
@@ -936,6 +1329,10 @@ end
 
 -- A small "RP" button above the General chat tab: opens and closes the RP chat.
 local chatButton
+local function UnreadWhispers()
+    return (RPF.db.settings.chatWhispers and RPF.Whispers and RPF.Whispers.Unread()) or 0
+end
+
 function Chat.UpdateChatButton()
     local wanted = RPF.db.settings.chatButton ~= false and ChatFrame1 ~= nil
     if not wanted then
@@ -951,17 +1348,42 @@ function Chat.UpdateChatButton()
             chatButton:SetPoint("BOTTOMLEFT", ChatFrame1, "TOPLEFT", 0, 30)
         end
         chatButton:SetFrameStrata("MEDIUM")
-        chatButton:SetScript("OnClick", function() Chat.Toggle() end)
+        -- A small dot in the corner while whispers are unread; a click then opens the Whispers window.
+        chatButton.dot = chatButton:CreateTexture(nil, "OVERLAY")
+        chatButton.dot:SetTexture(CIRCLE_MASK)
+        chatButton.dot:SetSize(9, 9)
+        chatButton.dot:SetPoint("TOPRIGHT", 3, 3)
+        function chatButton.UpdateDot()
+            local a = UI.Color("accent")
+            chatButton.dot:SetVertexColor(a[1], a[2], a[3], 1)
+            chatButton.dot:SetShown(UnreadWhispers() > 0)
+        end
+        chatButton:SetScript("OnClick", function()
+            if UnreadWhispers() > 0 then RPF.Whispers.Show() else Chat.Toggle() end
+        end)
         chatButton:HookScript("OnEnter", function(self)
             GameTooltip:SetOwner(self, "ANCHOR_TOP")
             GameTooltip:AddLine("RP chat")
-            GameTooltip:AddLine("Click to open or close the RP chat window.", 0.9, 0.9, 0.9, true)
+            local unread = UnreadWhispers()
+            if unread > 0 then
+                GameTooltip:AddLine(unread .. (unread == 1 and " unread whisper" or " unread whispers")
+                    .. ". Click to read.", 1, 0.82, 0.45, true)
+            else
+                GameTooltip:AddLine("Click to open or close the RP chat window.", 0.9, 0.9, 0.9, true)
+            end
             GameTooltip:Show()
         end)
         chatButton:HookScript("OnLeave", function() GameTooltip:Hide() end)
     end
     chatButton:Refresh()
+    chatButton.UpdateDot()
     chatButton:Show()
+end
+
+-- Whispers were read or arrived: the count in the title and the dot on the RP button.
+function Chat.UpdateUnread()
+    if window and window.UpdateWhispers then window.UpdateWhispers() end
+    if chatButton then chatButton.UpdateDot() end
 end
 
 -- Receiving ----------------------------------------------------------------------------------------------
@@ -970,6 +1392,8 @@ local lastAsked = {}
 local function OnChat(event, text, sender, language, _, _, _, _, _, _, _, _, guid)
     if not RPF.char then return end
     local kind = EVENTS[event]
+    if kind == "WHISPER" and type(sender) == "string" and not RPF.IsSecret(sender) then lastWhisperFrom = sender end
+    if kind == "WHISPER" or kind == "WHISPER_INFORM" then RememberWhisper(sender) end
     if KIND_SETTING[kind] and not RPF.db.settings[KIND_SETTING[kind]] then return end
     local msg = { at = time(), kind = kind, sender = sender, guid = guid, text = text, language = language }
     if kind == "WHISPER_INFORM" then
@@ -988,19 +1412,20 @@ local function OnChat(event, text, sender, language, _, _, _, _, _, _, _, _, gui
         end
     end
     if kind ~= "WHISPER_INFORM" and typists[ShortName(sender)] then SomeoneTyping(sender, false) end
-    local previous = messages[#messages]
-    messages[#messages + 1] = msg
-    while #messages > MAX_MESSAGES do table.remove(messages, 1) end
     -- Ask new speakers for their name card, at most once a minute each.
     if guid ~= UnitGUID("player") and (GetTime() - (lastAsked[sender] or -100)) > 60 then
         lastAsked[sender] = GetTime()
         Sharing.RequestTooltip(sender)
     end
-    if window then
-        local wasBottom = AtBottom()
-        AddRow(msg, previous)
-        Layout(wasBottom)
+    -- Whispers have their own window, one tab per person (sender is the other person either way).
+    if kind == "WHISPER" or kind == "WHISPER_INFORM" then
+        if RPF.Whispers then RPF.Whispers.Add(msg, sender) end
+        return
     end
+    local previous = messages[#messages]
+    messages[#messages + 1] = msg
+    while #messages > MAX_MESSAGES do table.remove(messages, 1) end
+    if window then Chat.AddMessage(mainView, msg, previous) end
 end
 
 for event in pairs(EVENTS) do
@@ -1010,7 +1435,7 @@ end
 -- Names arrive after the first message: show them as soon as they do.
 local refreshPending = false
 RPF.Listen("PERSON_UPDATED", function()
-    if not window or not window:IsShown() or refreshPending then return end
+    if refreshPending then return end
     refreshPending = true
     C_Timer.After(0.5, function()
         refreshPending = false
@@ -1023,6 +1448,18 @@ RPF.Listen("PROFILE_CHANGED", function()
         if window.UpdateCorner then window.UpdateCorner() end
     end
 end)
+
+-- Joining or leaving a group changes where Party and Raid go.
+RPF.OnEvent("GROUP_ROSTER_UPDATE", function()
+    if window and window.ShowMode then window.ShowMode() end
+end)
+
+-- Settings can turn party and raid or whispers on and off: show the right mode and hint.
+function Chat.UpdateMode()
+    if window and window.ShowMode then window.ShowMode() end
+    if not RPF.db.settings.chatWhispers and RPF.Whispers then RPF.Whispers.Hide() end
+    Chat.UpdateUnread()
+end
 
 RPF.Listen("DATA_READY", function()
     RPF.char.chatLog = RPF.char.chatLog or {}
@@ -1044,6 +1481,10 @@ RPF.Listen("THEME_CHANGED", function()
 end)
 
 RPF.AddCommand("chat", "Open or close the RP chat window", function() Chat.Toggle() end)
+RPF.AddCommand("clearchat", "Clear the RP chat log", function()
+    Chat.ClearLog()
+    RPF.Print("RP chat log cleared.")
+end)
 
 BINDING_HEADER_RPFORGE = "RP Forge"
 BINDING_NAME_RPFORGE_TOGGLE_CHAT = "Open or close RP chat"

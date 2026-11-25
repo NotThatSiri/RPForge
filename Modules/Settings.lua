@@ -19,45 +19,11 @@ UI.RegisterSettingsPage({
         network:SetPoint("TOPLEFT", 0, -4)
         network:SetPoint("RIGHT", page, "RIGHT", 0, 0)
 
-        local typing = UI.Toggle(page, "Typing indicator",
-            "Shows \"Kiri is typing...\" when RP Forge users near you or in your group are writing: in the RP chat, "
-                .. "or in a small bar under the chat while it's closed. Lets them see when you type too (RP chat, say, "
-                .. "emote, party and raid).",
-            function() return RPF.db.settings.typingIndicator ~= false end,
-            function(on) RPF.db.settings.typingIndicator = on end)
-        typing:SetPoint("TOPLEFT", network, "BOTTOMLEFT", 0, -16)
-        typing:SetPoint("RIGHT", page, "RIGHT", 0, 0)
-
-        local group = UI.Toggle(page, "Party and raid in RP chat",
-            "The RP chat window also shows what your party and raid write.",
-            function() return RPF.db.settings.chatGroup == true end,
-            function(on) RPF.db.settings.chatGroup = on end)
-        group:SetPoint("TOPLEFT", typing, "BOTTOMLEFT", 0, -16)
-        group:SetPoint("RIGHT", page, "RIGHT", 0, 0)
-
-        local whispers = UI.Toggle(page, "Whispers in RP chat",
-            "The RP chat window also shows whispers you get and send.",
-            function() return RPF.db.settings.chatWhispers == true end,
-            function(on) RPF.db.settings.chatWhispers = on end)
-        whispers:SetPoint("TOPLEFT", group, "BOTTOMLEFT", 0, -16)
-        whispers:SetPoint("RIGHT", page, "RIGHT", 0, 0)
-
-        local button = UI.Toggle(page, "RP button on the chat",
-            "A small \"RP\" button above the General chat tab that opens and closes the RP chat.",
-            function() return RPF.db.settings.chatButton ~= false end,
-            function(on)
-                RPF.db.settings.chatButton = on
-                local chat = RPF.GetModule("RPChat")
-                if chat and chat.UpdateChatButton then chat.UpdateChatButton() end
-            end)
-        button:SetPoint("TOPLEFT", whispers, "BOTTOMLEFT", 0, -16)
-        button:SetPoint("RIGHT", page, "RIGHT", 0, 0)
-
         local debug = UI.Toggle(page, "Debug messages",
             "Prints extra details and errors in chat. Useful when something isn't working.",
             function() return RPF.db.settings.debug end,
             function(on) RPF.db.settings.debug = on end)
-        debug:SetPoint("TOPLEFT", button, "BOTTOMLEFT", 0, -16)
+        debug:SetPoint("TOPLEFT", network, "BOTTOMLEFT", 0, -16)
         debug:SetPoint("RIGHT", page, "RIGHT", 0, 0)
 
         local trpLabel = UI.Text(page, "TOTAL RP 3", 10, "muted")

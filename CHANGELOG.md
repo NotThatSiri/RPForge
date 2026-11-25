@@ -2,6 +2,58 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.29] - 2026-11-25
+
+### Changed
+- **Right-click a message to copy it** (it was a left-click), in the RP chat and the Whispers window.
+
+### Fixed
+- Links in messages (items, spells, quests, players) can be clicked again, as in the game's chat:
+  click to open, Shift-click to put it in your chat box. Pointing at an item shows its tooltip.
+
+## [0.3.28] - 2026-11-25
+
+### Added
+- **Whispers window.** With "Whispers window" on (Settings > Chat), whispers you get and send go to their
+  own window, one tab per person:
+  - Click a tab to read and answer. Right-click it to clear or close that conversation. Tabs that don't fit
+    are under "More".
+  - /w Name and /r in the RP chat box (or in the Whispers window) open the right tab. "/w Kiri Stormcrest
+    hello" sends "hello" straight away. Name suggestions work in both boxes.
+  - New whispers put a dot on the RP button by the game's chat (a click then opens the Whispers window) and
+    a count in the RP chat's title ("Whispers (2)", click to open).
+  - Whispers are kept per character, so they survive a reload.
+- **Clear the chat log:** "Clear" in the RP chat title, "Clear" in the Whispers window (this conversation,
+  or all whispers), the buttons in Settings > Chat, or /rpf clearchat. Each asks once more first.
+- /rpf whispers opens or closes the Whispers window.
+
+### Changed
+- Whispers no longer show in the RP chat window. The setting is now called "Whispers window".
+- The cogwheel on the RP chat opens Settings > Chat.
+
+## [0.3.27] - 2026-11-25
+
+### Added
+- **Name suggestions for /w** in the RP chat box, like the game's chat. Names show up as you type, newest
+  first: people you whispered with, your target, your group, online friends and guild, and people in the
+  RP chat. Up and Down pick a name; Tab, Enter or a click takes it.
+
+### Fixed
+- /w works with first and last names. The name ends where a name RP Forge knows ends ("/w Kiri Stormcrest
+  well met"). For a name it doesn't know, type the whole name and press Enter.
+
+## [0.3.26] - 2026-11-25
+
+### Added
+- **Write to your party, raid and whispers from the RP chat box**, like the game's chat:
+  - /p and /ra for party and raid (with "Party and raid in RP chat" on).
+  - /w Name to whisper someone, and /r to answer the last whisper (with "Whispers in RP chat" on).
+  - The box shows where it sends ("Party:", "To Kiri:") in that chat colour, and stays there until you
+    switch with /s, /e or /y. Party and raid go back to Say when you leave the group.
+  - Typing in party or raid tells your group you're typing. Typing a whisper tells no one.
+- **Chat tab in Settings.** The RP chat layout, typing indicator, party and raid, whispers and the RP button
+  have moved there from General and Appearance, with a list of the commands you can use in the box.
+
 ## [0.3.25] - 2026-11-25
 
 ### Added
