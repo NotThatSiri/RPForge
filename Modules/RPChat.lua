@@ -364,6 +364,16 @@ local GROUP_MODES = { PARTY = true, RAID = true }
 
 local whisperTo        -- while set, the box whispers this person (until you switch with /s and so on)
 local lastWhisperFrom  -- the last person who whispered you, for /r
+local recentWhispers = {} -- people you whispered with lately, newest first (for /w suggestions)
+
+local function RememberWhisper(name)
+    if type(name) ~= "string" or RPF.IsSecret(name) or name == "" then return end
+    for i = #recentWhispers, 1, -1 do
+        if recentWhispers[i]:lower() == name:lower() then table.remove(recentWhispers, i) end
+    end
+    table.insert(recentWhispers, 1, name)
+    while #recentWhispers > 10 do table.remove(recentWhispers) end
+end
 
 -- The mode the box sends in right now, and for a whisper to whom. Party and raid fall back to Say when
 -- you aren't in a group (and come back when you are); a whisper ends when whispers are turned off.
@@ -386,9 +396,32 @@ local function SwitchHint()
     return list .. " to switch. Shift+Enter: new line."
 end
 
+-- Names have a space in them (first and last name), so a whisper's name ends where a name you know ends:
+-- "/w Kiri Stormcrest hello" whispers Kiri Stormcrest "hello" once that name has been seen (whispers,
+-- group, friends, guild, RP chat). While you type, it waits as long as a longer known name could still
+-- follow. A name it doesn't know: type all of it and press Enter.
+local function MatchWhisperName(rest, sending)
+    local lower = rest:lower()
+    local best, longer = nil, false
+    for _, item in ipairs(Chat.WhisperSuggestions("", 200)) do
+        local key = item.name:lower()
+        if lower:sub(1, #key + 1) == key .. " " or (sending and lower == key) then
+            if not best or #key > #best then best = item.name end
+        elseif #key > #lower and key:sub(1, #lower) == lower then
+            longer = true
+        end
+    end
+    if sending then
+        if best then return best, rest:sub(#best + 2) end
+        local name = strtrim(rest)
+        if name ~= "" then return name, "" end
+        return
+    end
+    if best and not longer then return best, rest:sub(#best + 2) end
+end
+
 -- A command at the start of the text: returns the mode ("REPLY" for /r), whom to whisper, and the text
--- after it. Nothing when there's no command (or not a finished one yet: "/w Kiri" needs the space after
--- the name, unless sending).
+-- after it. Nothing when there's no command (or the name after /w isn't finished yet, see above).
 local function ParseCommand(text, sending)
     if text:sub(1, 1) ~= "/" then return end
     local lower = text:lower()
@@ -403,7 +436,7 @@ local function ParseCommand(text, sending)
     end
     for _, prefix in ipairs(WHISPER_COMMANDS) do
         if lower:sub(1, #prefix) == prefix then
-            local name, rest = text:sub(#prefix + 1):match(sending and "^(%S+)%s*(.*)$" or "^(%S+)%s(.*)$")
+            local name, rest = MatchWhisperName(text:sub(#prefix + 1), sending)
             if name then return "WHISPER", name, rest end
             return
         end
@@ -439,6 +472,57 @@ local function SwitchMode(mode, target)
     whisperTo = nil
     RPF.db.settings.chatMode = mode
     return true
+end
+
+-- "/w Kiri St" (a whisper command with the name being typed): returns the command and the name so far.
+local function WhisperPartial(text)
+    if not RPF.db.settings.chatWhispers then return end
+    local lower = text:lower()
+    for _, prefix in ipairs(WHISPER_COMMANDS) do
+        if lower:sub(1, #prefix) == prefix then return prefix, text:sub(#prefix + 1) end
+    end
+end
+
+-- Names for /w that start with what you typed, like the game's chat suggests: people you whispered with,
+-- your group, online friends and guild, and people in the RP chat. Each with where it came from.
+local MAX_SUGGESTIONS = 8
+function Chat.WhisperSuggestions(partial, max)
+    partial = (partial or ""):lower()
+    max = max or MAX_SUGGESTIONS
+    local list, seen = {}, {}
+    local me, myName = (UnitName("player") or ""):lower(), (RPF.PlayerName("player") or ""):lower()
+    local function Add(name, from)
+        if #list >= max or type(name) ~= "string" or RPF.IsSecret(name) or name == "" then return end
+        local short = Ambiguate and Ambiguate(name, "none") or name
+        local key = short:lower()
+        if seen[key] or key == me or key == myName or key:sub(1, #partial) ~= partial then return end
+        seen[key] = true
+        list[#list + 1] = { name = short, from = from }
+    end
+    for _, name in ipairs(recentWhispers) do Add(name, "whispered") end
+    for _, unit in ipairs({ "target", "mouseover" }) do Add(RPF.PlayerName(unit), unit) end
+    local raid = IsInRaid()
+    for i = 1, (GetNumGroupMembers and GetNumGroupMembers() or 0) do
+        Add(RPF.PlayerName((raid and "raid" or "party") .. i), raid and "raid" or "party")
+    end
+    if C_FriendList and C_FriendList.GetNumFriends then
+        for i = 1, C_FriendList.GetNumFriends() or 0 do
+            local info = C_FriendList.GetFriendInfoByIndex(i)
+            if info and info.connected then Add(info.name, "friend") end
+        end
+    end
+    if IsInGuild and IsInGuild() and GetNumGuildMembers then
+        for i = 1, GetNumGuildMembers() or 0 do
+            local name, _, _, _, _, _, _, _, online = GetGuildRosterInfo(i)
+            if online then Add(name, "guild") end
+        end
+    end
+    for i = #messages, 1, -1 do
+        local msg = messages[i]
+        if msg.guid ~= UnitGUID("player") then Add(msg.sender, "RP chat") end
+        if msg.target and msg.kind == "WHISPER_INFORM" then Add(msg.target, "whispered") end
+    end
+    return list
 end
 
 -- What the typing indicator says about the box: group modes go to the group, whispers send nothing.
@@ -863,12 +947,112 @@ local function Build()
         window.parts:SetText(count > 1 and (count .. " posts") or "")
     end
     ShowMode()
+
+    -- Name suggestions for /w, above the box: Up and Down pick, Tab or Enter (or a click) takes one.
+    local suggest = UI.Panel(window, "panel", "accent")
+    suggest:SetFrameStrata("DIALOG")
+    suggest:SetPoint("BOTTOMLEFT", input, "TOPLEFT", 0, 22)
+    suggest:SetWidth(220)
+    suggest:Hide()
+    suggest.rows = {}
+    suggest.items = {}
+    suggest.selected = 1
+    local function SuggestRow(i)
+        local row = suggest.rows[i]
+        if row then return row end
+        row = CreateFrame("Button", nil, suggest)
+        row:SetHeight(18)
+        row:SetPoint("TOPLEFT", 4, -4 - (i - 1) * 18)
+        row:SetPoint("RIGHT", suggest, "RIGHT", -4, 0)
+        row.band = row:CreateTexture(nil, "BACKGROUND")
+        row.band:SetTexture(UI.WHITE)
+        row.band:SetAllPoints()
+        row.name = UI.Text(row, "", 12, "text")
+        row.name:SetPoint("LEFT", 6, 0)
+        row.from = UI.Text(row, "", 10, "muted", "RIGHT")
+        row.from:SetPoint("RIGHT", -6, 0)
+        row:SetScript("OnEnter", function(self)
+            suggest.selected = self.index
+            suggest.Paint()
+        end)
+        row:SetScript("OnClick", function(self) suggest.Take(self.index) end)
+        suggest.rows[i] = row
+        return row
+    end
+    function suggest.Paint()
+        local accent = UI.Color("accent")
+        for i, row in ipairs(suggest.rows) do
+            row.band:SetVertexColor(accent[1], accent[2], accent[3], i == suggest.selected and 0.25 or 0)
+        end
+    end
+    -- Show the names that match what's typed after /w, or hide the list.
+    function suggest.Update()
+        local _, partial = WhisperPartial(box:GetText() or "")
+        local items = partial and Chat.WhisperSuggestions(partial) or {}
+        suggest.items = items
+        if #items == 0 or not box:HasFocus() then
+            suggest:Hide()
+            return
+        end
+        if suggest.selected > #items then suggest.selected = 1 end
+        for i, row in ipairs(suggest.rows) do row:SetShown(i <= #items) end
+        for i, item in ipairs(items) do
+            local row = SuggestRow(i)
+            row.index = i
+            row.name:SetText(item.name)
+            row.from:SetText(item.from)
+            row:Show()
+        end
+        suggest:SetHeight(8 + #items * 18)
+        suggest.Paint()
+        suggest:Show()
+    end
+    -- Whisper the chosen name: the box switches to "To Name:" and is ready for the message.
+    function suggest.Take(index)
+        local item = suggest.items[index or suggest.selected]
+        suggest:Hide()
+        if not item then return end
+        if SwitchMode("WHISPER", item.name) then
+            ShowMode()
+            box:SetText("")
+            box:SetFocus()
+        end
+    end
+    window.suggest = suggest
+
     box:SetScript("OnEditFocusGained", ShowMode)
-    box:SetScript("OnEditFocusLost", ShowMode)
-    box:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+    box:SetScript("OnEditFocusLost", function()
+        ShowMode()
+        -- Later, so a click on a name still lands.
+        C_Timer.After(0.2, function() if not box:HasFocus() then suggest:Hide() end end)
+    end)
+    box:SetScript("OnEscapePressed", function(self)
+        if suggest:IsShown() then
+            suggest:Hide()
+            return
+        end
+        self:ClearFocus()
+    end)
+    box:SetScript("OnTabPressed", function()
+        if suggest:IsShown() then suggest.Take() end
+    end)
+    box:SetScript("OnArrowPressed", function(self, key)
+        if not suggest:IsShown() or (key ~= "UP" and key ~= "DOWN") then return end
+        local count = #suggest.items
+        -- The list is above the box, so Up goes up the list (the last name is nearest the box).
+        suggest.selected = (suggest.selected - 1 + (key == "UP" and -1 or 1)) % count + 1
+        suggest.Paint()
+        -- The arrow also moved the cursor: put it back at the end of the name.
+        local length = #(self:GetText() or "")
+        C_Timer.After(0, function() self:SetCursorPosition(length) end)
+    end)
     box:SetScript("OnEnterPressed", function(self)
         if IsShiftKeyDown() then
             self:Insert("\n")
+            return
+        end
+        if suggest:IsShown() then
+            suggest.Take()
             return
         end
         SendFromBox(self)
@@ -897,6 +1081,7 @@ local function Build()
         end
         placeholder:SetShown(text == "")
         window.UpdateCorner()
+        suggest.Update()
         -- Grow from 2 to 6 lines as you type.
         local lines = math.max(2, math.min(6, math.ceil((self:GetHeight() > 0 and select(2, text:gsub("\n", "")) + 1) or 1)))
         local _, fontHeight = self:GetFont()
@@ -1060,6 +1245,7 @@ local function OnChat(event, text, sender, language, _, _, _, _, _, _, _, _, gui
     if not RPF.char then return end
     local kind = EVENTS[event]
     if kind == "WHISPER" and type(sender) == "string" and not RPF.IsSecret(sender) then lastWhisperFrom = sender end
+    if kind == "WHISPER" or kind == "WHISPER_INFORM" then RememberWhisper(sender) end
     if KIND_SETTING[kind] and not RPF.db.settings[KIND_SETTING[kind]] then return end
     local msg = { at = time(), kind = kind, sender = sender, guid = guid, text = text, language = language }
     if kind == "WHISPER_INFORM" then

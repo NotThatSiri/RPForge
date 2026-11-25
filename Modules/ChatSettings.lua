@@ -69,6 +69,8 @@ UI.RegisterSettingsPage({
             "/s say    /e emote    /y yell\n"
                 .. "/p party    /ra raid    (with party and raid on)\n"
                 .. "/w Name whisper    /r answer the last whisper    (with whispers on)\n"
+                .. "After /w, names you know show up as you type: Up and Down pick, Tab or Enter takes one. For a name\n"
+                .. "it doesn't know, type the whole name (first and last) and press Enter.\n"
                 .. "The box stays on what you picked until you switch again.", 11, "text")
         commands:SetPoint("TOPLEFT", commandsLabel, "BOTTOMLEFT", 0, -6)
         commands:SetPoint("RIGHT", page, "RIGHT", 0, 0)

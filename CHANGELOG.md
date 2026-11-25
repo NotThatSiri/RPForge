@@ -2,6 +2,17 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.27] - 2026-11-25
+
+### Added
+- **Name suggestions for /w** in the RP chat box, like the game's chat. Names show up as you type, newest
+  first: people you whispered with, your target, your group, online friends and guild, and people in the
+  RP chat. Up and Down pick a name; Tab, Enter or a click takes it.
+
+### Fixed
+- /w works with first and last names. The name ends where a name RP Forge knows ends ("/w Kiri Stormcrest
+  well met"). For a name it doesn't know, type the whole name and press Enter.
+
 ## [0.3.26] - 2026-11-25
 
 ### Added
