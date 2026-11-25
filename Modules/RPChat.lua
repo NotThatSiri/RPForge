@@ -924,7 +924,7 @@ end
 
 -- Button on the game's chat ------------------------------------------------------------------------------
 
--- A small "RP" button above the right end of the main chat window: opens and closes the RP chat.
+-- A small "RP" button above the General chat tab: opens and closes the RP chat.
 local chatButton
 function Chat.UpdateChatButton()
     local wanted = RPF.db.settings.chatButton ~= false and ChatFrame1 ~= nil
@@ -934,7 +934,12 @@ function Chat.UpdateChatButton()
     end
     if not chatButton then
         chatButton = UI.Button(UIParent, "RP", 30, 20)
-        chatButton:SetPoint("BOTTOMRIGHT", ChatFrame1, "TOPRIGHT", 2, 6)
+        -- Just above the General tab, clear of the tab row.
+        if ChatFrame1Tab then
+            chatButton:SetPoint("BOTTOMLEFT", ChatFrame1Tab, "TOPLEFT", 4, 2)
+        else
+            chatButton:SetPoint("BOTTOMLEFT", ChatFrame1, "TOPLEFT", 0, 30)
+        end
         chatButton:SetFrameStrata("MEDIUM")
         chatButton:SetScript("OnClick", function() Chat.Toggle() end)
         chatButton:HookScript("OnEnter", function(self)

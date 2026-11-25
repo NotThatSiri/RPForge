@@ -36,7 +36,7 @@ UI.RegisterSettingsPage({
         group:SetPoint("RIGHT", page, "RIGHT", 0, 0)
 
         local button = UI.Toggle(page, "RP button on the chat",
-            "A small \"RP\" button above the game's chat window that opens and closes the RP chat.",
+            "A small \"RP\" button above the General chat tab that opens and closes the RP chat.",
             function() return RPF.db.settings.chatButton ~= false end,
             function(on)
                 RPF.db.settings.chatButton = on

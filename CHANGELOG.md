@@ -2,6 +2,11 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.24] - 2026-11-25
+
+### Changed
+- The RP button sits above the General chat tab instead of in the row of tabs.
+
 ## [0.3.23] - 2026-11-25
 
 ### Fixed
