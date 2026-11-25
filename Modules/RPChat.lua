@@ -398,7 +398,7 @@ end
 -- Near you = people you can see (target, mouseover, group, nameplates) or heard in the last 10 minutes,
 -- and known to use RP Forge. Settings > General turns it off both ways.
 -- The game's own chat box does the same for say and emote, and for party and raid it goes to the group
--- ("1P" / "1R"; a letter after the 1 or 0 says where). With the RP chat window closed, a small bar under
+-- ("1P@<guid>": a letter after the 1 or 0 says where, then the sender's ID). With the RP chat closed, a bar under
 -- the chat shows who is typing.
 
 local TYPING_REPEAT = 6    -- seconds between "still typing" messages
@@ -452,7 +452,9 @@ local WHERE_CODE = { SAY = "S", EMOTE = "E", PARTY = "P", RAID = "R" }
 local WHERE_TEXT = { E = " an emote", P = " in party", R = " in raid" }
 
 local function SendTyping(state, where)
-    local payload = state .. (where and WHERE_CODE[where] or "")
+    -- Your character's ID goes along, so your own message coming back (party, raid) is never shown: names
+    -- can't be trusted for that on every client.
+    local payload = state .. (where and WHERE_CODE[where] or "") .. "@" .. (UnitGUID("player") or "")
     if where == "PARTY" or where == "RAID" then
         RPF.Comm.Send("T", payload, where)
         return
@@ -610,7 +612,11 @@ end
 RPF.Comm.On("T", function(payload, sender)
     if not TypingEnabled() then return end
     if type(payload) ~= "string" then return end
-    SomeoneTyping(sender, payload:sub(1, 1) == "1", payload:sub(2, 2))
+    local state, where, guid = payload:match("^([01])(%u?)@?(.*)$")
+    if not state then return end
+    if guid ~= "" and guid == UnitGUID("player") then return end
+    if ShortName(sender) == ShortName(UnitName("player") or "") then return end
+    SomeoneTyping(sender, state == "1", where)
 end)
 
 -- The window -----------------------------------------------------------------------------------------

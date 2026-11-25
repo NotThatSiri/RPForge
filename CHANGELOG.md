@@ -2,6 +2,12 @@
 
 All notable changes to RP Forge are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.3.23] - 2026-11-25
+
+### Fixed
+- You could see yourself as "typing" when you wrote in party or raid: your own message came back from the
+  group and your name didn't match. Typing messages now carry your character's ID, and your own are ignored.
+
 ## [0.3.22] - 2026-11-25
 
 ### Added
